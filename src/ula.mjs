@@ -4,6 +4,7 @@ export class ULA {
     this.mem = memory; // instance of Memory
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    console.log('[ULA] constructor: memory', memory, 'canvas', canvas, 'ctx', this.ctx);
 
     // Ensure canvas pixel size matches Spectrum bitmap
     this.canvas.width = 256;
@@ -118,9 +119,15 @@ export class ULA {
   render() {
     // Update flash timing
     this._updateFlash();
+    // DEBUG: log render call
+    // console.log('[ULA] render called');
 
-    const bitmap = this.mem.getBitmapView(); // 6912 bytes: arranged in Spectrum scanline order
-    const attrs = this.mem.getAttributeView(); // 768 bytes
+    const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null; // 6912 bytes: arranged in Spectrum scanline order
+    const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null; // 768 bytes
+    if (!bitmap || !attrs) {
+      console.warn('[ULA] render: missing bitmap or attrs', bitmap, attrs);
+      return;
+    }
     const width = 256;
     const height = 192;
     const img = this.image.data; // Uint8ClampedArray

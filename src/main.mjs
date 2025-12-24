@@ -15,6 +15,7 @@ export class Emulator {
     this.canvas = opts.canvas || document.getElementById('screen');
     this.statusEl = opts.statusEl || document.getElementById('status');
     this.romInput = opts.romInput || document.getElementById('romFile');
+    console.log('[Emulator] constructor: canvas', this.canvas, 'statusEl', this.statusEl, 'romInput', this.romInput);
 
     this.cpu = null;
     this.memory = null;
@@ -132,11 +133,14 @@ export class Emulator {
   }
 
   async _createCore(romBuffer = null) {
+    console.log('[Emulator] _createCore: romBuffer', romBuffer);
     this.memory = new Memory(romBuffer);
     this.cpu = new Z80(this.memory);
     this.memory.attachCPU(this.cpu);
     this.ula = new ULA(this.memory, this.canvas);
     this.sound = new Sound();
+  
+    console.log('[Emulator] _createCore: memory', this.memory, 'cpu', this.cpu, 'ula', this.ula);
 
     // Input wiring
     this.input.start();
@@ -146,6 +150,7 @@ export class Emulator {
 
     // initial render
     this.ula.render();
+    console.log('[Emulator] _createCore: initial render called');
   }
 
   async loadROM(arrayBuffer) {
@@ -168,8 +173,8 @@ export class Emulator {
   }
 
   start() {
-    if (!this.cpu || !this.memory) return;
-    if (this._running) return;
+    if (!this.cpu || !this.memory) { console.warn('[Emulator] start: CPU or memory missing'); return; }
+    if (this._running) { console.warn('[Emulator] start: already running'); return; }
     this._running = true;
     this._lastTime = performance.now();
     this._acc = 0;
@@ -202,6 +207,8 @@ export class Emulator {
 
   _loop(now) {
     if (!this._running) return;
+    // DEBUG: log loop entry
+    // console.log('[Emulator] _loop: running');
     const dt = now - this._lastTime;
     this._lastTime = now;
     this._acc += dt;
@@ -213,11 +220,17 @@ export class Emulator {
 
       // Run CPU for a full frame worth of t-states
       if (this.cpu && typeof this.cpu.runFor === 'function') {
+        // DEBUG: log CPU runFor
+        // console.log('[Emulator] _loop: cpu.runFor');
         this.cpu.runFor(TSTATES_PER_FRAME);
       }
 
       // ULA render
-      if (this.ula) this.ula.render();
+      if (this.ula) {
+        // DEBUG: log ULA render
+        // console.log('[Emulator] _loop: ula.render');
+        this.ula.render();
+      }
 
       // Optionally update sound using CPU tstates / port toggles (best-effort)
       // Sound integration requires CPU OUT implementation; here we provide a hook
@@ -275,6 +288,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Expose for console debugging
   window.emu = emu;
+  console.log('[Emulator] initialized and attached to window.emu');
 });
 
 export default Emulator;

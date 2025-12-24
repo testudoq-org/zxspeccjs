@@ -1,3 +1,4 @@
+// DEBUG: Memory module instrumentation
 export class Memory {
   // Page size and mask
   static PAGE_SIZE = 0x4000; // 16KB
@@ -228,6 +229,16 @@ export class Memory {
     let base = 0x4000;
     for (let i = 0; i < 0x1800; i++) out[i] = this.read(base + i);
     return out;
+  }
+
+  /** Return a direct view of the bitmap (0x4000..0x57FF = 6912 bytes) */
+  getBitmapView() {
+    // For 48K, flatRam is a 48K linear RAM view starting at 0x4000
+    if (this._flatRam && this._flatRam.length >= 0x1800) {
+      return new Uint8Array(this._flatRam.buffer, 0, 0x1800);
+    }
+    // fallback: create a copy
+    return this.exportScreenBitmap();
   }
 
   /** Return attribute area (0x5800..0x5AFF = 768 bytes) */

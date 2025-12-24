@@ -8,7 +8,8 @@
     "build": "rollup -c",
     "start": "npm run dev",
     "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev"
   },
   "devDependencies": {
     "http-server": "^14.1.1",

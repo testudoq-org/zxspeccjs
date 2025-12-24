@@ -18,62 +18,66 @@ ROM_REGISTRY.set('spec48', {
   memorySizeKB: 48,
   description: 'Sinclair Spectrum 48K (bundled spec48 module)',
   loader: async () => {
+    // Support new module shape: { id, name, category, size, bytes }
+    if (spec48?.bytes instanceof Uint8Array) {
+      return { metadata: { id: spec48.id, name: spec48.name, category: spec48.category, size: spec48.size }, rom: spec48.bytes };
+    }
+    // Fallback for legacy shape
     const mod = spec48?.default ? spec48.default : spec48;
-    // If the module exported raw bytes (Uint8Array) normalize to an object shape
     if (mod instanceof Uint8Array) return { metadata: { id: 'spec48' }, rom: mod };
     return mod;
   }
 });
 
 // Register placeholders that will attempt dynamic import when selected (fallbacks included)
-ROM_REGISTRY.set('spec16', {
-  id: 'spec16',
-  category: 'spectrum16-48',
-  model: '16k',
-  memorySizeKB: 16,
-  description: 'Spectrum 16K (placeholder - ROM not available)',
-  loader: async () => {
-    try {
-      const mod = await import('./roms/spec16.js');
-      return mod?.default || mod;
-    } catch (e) {
-      // fallback empty ROM
-      return { metadata: { id: 'spec16' }, rom: new Uint8Array(16384) };
-    }
-  }
-});
+// ROM_REGISTRY.set('spec16', {
+//   id: 'spec16',
+//   category: 'spectrum16-48',
+//   model: '16k',
+//   memorySizeKB: 16,
+//   description: 'Spectrum 16K (placeholder - ROM not available)',
+//   loader: async () => {
+//     try {
+//       const mod = await import('./roms/spec16.js');
+//       return mod?.default || mod;
+//     } catch (e) {
+//       // fallback empty ROM
+//       return { metadata: { id: 'spec16' }, rom: new Uint8Array(16384) };
+//     }
+//   }
+// });
 
-ROM_REGISTRY.set('spec128', {
-  id: 'spec128',
-  category: 'spectrum128-plus2',
-  model: '128k',
-  memorySizeKB: 128,
-  description: 'Spectrum 128K (placeholder - ROM not available)',
-  loader: async () => {
-    try {
-      const mod = await import('./roms/spec128.js');
-      return mod?.default || mod;
-    } catch (e) {
-      return { metadata: { id: 'spec128' }, rom: new Uint8Array(65536) };
-    }
-  }
-});
+// ROM_REGISTRY.set('spec128', {
+//   id: 'spec128',
+//   category: 'spectrum128-plus2',
+//   model: '128k',
+//   memorySizeKB: 128,
+//   description: 'Spectrum 128K (placeholder - ROM not available)',
+//   loader: async () => {
+//     try {
+//       const mod = await import('./roms/spec128.js');
+//       return mod?.default || mod;
+//     } catch (e) {
+//       return { metadata: { id: 'spec128' }, rom: new Uint8Array(65536) };
+//     }
+//   }
+// });
 
-ROM_REGISTRY.set('zx80', {
-  id: 'zx80',
-  category: 'zx80-81',
-  model: 'zx80',
-  memorySizeKB: 4,
-  description: 'ZX80 (placeholder - ROM not available)',
-  loader: async () => {
-    try {
-      const mod = await import('./roms/zx80.js');
-      return mod?.default || mod;
-    } catch (e) {
-      return { metadata: { id: 'zx80' }, rom: new Uint8Array(4096) };
-    }
-  }
-});
+// ROM_REGISTRY.set('zx80', {
+//   id: 'zx80',
+//   category: 'zx80-81',
+//   model: 'zx80',
+//   memorySizeKB: 4,
+//   description: 'ZX80 (placeholder - ROM not available)',
+//   loader: async () => {
+//     try {
+//       const mod = await import('./roms/zx80.js');
+//       return mod?.default || mod;
+//     } catch (e) {
+//       return { metadata: { id: 'zx80' }, rom: new Uint8Array(4096) };
+//     }
+//   }
+// });
 
 export function listRoms() {
   return Array.from(ROM_REGISTRY.values()).map(r => ({ ...r }));
