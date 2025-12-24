@@ -1,3 +1,5 @@
+﻿import spec48 from './roms/spec48.js';
+import romManager from './romManager.mjs';
 import { Loader } from './loader.mjs';
 import { Z80 } from './z80.mjs';
 import { Memory } from './memory.mjs';
@@ -43,6 +45,36 @@ export class Emulator {
 
     // Allow file input drag/drop helpers
     if (this.romInput) Loader.attachInput(this.romInput, (result, file) => this._onFileLoaded(result, file));
+
+    // ROM selector UI
+    try {
+      const sel = document.getElementById('rom-select');
+      if (sel) {
+        romManager.initRomSelector(sel, async (id) => {
+          try {
+            this.status(`loading ROM: ${id}...`);
+            const data = await romManager.loadRom(id);
+            // initialize core with ROM bytes and apply memory configuration
+            await this.loadROM(data.rom);
+            try { romManager.applyMemoryConfig(this.memory, data.metadata, data.rom); } catch (e) {}
+            this.status(`selected ROM: ${id}`);
+            this._selectedRom = id;
+          } catch (e) {
+            console.error('ROM load failed', e);
+            this.status('ROM load failed');
+          }
+        });
+      }
+    } catch (e) {}
+
+    // If a preloaded ROM is bundled, update UI to reflect default
+    try {
+      if (typeof spec48 !== 'undefined' && spec48) {
+        // indicate default ROM available; keep manual load as an override option
+        if (this.statusEl) this.statusEl.textContent = 'Status: default ROM (spec48) available';
+        if (loadBtn) loadBtn.textContent = 'Load (override default)';
+      }
+    } catch (e) {}
 
     // Virtual keyboard toggle (optional)
     try { this.input.createVirtualKeyboard('body'); } catch (e) {}
@@ -206,15 +238,44 @@ export class Emulator {
 }
 
 // Auto-initialize when DOM ready and wire UI elements
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   // Ensure required elements exist
   const canvas = document.getElementById('screen');
   if (!canvas) return;
 
   const emu = new Emulator({ canvas });
 
+  // Initialize ROM selector (UI) and wire selection handler
+  try {
+    romManager.initRomSelector('#rom-select', async (id) => {
+      try {
+        const data = await romManager.loadRom(id);
+        await emu.loadROM(data.rom);
+        try { romManager.applyMemoryConfig(emu.memory, data.metadata, data.rom); } catch (e) {}
+        emu.status(`selected ROM: ${id}`);
+      } catch (e) {
+        console.error('ROM selection failed', e);
+        emu.status('ROM selection failed');
+      }
+    });
+    const sel = document.getElementById('rom-select');
+    if (sel) sel.value = 'spec48';
+  } catch (e) {}
+
+  // Auto-load default preloaded ROM (spec48) if available
+  try {
+    if (typeof spec48 !== 'undefined' && spec48) {
+      await emu.loadROM(spec48);
+      emu.status('default ROM: spec48 loaded');
+    }
+  } catch (e) {
+    console.error('Failed to auto-load default ROM', e);
+    emu.status('default ROM load failed');
+  }
+
   // Expose for console debugging
   window.emu = emu;
 });
 
 export default Emulator;
+
