@@ -1,0 +1,21 @@
+{
+  "name": "zxspeccjs",
+  "version": "0.1.0",
+  "description": "ZX Spectrum emulator in browser (ES modules + Canvas + WebAudio)",
+  "type": "module",
+  "scripts": {
+    "dev": "http-server -c-1 -p 8080",
+    "build": "rollup -c",
+    "start": "npm run dev",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "rollup": "^3.26.3",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "vitest": "^1.3.0"
+  }
+}
