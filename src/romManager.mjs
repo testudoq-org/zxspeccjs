@@ -116,14 +116,25 @@ export async function loadRom(id) {
   return { metadata, rom: rom instanceof Uint8Array ? rom : new Uint8Array(rom) };
 }
 
-// Apply memory configuration based on ROM metadata. Expects memoryModule to expose configureBanks(config) and mapROM(buffer, offset)
 export function applyMemoryConfig(memoryModule, metadata, romBytes) {
   if (!memoryModule) throw new Error('memoryModule required');
   if (metadata?.memoryConfig) {
     if (typeof memoryModule.configureBanks === 'function') memoryModule.configureBanks(metadata.memoryConfig);
   }
+  // Prefer loadROM when available so the memory module can copy ROM bytes into its banks
+  if (typeof memoryModule.loadROM === 'function') {
+    try {
+      memoryModule.loadROM(romBytes, 0);
+    } catch (e) {
+      // If loadROM fails for any reason, fall back to mapping bank 0 (assumes ROM bank has been prepared)
+      if (typeof memoryModule.mapROM === 'function') memoryModule.mapROM(0);
+    }
+    return;
+  }
+  // Fallback: if the memory module supports direct mapping, map bank 0 (assumes ROM already present)
   if (typeof memoryModule.mapROM === 'function') {
-    memoryModule.mapROM(romBytes, 0);
+    // mapROM expects a bank index; ensure we call it with a numeric index
+    memoryModule.mapROM(0);
   }
 }
 

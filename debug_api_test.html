@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug API Test</title>
+</head>
+<body>
+    <h1>ZX Spectrum Debug API Test</h1>
+    <div id="debug-info"></div>
+    <script type="module">
+        import spec48 from './src/roms/spec48.js';
+        import { Emulator } from './src/main.mjs';
+        
+        const debugInfo = document.getElementById('debug-info');
+        
+        // Create emulator instance
+        const canvas = document.createElement('canvas');
+        canvas.id = 'screen';
+        document.body.appendChild(canvas);
+        
+        const emulator = new Emulator({ canvas });
+        
+        // Load ROM and start
+        await emulator.loadROM(spec48);
+        emulator.start();
+        
+        // Test debug API
+        setTimeout(() => {
+            console.log('Testing debug API...');
+            
+            // Check if debug objects exist
+            console.log('window.__ZX_DEBUG__:', window.__ZX_DEBUG__);
+            console.log('window.__LAST_PC__:', window.__LAST_PC__);
+            console.log('window.__ZX_STATE__:', window.__ZX_STATE__);
+            
+            // Test methods
+            if (window.__ZX_DEBUG__) {
+                console.log('getPC():', window.__ZX_DEBUG__.getPC());
+                console.log('getRegisters():', window.__ZX_DEBUG__.getRegisters());
+                console.log('isTestMode:', window.__ZX_DEBUG__.isTestMode);
+            }
+            
+            debugInfo.innerHTML = `
+                <h2>Debug API Status:</h2>
+                <pre>${JSON.stringify({
+                    debugObjectExists: !!window.__ZX_DEBUG__,
+                    lastPC: window.__LAST_PC__,
+                    pc: window.__ZX_DEBUG__?.getPC(),
+                    registers: window.__ZX_DEBUG__?.getRegisters(),
+                    testMode: window.__ZX_DEBUG__?.isTestMode
+                }, null, 2)}</pre>
+            `;
+        }, 2000);
+    </script>
+</body>
+</html>

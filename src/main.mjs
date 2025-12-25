@@ -30,7 +30,138 @@ export class Emulator {
     this._lastTime = 0;
     this._acc = 0;
 
+    // Debug API state
+    this._debugEnabled = true;
+    this._bootAddresses = [0x0000, 0x0001, 0x0002, 0x0005, 0x11CB];
+    this._portWrites = [];
+    this._executedOpcodes = [];
+    this._lastPC = 0;
+    this._bootComplete = false;
+
     this._bindUI();
+  }
+
+  // Debug API methods
+  getRegisters() {
+    if (!this.cpu) return null;
+    return {
+      A: this.cpu.A,
+      F: this.cpu.F,
+      B: this.cpu.B,
+      C: this.cpu.C,
+      D: this.cpu.D,
+      E: this.cpu.E,
+      H: this.cpu.H,
+      L: this.cpu.L,
+      PC: this.cpu.PC,
+      SP: this.cpu.SP,
+      IX: this.cpu.IX,
+      IY: this.cpu.IY,
+      IFF1: this.cpu.IFF1,
+      IFF2: this.cpu.IFF2,
+      IM: this.cpu.IM,
+      tstates: this.cpu.tstates
+    };
+  }
+
+  getPC() {
+    if (this.cpu) {
+      // Try multiple sources for maximum reliability
+      if (typeof window !== 'undefined' && window.__LAST_PC__ !== undefined) {
+        return window.__LAST_PC__;
+      }
+      return this.cpu.PC;
+    }
+    // Fallback for non-browser environments
+    return (typeof window !== 'undefined') ? (window.__LAST_PC__ || 0) : 0;
+  }
+  
+  // Enhanced method to get PC with fallback support
+  getCurrentPC() {
+    // Primary: window.__LAST_PC__ (most recent instruction executed)
+    if (typeof window !== 'undefined' && window.__LAST_PC__ !== undefined) {
+      return window.__LAST_PC__;
+    }
+    
+    // Secondary: CPU's fallback PC (for non-browser environments)
+    if (this.cpu && this.cpu._fallbackPC !== undefined) {
+      return this.cpu._fallbackPC;
+    }
+    
+    // Tertiary: Direct CPU PC (may be ahead of last executed instruction)
+    if (this.cpu) {
+      return this.cpu.PC;
+    }
+    
+    // Last resort: 0
+    return 0;
+  }
+
+  getAF() {
+    return this.cpu ? this.cpu._getAF() : 0;
+  }
+
+  getBC() {
+    return this.cpu ? this.cpu._getBC() : 0;
+  }
+
+  getDE() {
+    return this.cpu ? this.cpu._getDE() : 0;
+  }
+
+  getHL() {
+    return this.cpu ? this.cpu._getHL() : 0;
+  }
+
+  peekMemory(address, length = 1) {
+    if (!this.memory) return null;
+    const result = [];
+    for (let i = 0; i < length; i++) {
+      result.push(this.memory.read((address + i) & 0xffff));
+    }
+    return result;
+  }
+
+  readROM(address) {
+    if (!this.memory) return null;
+    return this.memory.read(address & 0xffff);
+  }
+
+  readRAM(address) {
+    if (!this.memory) return null;
+    return this.memory.read(address & 0xffff);
+  }
+
+  getPortWrites() {
+    return this._portWrites;
+  }
+
+  getLastPortWrite() {
+    return this._portWrites.length > 0 ? this._portWrites[this._portWrites.length - 1] : null;
+  }
+
+  _trackPortWrite(port, value) {
+    if (this._debugEnabled) {
+      this._portWrites.push({ port, value, tstates: this.cpu ? this.cpu.tstates : 0 });
+    }
+  }
+
+  _trackOpcodeExecution(opcode, pc) {
+    if (this._debugEnabled) {
+      this._executedOpcodes.push(`0x${opcode.toString(16).padStart(2, '0')} at 0x${pc.toString(16).padStart(4, '0')}`);
+      this._lastPC = pc;
+      
+      // Track boot progression
+      if (this._bootAddresses.includes(pc)) {
+        // console.log(`[DEBUG] Boot address 0x${pc.toString(16).padStart(4, '0')} reached`);
+      }
+      
+      // Check for boot completion (at final boot address)
+      if (pc === 0x11CB) {
+        this._bootComplete = true;
+        // console.log('[DEBUG] Boot sequence complete');
+      }
+    }
   }
 
   _bindUI() {
@@ -136,10 +267,52 @@ export class Emulator {
     console.log('[Emulator] _createCore: romBuffer', romBuffer);
     this.memory = new Memory(romBuffer);
     this.cpu = new Z80(this.memory);
+    
+    // Set debug callback for instruction tracking
+    if (this._debugEnabled) {
+      this.cpu.debugCallback = (opcode, pc) => {
+        // CRITICAL: Use the PC value passed to callback (current instruction address)
+        // NOT this.cpu.PC which would be the NEXT instruction address
+        this._trackOpcodeExecution(opcode, pc);
+        if (typeof window !== 'undefined') {
+          window.__LAST_PC__ = pc; // Use the actual instruction PC, not the next one
+        }
+      };
+      // Enable verbose debugging for tests
+      this.cpu._debugVerbose = true;
+    }
+    
     this.memory.attachCPU(this.cpu);
     this.ula = new ULA(this.memory, this.canvas);
     this.sound = new Sound();
-  
+    
+    // Create IO adapter to connect CPU port I/O to ULA and Sound modules
+    const ioAdapter = {
+      write: (port, value, tstates) => {
+        // Track port write for debug API
+        this._trackPortWrite(port, value);
+        
+        // Route port 0xFE to ULA for border control
+        if ((port & 0xFF) === 0xFE) {
+          this.ula.writePort(port, value);
+        }
+        // Route other ports to sound if needed
+        if (this.sound && typeof this.sound.writePort === 'function') {
+          this.sound.writePort(port, value, tstates);
+        }
+      },
+      read: (port) => {
+        // Route port 0xFE to ULA for keyboard reading
+        if ((port & 0xFF) === 0xFE) {
+          return this.ula.readPort(port);
+        }
+        return 0xFF; // Default for unhandled ports
+      }
+    };
+    
+    this.cpu.io = ioAdapter;
+    console.log('[Emulator] _createCore: connected CPU io adapter for port 0xFE border control');
+
     console.log('[Emulator] _createCore: memory', this.memory, 'cpu', this.cpu, 'ula', this.ula);
 
     // Input wiring
@@ -180,22 +353,79 @@ export class Emulator {
     this._acc = 0;
     this.status('running');
     this._loop = this._loop.bind(this);
-    this._rafId = requestAnimationFrame(this._loop);
+    
+    // Headless browser compatibility: use setTimeout fallback if requestAnimationFrame fails
+    try {
+      this._rafId = requestAnimationFrame(this._loop);
+      // Test if requestAnimationFrame is actually working
+      setTimeout(() => {
+        if (this._running && !this._fallbackUsed) {
+          // Check if we're actually getting frame callbacks
+          const currentTime = performance.now();
+          if (currentTime - this._lastTime > 100) { // No frames for 100ms
+            this._useTimeoutFallback();
+          }
+        }
+      }, 200);
+    } catch (e) {
+      console.warn('[Emulator] requestAnimationFrame failed, using setTimeout fallback:', e);
+      this._useTimeoutFallback();
+    }
+  }
+  
+  _useTimeoutFallback() {
+    if (this._fallbackUsed) return;
+    this._fallbackUsed = true;
+    console.log('[Emulator] Using setTimeout fallback for headless browser compatibility');
+    
+    const fallbackLoop = () => {
+      if (!this._running) return;
+      const now = performance.now();
+      this._loop(now);
+      // Use 16ms timeout (approximately 60fps) for smooth emulation
+      this._rafId = setTimeout(fallbackLoop, 16);
+    };
+    
+    fallbackLoop();
   }
 
   pause() {
     if (!this._running) return;
     this._running = false;
-    if (this._rafId) cancelAnimationFrame(this._rafId);
+    if (this._rafId) {
+      if (this._fallbackUsed) {
+        clearTimeout(this._rafId);
+      } else {
+        cancelAnimationFrame(this._rafId);
+      }
+    }
     this._rafId = null;
     this.status('paused');
   }
 
   reset() {
     if (!this.memory || !this.cpu) return;
+    
+    // Clear debug state first to prevent race conditions
+    this._resetDebugState();
+    
     this.memory.reset();
     this.cpu.reset();
     if (this.romBuffer) this.memory.loadROM(this.romBuffer);
+    
+    // Re-initialize debug hooks after CPU reset
+    if (this._debugEnabled && this.cpu) {
+      this.cpu.debugCallback = (opcode, pc) => {
+        // CRITICAL: Use the PC value passed to callback (current instruction address)
+        this._trackOpcodeExecution(opcode, pc);
+        if (typeof window !== 'undefined') {
+          window.__LAST_PC__ = pc; // Use the actual instruction PC, not the next one
+        }
+      };
+      // Enable verbose debugging for tests
+      this.cpu._debugVerbose = true;
+    }
+    
     // clear ULA flash/timers
     if (this.ula) {
       this.ula.flashState = false;
@@ -203,6 +433,24 @@ export class Emulator {
       this.ula.render();
     }
     this.status('reset');
+  }
+
+  _resetDebugState() {
+    this._portWrites = [];
+    this._executedOpcodes = [];
+    this._lastPC = 0;
+    this._bootComplete = false;
+    if (typeof window !== 'undefined') {
+      window.__LAST_PC__ = 0;
+      // Clear PC watcher history
+      if (window.__PC_WATCHER__) {
+        window.__PC_WATCHER__.history = [];
+      }
+      // Reset CPU boot tracking
+      if (this.cpu && this.cpu._visitedBootAddresses) {
+        this.cpu._visitedBootAddresses.clear();
+      }
+    }
   }
 
   _loop(now) {
@@ -220,8 +468,6 @@ export class Emulator {
 
       // Run CPU for a full frame worth of t-states
       if (this.cpu && typeof this.cpu.runFor === 'function') {
-        // DEBUG: log CPU runFor
-        // console.log('[Emulator] _loop: cpu.runFor');
         this.cpu.runFor(TSTATES_PER_FRAME);
       }
 
@@ -277,9 +523,20 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Auto-load default preloaded ROM (spec48) if available
   try {
-    if (typeof spec48 !== 'undefined' && spec48) {
-      await emu.loadROM(spec48);
+    if (typeof spec48 !== 'undefined' && spec48 && spec48.bytes) {
+      console.log('[Emulator] Auto-loading spec48 ROM:', spec48.bytes.length, 'bytes');
+      console.log('[Emulator] spec48 first 10 bytes:', Array.from(spec48.bytes.slice(0, 10)));
+      
+      // FIXED: Initialize core first, then load ROM properly
+      console.log('[Emulator] Creating core and loading ROM');
+      
+      // Create core with spec48 ROM
+      await emu.loadROM(spec48.bytes);
+      
+      console.log('[Emulator] ROM load completed, CPU PC:', emu.cpu.PC);
       emu.status('default ROM: spec48 loaded');
+    } else {
+      console.log('[Emulator] spec48 not available for auto-loading');
     }
   } catch (e) {
     console.error('Failed to auto-load default ROM', e);
@@ -288,7 +545,80 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Expose for console debugging
   window.emu = emu;
-  console.log('[Emulator] initialized and attached to window.emu');
+  
+  // Expose spec48 ROM data globally for test access
+  if (typeof spec48 !== 'undefined' && spec48) {
+    window.spec48 = spec48;
+    console.log('[Emulator] Exposed spec48 to window.spec48');
+  }
+  
+  // Expose debug API with enhanced reliability
+  window.__ZX_DEBUG__ = {
+    getRegisters: () => emu.getRegisters(),
+    getPC: () => emu.getPC(),
+    getCurrentPC: () => emu.getCurrentPC(), // Enhanced PC getter with fallbacks
+    getAF: () => emu.getAF(),
+    getBC: () => emu.getBC(),
+    getDE: () => emu.getDE(),
+    getHL: () => emu.getHL(),
+    peekMemory: (address, length) => emu.peekMemory(address, length),
+    readROM: (address) => emu.readROM(address),
+    readRAM: (address) => emu.readRAM(address),
+    getPortWrites: () => emu.getPortWrites(),
+    getLastPortWrite: () => emu.getLastPortWrite(),
+    portWrites: emu._portWrites,
+    executedOpcodes: emu._executedOpcodes,
+    bootComplete: () => emu._bootComplete,
+    isTestMode: true,
+    timing: {
+      tstates: emu.cpu ? emu.cpu.tstates : 0,
+      framesExecuted: Math.floor((emu.cpu ? emu.cpu.tstates : 0) / 69888)
+    },
+    // Enhanced reliability features
+    getLastPC: () => {
+      return window.__LAST_PC__ || (emu.cpu ? emu.cpu.PC : 0);
+    },
+    getPCHistory: () => {
+      return window.__PC_WATCHER__ ? window.__PC_WATCHER__.history.slice() : [];
+    },
+    getBootProgress: () => {
+      if (!emu.cpu) return { visited: [], complete: false };
+      const visited = Array.from(emu.cpu._visitedBootAddresses || []);
+      return {
+        visited,
+        complete: emu._bootComplete,
+        totalAddresses: emu.cpu._bootAddresses?.length || 5
+      };
+    }
+  };
+  
+  // Expose legacy global for compatibility
+  window.__LAST_PC__ = 0;
+  
+  // Initialize PC watcher for reliable debug tracking
+  window.__PC_WATCHER__ = { history: [] };
+  
+  window.__ZX_STATE__ = {
+    booted: () => emu._bootComplete,
+    registers: () => emu.getRegisters()
+  };
+  
+  // Enhanced debug API with boot completion detection
+  window.__ZX_DEBUG__.bootComplete = () => {
+    return emu._bootComplete;
+  };
+  
+  // Add boot sequence monitoring to debug API
+  window.__ZX_DEBUG__.getBootProgress = () => {
+    if (!emu.cpu) return { visited: [], complete: false };
+    const visited = Array.from(emu.cpu._visitedBootAddresses || []);
+    return {
+      visited,
+      complete: emu._bootComplete,
+      totalAddresses: emu.cpu._bootAddresses?.length || 5
+    };
+  };
+  console.log('[Emulator] initialized and attached to window.emu and window.__ZX_DEBUG__');
 });
 
 export default Emulator;

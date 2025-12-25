@@ -36,31 +36,61 @@ export class Memory {
     // optional CPU reference for applying tstate delays
     this.cpu = null;
 
-    // preload ROM(s) if provided
+    // configure banks for the selected model FIRST
+    this.configureBanks(this.model);
+
+    // preload ROM(s) if provided AFTER configuring banks
     const romBuf = options.romBuffer || null;
     if (romBuf) {
+      console.log('[Memory] Constructor: Loading ROM buffer, size:', romBuf.length || 'unknown');
       if (Array.isArray(romBuf)) {
-        romBuf.forEach((b, i) => this.loadROM(b, i));
+        // Handle both regular arrays and Uint8Array - load as single ROM
+        this.loadROM(romBuf, 0);
       } else {
         this.loadROM(romBuf, 0);
       }
     }
-
-    // configure banks for the selected model
-    this.configureBanks(this.model);
   }
 
   attachCPU(cpu) { this.cpu = cpu; }
 
   /** Load a 16KB ROM into romBanks[bank] (or extend banks) */
   loadROM(buffer, bank = 0) {
-    const src = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    console.log(`[Memory] loadROM called with buffer type: ${buffer.constructor.name}, length: ${buffer.length || 'unknown'}`);
+    
+    let src;
+    if (buffer instanceof Uint8Array) {
+      // If it's already a Uint8Array, use it directly
+      src = buffer;
+      console.log(`[Memory] Using existing Uint8Array, first 10 bytes:`, Array.from(src.slice(0, 10)));
+    } else {
+      // Otherwise, convert to Uint8Array
+      src = new Uint8Array(buffer);
+      console.log(`[Memory] Converted to Uint8Array, first 10 bytes:`, Array.from(src.slice(0, 10)));
+    }
+    
+    // Create a new ROM array and copy data properly
     const rom = new Uint8Array(Memory.PAGE_SIZE);
-    rom.fill(0xff);
-    rom.set(src.subarray(0, Math.min(src.length, Memory.PAGE_SIZE)));
+    
+    // Copy the ROM data using the proven working method from direct memory test
+    const bytesToCopy = Math.min(src.length, Memory.PAGE_SIZE);
+    console.log(`[Memory] Copying ${bytesToCopy} bytes from src to ROM array`);
+    for (let i = 0; i < bytesToCopy; i++) {
+      rom[i] = src[i];
+    }
+    
+    console.log(`[Memory] After copy, ROM first 10 bytes:`, Array.from(rom.slice(0, 10)));
+    
+    // Store the ROM bank
     this.romBanks[bank] = rom;
-    // ensure mapping uses this bank if requested
-    if (bank === this.currentRom) this.mapROM(bank);
+    
+    // CRITICAL FIX: Always update the page mapping to point to the new ROM
+    this.mapROM(bank);
+    
+    console.log(`[Memory] Loaded ROM into bank ${bank}, mapped to pages[0], first byte: 0x${this.romBanks[bank][0].toString(16).padStart(2, '0')}`);
+    
+    // Verify the mapping worked
+    console.log(`[Memory] Verification: pages[0][0] = ${this.pages[0][0]}`);
   }
 
   /** Map the visible ROM bank into address 0x0000-0x3FFF */
@@ -71,6 +101,7 @@ export class Memory {
     }
     this.currentRom = bankIndex;
     this.pages[0] = this.romBanks[bankIndex];
+    console.log(`[Memory] Mapped ROM bank ${bankIndex} to pages[0], first byte: 0x${this.romBanks[bankIndex][0].toString(16).padStart(2, '0')}`);
   }
 
   /** Configure banks based on model name */
