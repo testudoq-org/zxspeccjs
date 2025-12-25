@@ -4,7 +4,7 @@ test.describe('ROM Analysis Test', () => {
   test('analyze ROM contents at critical addresses', async ({ page }, testInfo) => {
     console.log('=== ROM Analysis Test ===');
     
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Wait for emulator to initialize
     await page.waitForTimeout(2000);

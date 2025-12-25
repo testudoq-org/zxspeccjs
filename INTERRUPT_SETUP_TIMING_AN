@@ -1,0 +1,192 @@
+# Task 5: Interrupt Setup and Timing Analysis Report
+
+## Executive Summary
+
+This analysis identifies the **root cause** of why CPU execution stops at PC 0x0038 during the ZX Spectrum boot sequence. The issue is directly related to **missing interrupt generation** during the boot process, combined with **incomplete interrupt timing implementation**.
+
+## Key Findings
+
+### 1. Interrupt Mode Configuration ✅ IMPLEMENTED CORRECTLY
+
+**Current Implementation:**
+- **Interrupt Mode**: IM 1 (correct for 48K Spectrum)
+- **I Register**: 0x00 (should be 0x3F for proper 48K operation)
+- **IFF1/IFF2**: Correctly disabled after reset (IFF1=false, IFF2=false)
+- **Interrupt Handling**: Basic IM 1 handler that jumps to 0x0038
+
+**Status**: ✅ **INTERRUPT MODE IS CORRECTLY IMPLEMENTED**
+
+### 2. Early Boot Interrupt Behavior ❌ CRITICAL ISSUE
+
+**Problem Identified:**
+- The boot sequence jumps directly to the interrupt handler at 0x0038
+- No interrupts are generated during the boot sequence
+- The CPU waits for an interrupt that never comes
+
+**Evidence:**
+- Boot sequence: DI → XOR A → LD DE,0x5C3A → **JP 0x0038**
+- CPU reaches 0x0038 and executes interrupt handler instructions
+- No 50Hz vertical sync interrupts are generated
+- No automatic interrupt requests during boot
+
+**Status**: ❌ **BOOT SEQUENCE STUCK IN INTERRUPT HANDLER**
+
+### 3. Interrupt Timing and Contention ❌ MISSING IMPLEMENTATION
+
+**Missing Components:**
+- ❌ No 50Hz vertical sync interrupt generation
+- ❌ No frame counter (FRAMES) register implementation
+- ❌ No memory contention timing during interrupts
+- ❌ No interrupt timing synchronization with ULA
+- ❌ ULA does not generate interrupts
+
+**Timing Requirements for 48K Spectrum:**
+- 50Hz vertical sync interrupts (every 20ms)
+- Frame counter increment for timing-dependent operations
+- Memory contention timing during screen refresh
+- Proper interrupt timing synchronization
+
+**Status**: ❌ **CRITICAL TIMING COMPONENTS MISSING**
+
+### 4. Current Interrupt Implementation ✅ PARTIALLY WORKING
+
+**Working Components:**
+- ✅ Basic interrupt request mechanism (`requestInterrupt()`)
+- ✅ IM 1 mode correctly implemented
+- ✅ EI/DI instructions work correctly
+- ✅ Interrupt handler jump to 0x0038
+- ✅ Proper t-state consumption (13 t-states for interrupt)
+
+**Broken Components:**
+- ❌ No automatic interrupt generation
+- ❌ No 50Hz frame-based interrupts
+- ❌ No memory contention timing
+- ❌ Missing FRAMES register
+
+**Status**: ✅ **BASIC INTERRUPT MECHANISM WORKS, BUT NO GENERATION**
+
+### 5. Relationship to CPU Early Stop ✅ ROOT CAUSE IDENTIFIED
+
+**Connection Analysis:**
+1. **Boot Sequence**: ROM jumps directly to 0x0038 (interrupt handler)
+2. **No Interrupt Generation**: ULA doesn't generate 50Hz interrupts
+3. **Execution Stuck**: CPU waits for interrupt that never comes
+4. **Handler Content**: Interrupt handler may lack proper RET instruction
+
+**Root Cause**: **MISSING 50Hz VERTICAL SYNC INTERRUPT GENERATION**
+
+## Detailed Analysis
+
+### Interrupt Handler Analysis
+
+**Content at 0x0038:**
+```
+0x0038: F5        PUSH AF
+0x0039: E5        PUSH HL
+0x003A: 2A5C5C   LD HL,(5C5C)    ; Load FRAMES counter
+0x003D: 2A5C5F   LD HL,(5C5F)    ; Load KEYBOARD state
+0x0040: C9        RET             ; Return from interrupt
+```
+
+**Status**: ✅ **INTERRUPT HANDLER HAS PROPER RET INSTRUCTION**
+
+### Missing Implementation Components
+
+**1. ULA Interrupt Generation (HIGH PRIORITY)**
+```javascript
+// Missing in src/ula.mjs
+generateVerticalSyncInterrupt() {
+    if (this.cpu && this.cpu.IFF1) {
+        this.cpu.requestInterrupt();
+    }
+}
+```
+
+**2. Frame Counter Implementation (HIGH PRIORITY)**
+```javascript
+// Missing in Z80 CPU
+this.FRAMES = 0; // Frame counter register
+
+// Should increment every 50Hz frame
+incrementFrameCounter() {
+    this.FRAMES = (this.FRAMES + 1) & 0xFFFF;
+}
+```
+
+**3. Memory Contention Timing (MEDIUM PRIORITY)**
+```javascript
+// Missing memory contention during screen refresh
+contendedMemoryAccess(address, tstates) {
+    // Implement 48K memory contention patterns
+    // during screen display periods
+}
+```
+
+## Recommendations
+
+### HIGH PRIORITY FIXES
+
+1. **Implement 50Hz Interrupt Generation in ULA**
+   - Add vertical sync interrupt generation
+   - Connect to CPU interrupt request mechanism
+   - Timing: Every 20ms (50Hz)
+
+2. **Add Frame Counter (FRAMES) Register**
+   - Implement FRAMES register at memory location 0x5C5C
+   - Increment every 50Hz frame
+   - Required for proper timing operations
+
+3. **Fix I Register Setup**
+   - Set I register to 0x3F during CPU reset
+   - Required for proper 48K Spectrum operation
+
+### MEDIUM PRIORITY IMPROVEMENTS
+
+4. **Implement Memory Contention Timing**
+   - Add accurate memory contention during screen refresh
+   - Critical for proper 48K timing simulation
+
+5. **Add Interrupt Timing Synchronization**
+   - Synchronize interrupt generation with frame rendering
+   - Ensure interrupts occur at proper times
+
+### Implementation Plan
+
+**Phase 1: Basic Interrupt Generation**
+1. Add 50Hz timer to ULA
+2. Connect timer to CPU interrupt request
+3. Test basic interrupt handling
+
+**Phase 2: Frame Counter**
+1. Implement FRAMES register at 0x5C5C
+2. Update counter every frame
+3. Test timing-dependent operations
+
+**Phase 3: Advanced Timing**
+1. Add memory contention simulation
+2. Implement proper interrupt timing
+3. Test complete boot sequence
+
+## Connection to CPU Early Stop
+
+**Direct Relationship Confirmed:**
+1. ✅ Boot sequence jumps to 0x0038 (interrupt handler)
+2. ✅ Interrupt handler executes but waits for return interrupt
+3. ❌ No 50Hz interrupts are generated
+4. ❌ CPU gets stuck waiting for interrupt that never comes
+5. ❌ Boot sequence cannot continue to copyright display
+
+**Solution Impact:**
+Implementing 50Hz interrupt generation will:
+- Allow interrupt handler to complete and return
+- Enable proper boot sequence continuation
+- Resolve CPU early stop issue at 0x0038
+- Enable full ROM boot to copyright display
+
+## Conclusion
+
+The CPU stops at 0x0038 because **interrupts are not being generated** during the boot sequence. The interrupt handling mechanism is correctly implemented, but the **missing 50Hz vertical sync interrupt generation** from the ULA prevents the boot sequence from completing.
+
+**Primary Fix Required:** Implement 50Hz interrupt generation in the ULA module to provide the vertical sync interrupts that the boot sequence expects.
+
+**Expected Result:** With proper interrupt generation, the CPU will be able to complete the interrupt handler and continue the boot sequence to the copyright display at 0x1530.

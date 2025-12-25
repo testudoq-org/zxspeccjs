@@ -6,6 +6,13 @@ export class ULA {
     this.ctx = canvas.getContext('2d');
     console.log('[ULA] constructor: memory', memory, 'canvas', canvas, 'ctx', this.ctx);
 
+    // CRITICAL: 50Hz interrupt generation for ZX Spectrum boot sequence
+    this.cpu = null; // Will be set by attachCPU()
+    this.frameCounter = 0; // FRAMES system variable at 0x5C5C
+    this.tstatesPerFrame = 69888; // ZX Spectrum 50Hz frame timing
+    this.tstatesInFrame = 0;
+    this.interruptEnabled = false; // Set to true when CPU enables interrupts
+
     // Ensure canvas pixel size matches Spectrum bitmap
     this.canvas.width = 256;
     this.canvas.height = 192;
@@ -49,6 +56,49 @@ export class ULA {
 
     // Initialize border colour on canvas background
     this._updateCanvasBorder();
+  }
+
+  // CRITICAL: Attach CPU for interrupt generation
+  attachCPU(cpu) {
+    this.cpu = cpu;
+  }
+
+  // CRITICAL: Update interrupt state based on CPU IFF flags
+  updateInterruptState() {
+    if (this.cpu) {
+      this.interruptEnabled = this.cpu.IFF1;
+    }
+  }
+
+  // CRITICAL: Generate 50Hz vertical sync interrupt
+  generateInterrupt(tstates) {
+    if (!this.cpu || !this.interruptEnabled) return;
+    
+    this.tstatesInFrame += tstates;
+    
+    // Generate interrupt at end of frame (69888 t-states)
+    if (this.tstatesInFrame >= this.tstatesPerFrame) {
+      this.tstatesInFrame -= this.tstatesPerFrame;
+      
+      // Increment frame counter (FRAMES system variable at 0x5C5C)
+      this.frameCounter = (this.frameCounter + 1) & 0xFFFFFFFF;
+      
+      // Store frame counter in memory
+      if (this.mem) {
+        this.mem.write(0x5C5C, this.frameCounter & 0xFF);
+        this.mem.write(0x5C5D, (this.frameCounter >> 8) & 0xFF);
+        this.mem.write(0x5C5E, (this.frameCounter >> 16) & 0xFF);
+        this.mem.write(0x5C5F, (this.frameCounter >> 24) & 0xFF);
+      }
+      
+      // Request interrupt from CPU
+      this.cpu.requestInterrupt();
+      
+      // DEBUG: Log interrupt generation for boot sequence
+      if (typeof console !== 'undefined' && console.log) {
+        console.log(`[ULA] Generated 50Hz interrupt #${this.frameCounter} at tstates ${this.cpu.tstates}`);
+      }
+    }
   }
 
   // Update canvas CSS background to reflect border colour

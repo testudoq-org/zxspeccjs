@@ -4,7 +4,7 @@ test.describe('CPU Step Diagnostic', () => {
   test('CPU should execute first instruction and advance PC', async ({ page }) => {
     console.log('=== CPU Step Diagnostic Test ===');
     
-    await page.goto('http://localhost:8081');
+    await page.goto('http://localhost:8080');
     
     // Wait for emulator to be available
     await page.waitForFunction(() => {

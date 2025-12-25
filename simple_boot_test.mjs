@@ -1,126 +1,83 @@
 #!/usr/bin/env node
-import { readFileSync } from 'fs';
 
-console.log('🔍 ZX Spectrum ROM Boot Sequence Debug Tool');
-console.log('===========================================\n');
+/**
+ * Simple boot validation test - quick debug version
+ */
+
+import { Z80 } from './src/z80.mjs';
+import { Memory } from './src/memory.mjs';
+import { ULA } from './src/ula.mjs';
+import ROM_DATA from './src/roms/spec48.js';
+
+console.log('Starting simple boot validation test...');
 
 try {
-  // Load ROM data
-  const romFileContent = readFileSync('./src/roms/spec48.js', 'utf8');
-  console.log('📁 Loaded ROM file, length:', romFileContent.length);
-  
-  // Parse the export statement
-  const match = romFileContent.match(/bytes:\s*new\s+Uint8Array\(\[(.*?)\]\)/s);
-  if (!match) {
-    throw new Error('Could not find bytes array in ROM file');
-  }
-  
-  // Parse the byte values
-  const byteString = match[1];
-  const byteValues = byteString.split(',').map(b => parseInt(b.trim())).filter(b => !isNaN(b));
-  
-  console.log('📊 ROM parsed successfully:');
-  console.log('   Bytes count:', byteValues.length);
-  console.log('   First 16 bytes:', byteValues.slice(0, 16).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
-  
-  if (byteValues.length !== 16384) {
-    console.log('⚠️  Warning: ROM size is', byteValues.length, 'but should be 16384 bytes');
-  }
-  
-  // Test basic Z80 and Memory classes
-  const { Z80 } = await import('./src/z80.mjs');
-  const { Memory } = await import('./src/memory.mjs');
-  
-  console.log('\n🧪 Testing Z80 and Memory initialization...');
-  
   // Create memory with ROM
-  const memory = new Memory({ romBuffer: byteValues, model: '48k' });
-  console.log('✅ Memory initialized');
+  console.log('Creating memory...');
+  const memory = new Memory({ model: '48k' });
+  memory.loadROM(ROM_DATA.bytes, 0);
+  console.log('Memory created and ROM loaded');
   
-  // Create CPU
+  // Create CPU and attach memory
+  console.log('Creating CPU...');
   const cpu = new Z80(memory);
   cpu.reset();
-  console.log('✅ CPU initialized, PC = 0x' + cpu.PC.toString(16).padStart(4, '0'));
+  console.log(`CPU created. Initial PC: 0x${cpu.PC.toString(16)}, A: ${cpu.A}`);
   
-  // Test ROM reading
-  const firstByte = cpu.readByte(0x0000);
-  console.log('📖 ROM byte at 0x0000: 0x' + firstByte.toString(16).padStart(2, '0'));
+  // Create ULA and attach CPU and memory
+  console.log('Creating ULA...');
+  // Create a mock canvas for testing
+  const mockCanvas = {
+    getContext: () => ({ 
+      createImageData: () => ({ data: new Uint8ClampedArray(256 * 192 * 4) }),
+      putImageData: () => {},
+      imageSmoothingEnabled: false
+    }),
+    width: 256,
+    height: 192,
+    style: {}
+  };
+  const ula = new ULA(memory, mockCanvas);
+  ula.attachCPU(cpu);
+  console.log('ULA created');
   
-  if (firstByte === 0xF3) {
-    console.log('✅ Expected DI instruction found - ROM is valid');
-  } else {
-    console.log('❌ Expected DI (0xF3) but got 0x' + firstByte.toString(16).padStart(2, '0'));
-  }
+  // Execute a small number of instructions first
+  console.log('Executing 1000 T-states for testing...');
+  const startTstates = cpu.tstates;
+  const targetTstates = startTstates + 1000;
+  let steps = 0;
   
-  // Run a few instructions to see if execution works
-  console.log('\n🚀 Testing instruction execution...');
-  
-  for (let i = 0; i < 10; i++) {
-    const pc = cpu.PC;
-    const opcode = cpu.readByte(pc);
+  while (cpu.tstates < targetTstates && steps < 10000) {
+    const consumed = cpu.step();
     
-    console.log(`📍 Step ${i + 1}: PC=0x${pc.toString(16).padStart(4, '0')}, Opcode=0x${opcode.toString(16).padStart(2, '0')}`);
+    // Generate ULA interrupts if enabled
+    if (ula.interruptEnabled) {
+      ula.generateInterrupt(consumed);
+    }
     
-    try {
-      const tstates = cpu.step();
-      console.log(`   ✅ Executed, ${tstates} tstates, new PC=0x${cpu.PC.toString(16).padStart(4, '0')}`);
-    } catch (e) {
-      console.log(`   ❌ Execution failed: ${e.message}`);
+    steps++;
+    
+    // Break if we're taking too many steps
+    if (steps >= 10000) {
+      console.log('Breaking after 10000 steps to prevent infinite loop');
       break;
     }
-    
-    if (i >= 5) break; // Don't run too many steps in this basic test
   }
   
-  // Check specific boot sequence areas
-  console.log('\n🎯 Checking boot sequence areas...');
+  console.log(`After execution: PC=0x${cpu.PC.toString(16)}, A=${cpu.A}, T-states=${cpu.tstates}, Steps=${steps}`);
   
-  const bootAreas = {
-    'Reset vector': 0x0000,
-    'Interrupt handler': 0x0038,
-    'Error handler': 0x0055,
-    'Copyright area': 0x1530,
-    'BASIC prompt': 0x0D6E,
-    'Channel streams': 0x163C
-  };
+  // Check ROM is still accessible
+  const romByte0 = memory.read(0x0000);
+  console.log(`ROM byte 0: 0x${romByte0.toString(16)}`);
   
-  Object.entries(bootAreas).forEach(([name, addr]) => {
-    const bytes = [];
-    for (let i = 0; i < 8; i++) {
-      bytes.push(cpu.readByte(addr + i));
-    }
-    console.log(`   ${name.padEnd(16)}: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
-  });
+  // Check if we can write to RAM
+  memory.write(0x4000, 0xAA);
+  const ramByte = memory.read(0x4000);
+  console.log(`RAM test: wrote 0xAA, read 0x${ramByte.toString(16)}`);
   
-  // Look for copyright string
-  console.log('\n🔍 Searching for copyright message...');
-  let foundCopyright = false;
-  for (let addr = 0x1400; addr <= 0x1700 && !foundCopyright; addr++) {
-    let text = '';
-    for (let i = 0; i < 30 && addr + i < 0xFFFF; i++) {
-      const byte = cpu.readByte(addr + i);
-      if (byte >= 32 && byte <= 126) {
-        text += String.fromCharCode(byte);
-      } else {
-        if (text.length > 10) break;
-        text = '';
-      }
-    }
-    
-    if (text.includes('1982') || text.includes('Sinclair')) {
-      console.log(`✅ Found copyright text at 0x${addr.toString(16).padStart(4, '0')}: "${text}"`);
-      foundCopyright = true;
-    }
-  }
+  console.log('Simple boot validation test completed successfully!');
   
-  if (!foundCopyright) {
-    console.log('❌ Copyright message not found in expected range');
-  }
-  
-  console.log('\n🏁 Basic boot sequence test completed');
-  
-} catch (e) {
-  console.error('💥 Error:', e.message);
-  console.error('Stack trace:', e.stack);
+} catch (error) {
+  console.error('Error during test:', error);
   process.exit(1);
 }

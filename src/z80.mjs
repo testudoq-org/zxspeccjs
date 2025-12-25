@@ -132,7 +132,7 @@ export class Z80 {
     this.SP = 0xFFFF;
     this.IX = 0x0000;
     this.IY = 0x0000;
-    this.I = 0;
+    this.I = 0x3F; // CRITICAL: Set I register to 0x3F for proper 48K operation
     this.R = 0;
     this.IFF1 = this.IFF2 = false; // CRITICAL: Keep interrupts disabled initially
     this.IM = 1; // Use interrupt mode 1
@@ -249,6 +249,32 @@ export class Z80 {
 
   // Request an interrupt (called by ULA / external)
   requestInterrupt() { this.intRequested = true; }
+
+  // CRITICAL: Handle RST 0x10 - CHAN_OPEN for I/O channel system
+  _handleChanOpen() {
+    // CHAN_OPEN opens a channel for output
+    // A register contains the channel number (0=screen, 1=printer, 2=keyboard)
+    const channel = this.A & 0xFF;
+    
+    if (typeof console !== 'undefined' && console.log) {
+      console.log(`[Z80] CHAN_OPEN called for channel ${channel}`);
+    }
+    
+    // For boot sequence, we mainly need channel 0 (screen)
+    if (channel === 0) {
+      // Channel 0 is the screen channel
+      // CURCHL should point to the screen channel description
+      // Screen channel at 0x5C39 points to the screen output routine
+      if (this.mem) {
+        this.mem.write(0x5C37, 0x39); // Low byte of screen channel address
+        this.mem.write(0x5C38, 0x5C); // High byte of screen channel address
+        
+        if (typeof console !== 'undefined' && console.log) {
+          console.log('[Z80] Screen channel opened, CURCHL set to 0x5C39');
+        }
+      }
+    }
+  }
 
   // Execute DDCB prefixed operations (IX with bit operations)
   _executeDDCBOperation(cbOpcode, addr) {
@@ -865,7 +891,9 @@ export class Z80 {
       // RST instructions
       case 0xc7: this.pushWord(this.PC); this.PC = 0x00; this.tstates += 11; return 11;
       case 0xcf: this.pushWord(this.PC); this.PC = 0x08; this.tstates += 11; return 11;
-      case 0xd7: this.pushWord(this.PC); this.PC = 0x10; this.tstates += 11; return 11;
+      case 0xd7: // RST 0x10 - CHAN_OPEN (open channel)
+        this._handleChanOpen();
+        this.tstates += 11; return 11;
       case 0xdf: this.pushWord(this.PC); this.PC = 0x18; this.tstates += 11; return 11;
       case 0xe7: this.pushWord(this.PC); this.PC = 0x20; this.tstates += 11; return 11;
       case 0xef: this.pushWord(this.PC); this.PC = 0x28; this.tstates += 11; return 11;

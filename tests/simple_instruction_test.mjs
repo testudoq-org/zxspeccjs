@@ -4,7 +4,7 @@ test.describe('Simple Instruction Test', () => {
   test('CPU executes first few instructions', async ({ page }, testInfo) => {
     console.log('=== Simple CPU Instruction Test ===');
     
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Wait for emulator to initialize
     await page.waitForTimeout(2000);

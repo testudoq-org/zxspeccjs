@@ -5,7 +5,7 @@ import fs from 'fs';
 test.describe('Reliable Debug Hook Implementation', () => {
   test('PC watcher should track every instruction execution', async ({ page }) => {
     // Navigate to emulator
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
 
     // Wait for emulator to load
     await page.waitForSelector('#screen', { timeout: 10000 });
@@ -61,7 +61,7 @@ test.describe('Reliable Debug Hook Implementation', () => {
 
   test('Boot sequence detection should work correctly', async ({ page }) => {
     // Navigate to emulator
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
 
     // Wait for emulator to load and start
     await page.waitForSelector('#screen', { timeout: 10000 });
@@ -110,7 +110,7 @@ test.describe('Reliable Debug Hook Implementation', () => {
 
   test('Debug API should be consistent and reliable', async ({ page }) => {
     // Navigate to emulator
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
 
     // Wait for emulator to load
     await page.waitForSelector('#screen', { timeout: 10000 });
@@ -160,7 +160,7 @@ test.describe('Reliable Debug Hook Implementation', () => {
 
   test('PC watcher should handle reset correctly', async ({ page }) => {
     // Navigate to emulator
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
 
     // Wait for emulator to load
     await page.waitForSelector('#screen', { timeout: 10000 });

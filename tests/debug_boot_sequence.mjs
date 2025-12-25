@@ -7,7 +7,7 @@ test.describe('ZX Spectrum Boot Sequence Diagnostics', () => {
     console.log('=== ZX Spectrum Boot Diagnostic Test ===');
     
     // Navigate to emulator
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Gather console logs
     const consoleMsgs = [];

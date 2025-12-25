@@ -265,7 +265,7 @@ export class Emulator {
 
   async _createCore(romBuffer = null) {
     console.log('[Emulator] _createCore: romBuffer', romBuffer);
-    this.memory = new Memory(romBuffer);
+    this.memory = new Memory({ model: '48k', romBuffer });
     this.cpu = new Z80(this.memory);
     
     // Set debug callback for instruction tracking
@@ -284,8 +284,12 @@ export class Emulator {
     
     this.memory.attachCPU(this.cpu);
     this.ula = new ULA(this.memory, this.canvas);
+    this.ula.attachCPU(this.cpu); // CRITICAL: Connect ULA to CPU for interrupt generation
     this.sound = new Sound();
     
+    // CRITICAL: Initialize I/O channel system for boot sequence
+    this._initializeIOSystem();
+
     // Create IO adapter to connect CPU port I/O to ULA and Sound modules
     const ioAdapter = {
       write: (port, value, tstates) => {
@@ -308,6 +312,14 @@ export class Emulator {
         }
         return 0xFF; // Default for unhandled ports
       }
+    };
+  
+    // Add ROM visibility verification to debug API
+    window.__ZX_DEBUG__.isROMVisible = (address = 0) => {
+      // Checks if the byte at address matches the ROM byte
+      if (!emu.memory || !window.spec48 || !window.spec48.bytes) return false;
+      if (address < 0 || address >= window.spec48.bytes.length) return false;
+      return emu.memory.read(address) === window.spec48.bytes[address];
     };
     
     this.cpu.io = ioAdapter;
@@ -453,6 +465,54 @@ export class Emulator {
     }
   }
 
+  // CRITICAL: Initialize I/O channel system for boot sequence
+  _initializeIOSystem() {
+    if (!this.memory) return;
+    
+    // Initialize system variables for I/O channel system
+    // CHANS (0x5C36) - Channel information table address
+    // CURCHL (0x5C37) - Current channel address
+    
+    // Create basic channel table in RAM
+    // Channel table format: [stream_type, stream_params...]
+    // K = keyboard channel, S = screen channel, P = printer channel
+    
+    const channelTable = [
+      0x4B, 0x00, 0x00, // 'K' (keyboard) - 3 bytes
+      0x53, 0x00, 0x00, // 'S' (screen) - 3 bytes  
+      0x50, 0x00, 0x00, // 'P' (printer) - 3 bytes
+      0x80              // End marker
+    ];
+    
+    // Store channel table in RAM starting at 0x5C36
+    for (let i = 0; i < channelTable.length && (0x5C36 + i) < 0x5C40; i++) {
+      this.memory.write(0x5C36 + i, channelTable[i]);
+    }
+    
+    // Set CURCHL to point to screen channel (0x5C39)
+    this.memory.write(0x5C37, 0x39); // Low byte of screen channel address
+    this.memory.write(0x5C38, 0x5C); // High byte of screen channel address
+    
+    // Initialize other system variables
+    // DF_SZ (0x5C6B) - Display file size (24 lines)
+    this.memory.write(0x5C6B, 24);
+    
+    // DF_CC (0x5C6C) - Display file cursor column
+    this.memory.write(0x5C6C, 0);
+    
+    // DF_CC (0x5C6D) - Display file cursor row  
+    this.memory.write(0x5C6D, 0);
+    
+    // S_POSN (0x5C7A) - Stream position
+    this.memory.write(0x5C7A, 0); // Column
+    this.memory.write(0x5C7B, 0); // Row
+    
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[Emulator] I/O channel system initialized');
+      console.log(`[Emulator] CHANS table at 0x5C36: ${channelTable.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}`);
+    }
+  }
+
   _loop(now) {
     if (!this._running) return;
     // DEBUG: log loop entry
@@ -466,9 +526,17 @@ export class Emulator {
       // sync input matrix to ULA
       this._applyInputToULA();
 
-      // Run CPU for a full frame worth of t-states
+      // Run CPU for a full frame worth of t-states with interrupt generation
       if (this.cpu && typeof this.cpu.runFor === 'function') {
+        const tstatesBefore = this.cpu.tstates;
         this.cpu.runFor(TSTATES_PER_FRAME);
+        const tstatesExecuted = this.cpu.tstates - tstatesBefore;
+        
+        // CRITICAL: Generate 50Hz interrupts based on actual t-states executed
+        if (this.ula && typeof this.ula.generateInterrupt === 'function') {
+          this.ula.generateInterrupt(tstatesExecuted);
+          this.ula.updateInterruptState(); // Update interrupt enable state
+        }
       }
 
       // ULA render

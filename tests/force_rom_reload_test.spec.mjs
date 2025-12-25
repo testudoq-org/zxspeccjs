@@ -4,7 +4,7 @@ test.describe('Force ROM Reload Test', () => {
   test('force ROM reload and verify boot sequence', async ({ page }, testInfo) => {
     console.log('=== Force ROM Reload Test ===');
     
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Wait for initial load
     await page.waitForTimeout(2000);

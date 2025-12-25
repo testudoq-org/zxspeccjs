@@ -158,7 +158,7 @@ async function readPortWrites(page){
 
 test.describe('ZX Spectrum 48K - Boot sequence and ROM initialization', () => {
   test('boot progression reaches ROM init and displays Sinclair copyright', async ({ page }, testInfo) => {
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
 
     const consoleMsgs = [];
     page.on('console', msg => consoleMsgs.push({ type: msg.type(), text: msg.text() }));

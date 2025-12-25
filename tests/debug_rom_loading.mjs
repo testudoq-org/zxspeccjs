@@ -4,7 +4,7 @@ test.describe('ROM Loading Debug', () => {
   test('debug ROM loading process', async ({ page }) => {
     console.log('=== ROM Loading Debug ===');
     
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Wait for emulator to initialize
     await page.waitForTimeout(3000);

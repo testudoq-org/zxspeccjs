@@ -9,7 +9,7 @@ test.describe('Memory Debug Test', () => {
       console.log('Browser console:', msg.type(), msg.text());
     });
     
-    await page.goto('/');
+    await page.goto('http://localhost:8080/');
     
     // Wait for emulator to initialize
     await page.waitForTimeout(3000);

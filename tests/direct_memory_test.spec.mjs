@@ -5,7 +5,7 @@ test.describe('Direct Memory Access Test', () => {
     console.log('=== Direct Memory Access Test ===');
     
     // Navigate to the emulator
-    await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:8080');
     await page.waitForTimeout(2000);
     
     // Wait for emulator to load
