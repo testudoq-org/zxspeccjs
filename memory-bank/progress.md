@@ -226,3 +226,97 @@ if (cbOpcode < 0x40) {
 - ✅ Build passes without errors
 - ✅ Codacy analysis clean
 
+### [2026-01-29] - **KEYBOARD INPUT IMPLEMENTATION (feature-interact-with-rom)**
+
+#### **Goal**
+Enable interactive command input by accurately emulating the ZX Spectrum 48K keyboard matrix.
+
+#### **Implementation Details**
+
+##### **Keyboard Matrix Architecture**
+- 8×5 matrix (8 rows, 5 columns)
+- Rows selected via address bus bits A8–A15 (active low)
+- Columns read on data bus bits D0–D4 (active low: 0 = pressed, 1 = released)
+- Port 0xFE used for keyboard scanning
+
+##### **Row Layout (Corrected to ZX Spectrum 48K Standard)**
+| Row | A-line | Port    | Keys (D0→D4)              |
+|-----|--------|---------|---------------------------|
+| 0   | A8=0   | 0xFEFE  | 1, 2, 3, 4, 5            |
+| 1   | A9=0   | 0xFDFE  | Q, W, E, R, T            |
+| 2   | A10=0  | 0xFBFE  | A, S, D, F, G            |
+| 3   | A11=0  | 0xF7FE  | Caps Shift, Z, X, C, V   |
+| 4   | A12=0  | 0xEFFE  | 0, 9, 8, 7, 6            |
+| 5   | A13=0  | 0xDFFE  | P, O, I, U, Y            |
+| 6   | A14=0  | 0xBFFE  | Enter, L, K, J, H        |
+| 7   | A15=0  | 0x7FFE  | Space, Sym Shift, M, N, B|
+
+##### **Key Changes Made**
+
+1. **src/input.mjs** - Complete rewrite:
+   - Fixed `ROW_KEYS` array to match correct ZX Spectrum 48K layout
+   - Added `pressKey()` and `releaseKey()` methods for programmatic control
+   - Added `reset()` method to clear all key states
+   - Added `getMatrixState()` for debugging
+   - Added special combo key handling (e.g., Backspace → Caps Shift + 0)
+   - Improved browser key code mapping
+   - Added debug logging option via `setDebug()`
+   - Exported `ROW_KEYS`, `KEY_TO_POS`, `DEFAULT_ROW` for testing
+
+2. **src/ula.mjs** - Enhanced keyboard port reading:
+   - Added debug logging for port reads
+   - Ensured bits 5-7 are set correctly in keyboard port reads
+   - Added `setDebug()` method
+
+3. **src/main.mjs** - Integration improvements:
+   - Added `setKeyboardDebug()` method
+   - Enhanced `_applyInputToULA()` with debug logging
+   - Syncs keyboard state at start of each frame
+   - Reset keyboard on emulator reset
+   - Exposed keyboard debug helpers on `window.__ZX_DEBUG__`
+
+4. **test/keyboard.test.mjs** - New unit test file:
+   - Tests keyboard layout matches ZX Spectrum 48K
+   - Tests key press/release mechanics  
+   - Tests port reading logic
+   - Tests row selection via address lines
+   - Tests matrix state debugging
+   - **18 tests all passing**
+
+##### **Debug API Enhancements**
+```javascript
+window.__ZX_DEBUG__.pressKey('a');           // Press key
+window.__ZX_DEBUG__.releaseKey('a');         // Release key
+window.__ZX_DEBUG__.getKeyboardState();      // Get full matrix state
+window.__ZX_DEBUG__.setKeyboardDebug(true);  // Enable debug logging
+window.__ZX_DEBUG__.resetKeyboard();         // Reset all keys
+```
+
+##### **Testing Commands**
+```bash
+# Run keyboard unit tests
+npx vitest run test/keyboard.test.mjs --pool=forks --poolOptions.forks.singleFork
+
+# Run all unit tests
+npx vitest run test/ --pool=forks --poolOptions.forks.singleFork
+
+# Manual browser testing
+# 1. Open http://localhost:8080
+# 2. Open DevTools console
+# 3. window.__ZX_DEBUG__.setKeyboardDebug(true)
+# 4. Press keys and observe matrix state changes
+```
+
+##### **Test Results**
+- ✅ 18 keyboard matrix tests passing
+- ✅ 2 Z80 CPU tests passing
+- ✅ No regressions in existing functionality
+- ✅ Virtual keyboard UI improved with better layout
+
+##### **Status**
+- ✅ Keyboard matrix correctly implements ZX Spectrum 48K layout
+- ✅ Port 0xFE reading returns correct values for selected rows
+- ✅ Physical keyboard events mapped to matrix
+- ✅ Virtual keyboard UI functional
+- ✅ Debug API available for testing
+- 🔄 Integration testing with BASIC interpreter ready

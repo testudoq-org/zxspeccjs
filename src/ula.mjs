@@ -45,6 +45,9 @@ export class ULA {
     
     // Display initialization tracking
     this._initialized = false;
+    
+    // Debug logging flag
+    this._debug = false;
 
     // QUICK FIX: Initialize display memory in constructor to avoid race conditions
     this._initializeDisplayMemory();
@@ -89,6 +92,11 @@ export class ULA {
     if (this.cpu) {
       this.interruptEnabled = this.cpu.IFF1;
     }
+  }
+
+  // Enable/disable debug logging
+  setDebug(enabled) {
+    this._debug = enabled;
   }
 
   // QUICK FIX: Initialize display memory early to avoid race conditions with ROM
@@ -160,7 +168,10 @@ export class ULA {
     if (p === 0xfe) {
       // The ZX Spectrum samples the upper address lines to select keyboard rows (active low).
       const high = (port >> 8) & 0xff;
-      // Start with all bits high (no key pressed). Bits 0-4 correspond to keys in the selected rows.
+      // Start with all bits high (no key pressed). 
+      // Bits 0-4 correspond to keys in the selected rows.
+      // Bit 5: tape EAR input (1 = no signal)
+      // Bits 6-7: always 1
       let result = 0xff;
       // For each row: if the corresponding bit in high is zero (selected), AND the row matrix
       for (let row = 0; row < 8; row++) {
@@ -168,7 +179,13 @@ export class ULA {
           result &= this.keyMatrix[row];
         }
       }
-      // The lower 5 bits are keyboard data; keep upper bits as 1 for simplicity
+      // Ensure upper bits are set correctly (tape EAR = 1, bits 6-7 = 1)
+      result |= 0b11100000;
+      
+      if (this._debug && (result & 0x1f) !== 0x1f) {
+        console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, result=0x${result.toString(16)}`);
+      }
+      
       return result & 0xff;
     }
     // Unhandled ports return 0xff by default

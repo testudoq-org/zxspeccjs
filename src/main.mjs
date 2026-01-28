@@ -44,8 +44,18 @@ export class Emulator {
     this._executedOpcodes = [];
     this._lastPC = 0;
     this._bootComplete = false;
+    
+    // Keyboard debug flag
+    this._keyboardDebug = false;
 
     this._bindUI();
+  }
+
+  // Enable/disable keyboard debugging
+  setKeyboardDebug(enabled) {
+    this._keyboardDebug = enabled;
+    if (this.input) this.input.setDebug(enabled);
+    if (this.ula) this.ula.setDebug(enabled);
   }
 
   // Debug API methods
@@ -430,9 +440,21 @@ export class Emulator {
     // ULA expects 8 bytes, active-low; Input.matrix uses 5-bit rows (1=up). Merge into 8-bit rows.
     for (let r = 0; r < 8; r++) {
       const rowVal = (this.input.matrix && this.input.matrix[r] != null) ? this.input.matrix[r] & 0x1f : 0x1f;
-      // place into low 5 bits; set upper bits to 1
+      // place into low 5 bits; set upper bits to 1 (bits 5-7 = 1)
       const full = (rowVal & 0x1f) | 0b11100000;
       if (this.ula && this.ula.keyMatrix) this.ula.keyMatrix[r] = full;
+    }
+    
+    if (this._keyboardDebug) {
+      const pressed = [];
+      for (let r = 0; r < 8; r++) {
+        if (this.ula && this.ula.keyMatrix && this.ula.keyMatrix[r] !== 0xff) {
+          pressed.push(`row${r}=0x${this.ula.keyMatrix[r].toString(16)}`);
+        }
+      }
+      if (pressed.length > 0) {
+        console.log(`[Emulator] _applyInputToULA: ${pressed.join(', ')}`);
+      }
     }
   }
 
@@ -444,6 +466,9 @@ export class Emulator {
     this._acc = 0;
     this.status('running');
     this._loop = this._loop.bind(this);
+    
+    // Always sync keyboard state when starting
+    this._applyInputToULA();
     
     // Headless browser compatibility: use setTimeout fallback if requestAnimationFrame fails
     try {
@@ -499,6 +524,9 @@ export class Emulator {
     
     // Clear debug state first to prevent race conditions
     this._resetDebugState();
+    
+    // Reset keyboard state
+    if (this.input) this.input.reset();
     
     this.memory.reset();
     this.cpu.reset();
@@ -742,6 +770,33 @@ window.addEventListener('DOMContentLoaded', async () => {
         complete: emu._bootComplete,
         totalAddresses: emu.cpu._bootAddresses?.length || 5
       };
+    },
+    // Keyboard debug helpers
+    getKeyboardState: () => emu.input ? emu.input.getMatrixState() : null,
+    pressKey: (key) => {
+      if (emu.input) {
+        emu.input.pressKey(key);
+        emu._applyInputToULA();
+        return true;
+      }
+      return false;
+    },
+    releaseKey: (key) => {
+      if (emu.input) {
+        emu.input.releaseKey(key);
+        emu._applyInputToULA();
+        return true;
+      }
+      return false;
+    },
+    setKeyboardDebug: (enabled) => emu.setKeyboardDebug(enabled),
+    resetKeyboard: () => {
+      if (emu.input) {
+        emu.input.reset();
+        emu._applyInputToULA();
+        return true;
+      }
+      return false;
     }
   };
   
