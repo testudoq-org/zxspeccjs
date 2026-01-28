@@ -158,3 +158,71 @@
 - ✅ Z80 unit tests passing (2 tests)
 - ✅ Codacy analysis clean (no ESLint errors)
 - ⚠️ Playwright tests need separate execution via `npm run test:e2e`
+
+- ⚠️ Playwright tests need separate execution via `npm run test:e2e`
+
+### [2026-01-28] - **CRITICAL BUG FIX: CB-Prefix Instruction Decoder**
+
+#### **Problem: Character Rendering Failure**
+- **Symptom**: Boot screen displayed "© 1982 Sinclair Research Ltd" as single horizontal pixel lines instead of full 8-pixel-tall characters
+- **Visual**: Each character appeared as a thin horizontal stripe (1 pixel tall) instead of proper 8x8 character cells
+
+#### **Root Cause Analysis**
+
+##### The Bug Location: `src/z80.mjs` - `_executeCBOperation()` method
+
+The CB-prefix instruction decoder had a **critical opcode range overlap bug**:
+
+```
+CB Opcode Ranges:
+  0x00-0x3F: Shift/Rotate operations (RLC, RRC, RL, RR, SLA, SRA, SLL, SRL)
+  0x40-0x7F: BIT test operations
+  0x80-0xBF: RES (reset bit) operations  ← AFFECTED
+  0xC0-0xFF: SET (set bit) operations    ← AFFECTED
+```
+
+**The Problem:**
+The shift/rotate handlers used `opType = (cbOpcode & 0xF8) >>> 3` and checked ranges like:
+- `if (opType >= 0x10 && opType <= 0x17)` for RL operation
+
+For opcode `0x86` (RES 0,(HL)):
+- `opType = (0x86 & 0xF8) >>> 3 = 0x80 >>> 3 = 0x10`
+- This MATCHED the RL handler range (0x10-0x17)!
+
+**Result:** RES 0,(HL) instruction executed as RL (rotate left) instead of resetting bit 0.
+
+##### The Cascade Effect
+
+1. ROM routine PR_ALL at 0x0B9B uses `RES 0,(HL)` to clear FLAGS bit 0
+2. Instead, RL operation corrupted FLAGS system variable (0x5C3B)
+3. Corrupted FLAGS caused carry flag to be incorrectly set
+4. `JR C, PO_ATTR` branch was taken, skipping `INC D` instruction
+5. Without `INC D`, the D register never advanced through scan lines
+6. All 8 pixel lines of each character wrote to the SAME memory address (y0=0)
+7. Only the last pixel line remained visible (appearing as single horizontal line)
+
+#### **The Fix**
+
+Added opcode range guard to ensure shift/rotate handlers only process opcodes 0x00-0x3F:
+
+```javascript
+// Shift/rotate operations are only 0x00-0x3F
+// 0x00..0x07 RLC, 0x08..0x0F RRC, 0x10..0x17 RL, 0x18..0x1F RR,
+// 0x20..0x27 SLA, 0x28..0x2F SRA, 0x30..0x37 SLL, 0x38..0x3F SRL
+if (cbOpcode < 0x40) {
+  // All shift/rotate handlers now safely inside this guard
+  if (opType >= 0x10 && opType <= 0x17) { /* RL */ }
+  // ... other handlers
+}
+```
+
+#### **Files Modified**
+- `src/z80.mjs`: Added `if (cbOpcode < 0x40)` guard around shift/rotate handlers (line 249)
+- `src/ula.mjs`: Removed direct FRAMES (0x5C78) memory writes in `generateInterruptSync()`
+
+#### **Verification**
+- ✅ Boot screen now displays full "© 1982 Sinclair Research Ltd" text
+- ✅ All characters render as proper 8x8 pixel cells
+- ✅ Build passes without errors
+- ✅ Codacy analysis clean
+
