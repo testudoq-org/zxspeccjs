@@ -1,10 +1,29 @@
 // ULA graphics emulation for ZX Spectrum 48K (ES6 module)
+import { FrameBuffer, FrameRenderer } from './frameBuffer.mjs';
+
 export class ULA {
-  constructor(memory, canvas) {
+  constructor(memory, canvas, options = {}) {
     this.mem = memory; // instance of Memory
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     console.log('[ULA] constructor: memory', memory, 'canvas', canvas, 'ctx', this.ctx);
+    
+    // Deferred rendering option (JSSpeccy3-style frame buffer)
+    this.useDeferredRendering = options.useDeferredRendering || false;
+    if (this.useDeferredRendering) {
+      this.frameBuffer = new FrameBuffer();
+      this.frameBuffer.attach(memory);
+      this.frameRenderer = new FrameRenderer(canvas);
+      // FrameRenderer sets canvas to 320x240 for borders - don't override
+      console.log('[ULA] Deferred rendering enabled (320x240 with borders)');
+    } else {
+      // Legacy mode: 256x192 without borders
+      this.canvas.width = 256;
+      this.canvas.height = 192;
+      this.ctx.imageSmoothingEnabled = false;
+      // Image buffer for 256x192 RGBA
+      this.image = this.ctx.createImageData(256, 192);
+    }
 
     // CRITICAL: 50Hz interrupt generation for ZX Spectrum boot sequence
     this.cpu = null; // Will be set by attachCPU()
@@ -12,14 +31,6 @@ export class ULA {
     this.tstatesPerFrame = 69888; // ZX Spectrum 50Hz frame timing
     this.tstatesInFrame = 0;
     this.interruptEnabled = false; // Set to true when CPU enables interrupts
-
-    // Ensure canvas pixel size matches Spectrum bitmap
-    this.canvas.width = 256;
-    this.canvas.height = 192;
-    this.ctx.imageSmoothingEnabled = false;
-
-    // Image buffer for 256x192 RGBA
-    this.image = this.ctx.createImageData(256, 192);
 
     // Border colour (0-7)
     this.border = 0;
@@ -31,6 +42,12 @@ export class ULA {
     this.flashState = false;
     this._lastFlashToggle = performance.now();
     this._flashInterval = 320; // ms, typical Spectrum flash period ~320ms
+    
+    // Display initialization tracking
+    this._initialized = false;
+
+    // QUICK FIX: Initialize display memory in constructor to avoid race conditions
+    this._initializeDisplayMemory();
 
     // Spectrum palettes (normal and bright)
     this.paletteNormal = [
@@ -56,6 +73,10 @@ export class ULA {
 
     // Initialize border colour on canvas background
     this._updateCanvasBorder();
+    // Ensure border color is white at boot (Spectrum default)
+    this.border = 7;
+    this.borderBright = false;
+    this._updateCanvasBorder();
   }
 
   // CRITICAL: Attach CPU for interrupt generation
@@ -70,35 +91,46 @@ export class ULA {
     }
   }
 
-  // CRITICAL: Generate 50Hz vertical sync interrupt
-  generateInterrupt(tstates) {
-    if (!this.cpu || !this.interruptEnabled) return;
+  // QUICK FIX: Initialize display memory early to avoid race conditions with ROM
+  _initializeDisplayMemory() {
+    if (!this.mem) return;
     
-    this.tstatesInFrame += tstates;
+    const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+    const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
     
-    // Generate interrupt at end of frame (69888 t-states)
-    if (this.tstatesInFrame >= this.tstatesPerFrame) {
-      this.tstatesInFrame -= this.tstatesPerFrame;
-      
-      // Increment frame counter (FRAMES system variable at 0x5C5C)
-      this.frameCounter = (this.frameCounter + 1) & 0xFFFFFFFF;
-      
-      // Store frame counter in memory
-      if (this.mem) {
-        this.mem.write(0x5C5C, this.frameCounter & 0xFF);
-        this.mem.write(0x5C5D, (this.frameCounter >> 8) & 0xFF);
-        this.mem.write(0x5C5E, (this.frameCounter >> 16) & 0xFF);
-        this.mem.write(0x5C5F, (this.frameCounter >> 24) & 0xFF);
-      }
-      
-      // Request interrupt from CPU
-      this.cpu.requestInterrupt();
-      
-      // DEBUG: Log interrupt generation for boot sequence
-      if (typeof console !== 'undefined' && console.log) {
-        console.log(`[ULA] Generated 50Hz interrupt #${this.frameCounter} at tstates ${this.cpu.tstates}`);
-      }
+    if (bitmap) {
+      bitmap.fill(0x00); // Clear bitmap to black pixels
     }
+    if (attrs) {
+      attrs.fill(0x38); // Set attributes to white ink on black paper (0x38 = 00111000)
+    }
+    
+    console.log('[ULA] Display memory initialized in constructor');
+  }
+
+  // QUICK FIX: Synchronous interrupt generation (replaces async setTimeout)
+  generateInterruptSync() {
+    if (!this.cpu) return;
+    
+    // Increment internal frame counter (for ULA tracking, not written to memory)
+    this.frameCounter = (this.frameCounter + 1) & 0xFFFFFFFF;
+    
+    // NOTE: Do NOT write FRAMES to memory here!
+    // The ROM's interrupt handler at 0x0038 is responsible for incrementing
+    // the FRAMES system variable at 0x5C78-0x5C7A. Direct writes here
+    // interfere with the ROM's RAM test during boot.
+    
+    // Generate interrupt synchronously if interrupts are enabled
+    if (this.interruptEnabled && this.cpu.IFF1) {
+      this.cpu.intRequested = true;
+    }
+  }
+
+  // Legacy method for backwards compatibility (still available but deprecated)
+  generateInterrupt(tstates) {
+    // Delegate to synchronous version - tstates tracking no longer needed
+    // as we generate interrupt at frame boundary in main loop
+    this.generateInterruptSync();
   }
 
   // Update canvas CSS background to reflect border colour
@@ -169,11 +201,40 @@ export class ULA {
   render() {
     // Update flash timing
     this._updateFlash();
+    
+    // Use deferred rendering if enabled (JSSpeccy3 style)
+    if (this.useDeferredRendering && this.frameBuffer && this.frameRenderer) {
+      // Generate frame buffer from current memory state
+      this.frameBuffer.setBorder(this.border);
+      this.frameBuffer.generateFromMemory();
+      this.frameBuffer.endFrame(this.tstatesPerFrame);
+      
+      // Render frame buffer to canvas
+      this.frameRenderer.render(this.frameBuffer, this.frameBuffer.getFlashPhase());
+      
+      // Start new frame
+      this.frameBuffer.startFrame();
+      return;
+    }
+    
+    // Legacy immediate rendering
     // DEBUG: log render call
     // console.log('[ULA] render called');
 
     const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null; // 6912 bytes: arranged in Spectrum scanline order
     const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null; // 768 bytes
+
+    // --- REMOVED AGGRESSIVE VIDEO MEMORY PROTECTION ---
+    // The previous protection was destroying display content and preventing
+    // copyright message from appearing. Let ROM boot sequence manage display.
+    // Only initialize on first render if memory views are missing.
+    if (!this._initialized) {
+      if (bitmap) bitmap.fill(0x00);
+      if (attrs) attrs.fill(0x38);
+      this._initialized = true;
+      console.log('[ULA] Initialized display memory once');
+    }
+
     if (!bitmap || !attrs) {
       console.warn('[ULA] render: missing bitmap or attrs', bitmap, attrs);
       return;

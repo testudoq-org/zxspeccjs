@@ -9,6 +9,7 @@ Build a ZX Spectrum emulator that runs entirely in the browser using ES6 JavaScr
 ## Key Features
 
 - Z80 CPU emulation (opcode execution, registers, interrupts, timing)
+	- ED-prefixed block instructions (LDI, LDIR, LDD, LDDR, CPI, CPIR, CPD, CPDR, INI, INIR, IND, INDR, OUTI, OTIR, OUTD, OTDR) now implemented for ROM boot/display compatibility
 - Memory management (16KB ROM, 48KB RAM)
 - Graphics via ULA emulation (HTML5 Canvas, 256x192 bitmap, 32x24 attributes)
 - Keyboard input mapped from browser events

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console, process */
 
 /**
  * Comprehensive test suite for Phase 2 Z80 operations
@@ -349,14 +350,20 @@ class Z80Phase2Test {
     
     this.cpu.step();
     this.assert(this.cpu.IM === 2, 'IM 2: Interrupt mode set to 2');
-  }
 
-  // Test system operations
-  testSystem_operations() {
-    console.log('\n=== Testing System Operations ===');
-    
-    // Test NEG (0xED44)
+    // Test LD SP,(nn) (0xED7B) - load SP from memory word at immediate address
     this.resetCPU();
+    this.cpu.PC = 0x1000;
+    this.memory.write(0x1000, 0xED);
+    this.memory.write(0x1001, 0x7B);
+    // immediate word (little endian) for target addr 0x2000
+    this.memory.write(0x1002, 0x00);
+    this.memory.write(0x1003, 0x20);
+    // store the word to be loaded into SP at 0x2000
+    this.memory.writeWord(0x2000, 0xBEEF);
+
+    this.cpu.step();
+    this.assert(this.cpu.SP === 0xBEEF, 'LD SP,(nn): loads SP from memory');
     this.cpu.A = 0x42;
     this.cpu.PC = 0x1000;
     this.memory.write(0x1000, 0xED);

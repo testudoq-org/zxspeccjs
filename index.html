@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>zxspeccjs</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; display:flex; gap:16px; padding:16px }
-    #screen { image-rendering: pixelated; border:1px solid #333; width:512px; height:384px }
-    .controls { display:flex; flex-direction:column; gap:8px }
+    body { font-family: system-ui, Arial, sans-serif; display:flex; gap:16px; padding:16px; background:#222 }
+    /* Canvas: 320x240 native, scaled 2x to 640x480 for display with borders */
+    #screen { image-rendering: pixelated; border:1px solid #333; width:640px; height:480px; background:#000 }
+    .controls { display:flex; flex-direction:column; gap:8px; color:#fff }
+    .controls label { color:#ccc }
+    .controls button { padding:8px 16px; cursor:pointer }
+    #status { color:#0f0; font-family:monospace }
   </style>
 </head>
 <body>
-  <canvas id="screen" width="256" height="192" aria-label="ZX Spectrum screen"></canvas>
+  <canvas id="screen" width="320" height="240" aria-label="ZX Spectrum screen"></canvas>
   <div class="controls">
     <label for="rom-select">Select ROM</label>
     <select id="rom-select" aria-label="ROM selection"></select>
@@ -21,6 +25,7 @@
     <button id="loadBtn">Load ROM</button>
     <button id="startBtn">Start</button>
     <button id="stopBtn">Stop</button>
+    <button id="resetBtn">Reset</button>
     <p id="status">Status: idle — Selected ROM: spec48</p>
   </div>
   <script type="module" src="./src/main.mjs"></script>

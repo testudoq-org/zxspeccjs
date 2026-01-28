@@ -26,6 +26,13 @@ export class Memory {
 
     // current mappings (4 pages of 16KB each) - each page is Uint8Array view
     this.pages = new Array(4).fill(null);
+    
+    // SEPARATE write mappings - allows writes to "ROM" area to go to scratch RAM
+    // This is how JSSpeccy3 handles stack writes when SP is in ROM area
+    this.writePages = new Array(4).fill(null);
+    
+    // Scratch RAM page for writes to ROM area (0x0000-0x3FFF)
+    this.romScratchPage = null;
 
     // currently selected ROM bank index (for 128K/plus3)
     this.currentRom = 0;
@@ -35,6 +42,9 @@ export class Memory {
 
     // optional CPU reference for applying tstate delays
     this.cpu = null;
+
+    // debug mem write log (captures writes to 0x4000..0x5AFF)
+    this._memWrites = [];
 
     // configure banks for the selected model FIRST
     this.configureBanks(this.model);
@@ -87,6 +97,14 @@ export class Memory {
     // CRITICAL FIX: Always update the page mapping to point to the new ROM
     this.mapROM(bank);
     
+    // Also copy ROM to scratch page so stack operations work correctly
+    // This mimics having "shadow RAM" under the ROM - reads return ROM code,
+    // writes go to scratch, and stack reads return what was written
+    if (this.romScratchPage) {
+      this.romScratchPage.set(rom);
+      console.log(`[Memory] Copied ROM to scratch page for shadow RAM functionality`);
+    }
+    
     console.log(`[Memory] Loaded ROM into bank ${bank}, mapped to pages[0], first byte: 0x${this.romBanks[bank][0].toString(16).padStart(2, '0')}`);
     
     // Verify the mapping worked
@@ -101,6 +119,12 @@ export class Memory {
     }
     this.currentRom = bankIndex;
     this.pages[0] = this.romBanks[bankIndex];
+    
+    // Also update scratch page with ROM content for shadow RAM functionality
+    if (this.romScratchPage && this.romBanks[bankIndex]) {
+      this.romScratchPage.set(this.romBanks[bankIndex]);
+    }
+    
     console.log(`[Memory] Mapped ROM bank ${bankIndex} to pages[0], first byte: 0x${this.romBanks[bankIndex][0].toString(16).padStart(2, '0')}`);
   }
 
@@ -112,6 +136,25 @@ export class Memory {
     // clear previous banks
     this.ramBanks = [];
     this.pages = new Array(4).fill(null);
+    this.writePages = new Array(4).fill(null);
+    
+    // Create scratch RAM page for writes to ROM area (like JSSpeccy3's page 11)
+    // This allows stack operations to work even when SP is in 0x0000-0x3FFF
+    this.romScratchPage = new Uint8Array(Memory.PAGE_SIZE).fill(0);
+
+    // --- VIDEO MEMORY INITIALIZATION FIX ---
+    // Always initialize video memory area (0x4000-0x57FF) to 0x00 (black)
+    // and attribute area (0x5800-0x5AFF) to 0x38 (white on black, no flash/bright)
+    // Only for RAM banks, not ROM
+    // This covers all models, but only affects RAM in display area
+    const initVideoMemory = (ramArray, offset, length, value) => {
+      if (ramArray && ramArray.length >= offset + length) {
+        ramArray.fill(value, offset, offset + length);
+      }
+    };
+
+    // For 48K and 128K models, video memory is in RAM bank 0 (0x4000-0x7FFF)
+    // For 16K, only one RAM bank
 
     if (model === '16k') {
       // 16KB ROM + 16KB RAM
@@ -120,10 +163,18 @@ export class Memory {
       this.pages[0] = this.romBanks[0];
       // single 16KB RAM used for page1; other pages unmapped (reads return 0xff)
       const ram = new Uint8Array(Memory.PAGE_SIZE).fill(0);
+      // Initialize video memory in 16K RAM (bitmap: 0x0000-0x17FF, attr: 0x1800-0x1AFF)
+      initVideoMemory(ram, 0x0000, 0x1800, 0x00); // bitmap
+      initVideoMemory(ram, 0x1800, 0x300, 0x38); // attr
       this.ramBanks[0] = ram;
       this.pages[1] = ram;
       this.pages[2] = new Uint8Array(Memory.PAGE_SIZE).fill(0xff);
       this.pages[3] = new Uint8Array(Memory.PAGE_SIZE).fill(0xff);
+      // Set up write pages: writes to page 0 (ROM) go to scratch, others go to same as read
+      this.writePages[0] = this.romScratchPage;
+      this.writePages[1] = ram;
+      this.writePages[2] = this.pages[2];
+      this.writePages[3] = this.pages[3];
       this._flatRam = null; // not used
     } else if (model === '48k') {
       // 16KB ROM + 48KB RAM -> 3 RAM banks
@@ -131,10 +182,18 @@ export class Memory {
       this.pages[0] = this.romBanks[0];
       // create three 16KB RAM banks
       for (let i = 0; i < 3; i++) this.ramBanks[i] = new Uint8Array(Memory.PAGE_SIZE).fill(0);
+      // Initialize video memory in RAM bank 0 (bitmap: 0x0000-0x17FF, attr: 0x1800-0x1AFF)
+      initVideoMemory(this.ramBanks[0], 0x0000, 0x1800, 0x00); // bitmap
+      initVideoMemory(this.ramBanks[0], 0x1800, 0x300, 0x38); // attr
       // map pages 1..3 to ramBanks 0..2
       this.pages[1] = this.ramBanks[0];
       this.pages[2] = this.ramBanks[1];
       this.pages[3] = this.ramBanks[2];
+      // Set up write pages: writes to page 0 (ROM) go to scratch RAM, others go to same as read
+      this.writePages[0] = this.romScratchPage;
+      this.writePages[1] = this.ramBanks[0];
+      this.writePages[2] = this.ramBanks[1];
+      this.writePages[3] = this.ramBanks[2];
       // flatRam for backward-compatibility (ram starting at 0x4000)
       this._flatRam = new Uint8Array(0xC000);
       // fill flatRam with page1..3
@@ -151,6 +210,11 @@ export class Memory {
       this.pages[1] = this.ramBanks[5];
       this.pages[2] = this.ramBanks[2];
       this.pages[3] = this.ramBanks[0];
+      // Set up write pages
+      this.writePages[0] = this.romScratchPage;
+      this.writePages[1] = this.ramBanks[5];
+      this.writePages[2] = this.ramBanks[2];
+      this.writePages[3] = this.ramBanks[0];
       this._flatRam = null;
     } else if (model === 'plus3' || model === '+3') {
       // +3 (Spectrum +3) - similar to 128K but different ROM layout expectations (CP/M support)
@@ -162,6 +226,11 @@ export class Memory {
       this.pages[1] = this.ramBanks[5];
       this.pages[2] = this.ramBanks[2];
       this.pages[3] = this.ramBanks[0];
+      // Set up write pages
+      this.writePages[0] = this.romScratchPage;
+      this.writePages[1] = this.ramBanks[5];
+      this.writePages[2] = this.ramBanks[2];
+      this.writePages[3] = this.ramBanks[0];
       this._flatRam = null;
     } else {
       // fallback to 48K behaviour
@@ -211,29 +280,57 @@ export class Memory {
     addr = this._mask(addr);
     const page = addr >>> 14; // 0..3
     const offset = addr & (Memory.PAGE_SIZE - 1);
+    
+    // FIXED: Always read from pages array (ROM for page 0, RAM for others)
+    // On ZX Spectrum 48K, there is NO RAM under ROM - writes to ROM area are ignored
+    // and reads always return ROM content. The scratch page was causing ROM corruption.
     const view = this.pages[page];
+    
     let value = 0xff;
     if (view) value = view[offset];
     // Apply contention for accesses in 0x4000..0x7fff
     this._applyContention(addr);
+    // If stack watch enabled and access falls in range, invoke callback
+    if (this._stackWatch) {
+      const s = this._stackWatch;
+      // Handle wrap-around ranges (start > end) by normalising check
+      const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
+      if (inRange && typeof s.cb === 'function') s.cb({ type: 'read', addr, value, t: this.cpu ? this.cpu.tstates : 0 });
+    }
     return value;
   }
 
-  /** Write a byte to the currently mapped RAM (writes to ROM are ignored) */
+  /** Write a byte - on ZX Spectrum 48K, writes to ROM area are ignored */
   write(addr, value) {
     addr = this._mask(addr);
     value = value & 0xff;
     const page = addr >>> 14;
     const offset = addr & (Memory.PAGE_SIZE - 1);
-    const view = this.pages[page];
-    if (!view) { this._lastContention = 0; return false; }
-    // If the page points to a ROM bank that's considered read-only, ignore writes
-    if (this.romBanks.includes(view)) {
-      this._lastContention = 0;
+    
+    // FIXED: On ZX Spectrum 48K, writes to ROM area (page 0) are silently ignored
+    // There is no RAM under ROM on the 48K model. The writePages approach was wrong
+    // because it allowed stack operations to corrupt the scratch page which was
+    // then being read for code execution.
+    if (page === 0) {
+      // ROM area - ignore write but still apply contention
+      this._applyContention(addr);
       return false;
     }
-    view[offset] = value;
+    
+    // For RAM pages (1-3), write normally
+    const writeView = this.pages[page]; // Use pages directly, not writePages
+    if (!writeView) { this._lastContention = 0; return false; }
+    
+    writeView[offset] = value;
     this._applyContention(addr);
+
+    // If stack watch enabled and access falls in range, invoke callback
+    if (this._stackWatch) {
+      const s = this._stackWatch;
+      const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
+      if (inRange && typeof s.cb === 'function') s.cb({ type: 'write', addr, value, t: this.cpu ? this.cpu.tstates : 0 });
+    }
+
     // if we maintain a flatRam for 48K keep it in sync
     if (this._flatRam) {
       if (addr >= 0x4000 && addr < 0x10000) {
@@ -252,6 +349,15 @@ export class Memory {
   writeWord(addr, value) {
     this.write(addr, value & 0xff);
     this.write((addr + 1) & Memory.ADDR_MASK, (value >> 8) & 0xff);
+  }
+
+  /** Stack watch helpers (test instrumentation) */
+  enableStackWatch(startAddr, endAddr, cb) {
+    this._stackWatch = { start: startAddr & Memory.ADDR_MASK, end: endAddr & Memory.ADDR_MASK, cb };
+  }
+
+  disableStackWatch() {
+    this._stackWatch = null;
   }
 
   /** Return a copy of the bitmap (0x4000..0x57FF = 6912 bytes) */
@@ -298,7 +404,13 @@ export class Memory {
     this._lastContention = 0;
     // reset to default rom mapping
     this.mapROM(this.currentRom);
-    // for 48K ensure pages point to appropriate banks
-    if (this.model === '48k') this.configureBanks('48k');
+    // for 48K ensure pages point to appropriate banks but DON'T clear video RAM
+    // Let ROM boot sequence manage display initialization
+    if (this.model === '48k') {
+      this.configureBanks('48k');
+      // CRITICAL: Do NOT re-initialize video RAM here - let ROM boot sequence handle it
+      // This allows copyright message to appear during boot
+      console.log('[Memory] Reset complete - video RAM preserved for boot sequence');
+    }
   }
 }
