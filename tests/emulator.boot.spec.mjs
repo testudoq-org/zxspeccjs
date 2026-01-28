@@ -58,13 +58,14 @@ async function readPortWrites(page){
 test.describe('ZX Spectrum 48K - Boot sequence and ROM initialization', () => {
   test('boot progression reaches ROM init and displays Sinclair copyright', async ({ page }, testInfo) => {
     // increase test-level timeout to allow slower diagnostics when investigating polling races
-    test.setTimeout(180000);
+    test.setTimeout(60000);
     await page.goto('http://localhost:8080/');
 
-    // start Playwright tracing to capture snapshots, screenshots and sources for diagnostics
-    try{
-      await page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
-}catch(e){ void e; }
+    // NOTE: Tracing disabled to prevent out-of-memory errors in CI/headless environments
+    // To enable for local debugging: uncomment the tracing.start() call below
+    // try{
+    //   await page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
+    // }catch(e){ void e; }
 
     const consoleMsgs = [];
     page.on('console', async msg => {
@@ -497,13 +498,14 @@ test.describe('ZX Spectrum 48K - Boot sequence and ROM initialization', () => {
 
     testInfo.attach('console.json', { body: JSON.stringify(consoleMsgs, null, 2), contentType: 'application/json' });
 
+    // NOTE: Tracing disabled - see comment at start of test
     // stop tracing and attach trace file
-    try{
-      if(!fs.existsSync('traces')) fs.mkdirSync('traces', { recursive: true });
-      const tracePath = `traces/trace_${Date.now()}.zip`;
-      await page.context().tracing.stop({ path: tracePath });
-      testInfo.attach('trace.zip', { path: tracePath, contentType: 'application/zip' });
-    }catch(e){ testInfo.attach('trace-error.txt', { body: String(e), contentType: 'text/plain' }); }
+    // try{
+    //   if(!fs.existsSync('traces')) fs.mkdirSync('traces', { recursive: true });
+    //   const tracePath = `traces/trace_${Date.now()}.zip`;
+    //   await page.context().tracing.stop({ path: tracePath });
+    //   testInfo.attach('trace.zip', { path: tracePath, contentType: 'application/zip' });
+    // }catch(e){ testInfo.attach('trace-error.txt', { body: String(e), contentType: 'text/plain' }); }
 
     // cleanup PC watcher
     try{
