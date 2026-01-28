@@ -2,7 +2,7 @@
 # Usage: .\run-dev.ps1
 
 Write-Output "Installing npm dependencies..."
-npm install
+npm install --legacy-peer-deps
 
 if ($LASTEXITCODE -ne 0) {
   Write-Error "npm install failed with exit code $LASTEXITCODE"
@@ -10,5 +10,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Output "Starting dev server (npm run dev)..."
-Start-Process -NoNewWindow -FilePath "npm" -ArgumentList "run","dev"
-Write-Output "Dev server started. Open http://localhost:8080 in your browser."
+Write-Output "Server will be available at http://localhost:8080"
+Write-Output "Press Ctrl+C to stop the server."
+Write-Output ""
+
+# Run npm directly (not via Start-Process) so it works properly
+npm run dev

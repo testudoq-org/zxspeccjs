@@ -167,3 +167,51 @@ dist
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode
+.playwright-mcp/
+playwright-report/
+screenshots/
+test-diagnostics/
+playwright-report/
+test-results/
+playwright-report/data/
+traces/
+
+# Temporary debug/trace files
+tmp_*.mjs
+tmp_*.js
+tmp_*.txt
+trace_*.mjs
+analyze_*.mjs
+debug_*.mjs
+deep_*.mjs
+diagnose_*.mjs
+find_*.mjs
+run_*.mjs
+test_*.mjs
+verify_*.mjs
+check_*.mjs
+comprehensive_*.mjs
+complete_*.mjs
+detailed_*.mjs
+disasm_*.mjs
+display_*.mjs
+full_boot_*.mjs
+step_*.mjs
+understand_*.mjs
+boot_trace.mjs
+red_lines_diagnostic.mjs
+copyright_*.mjs
+
+# Diagnostic images
+diagnostic_*.png
+
+# Tools folder (development utilities)
+tools/
+
+# Checks folder
+.checks/
+
+# Vitest config (if not needed in repo)
+vitest.config.mjs
+# Playwright snapshots
+*-snapshots/

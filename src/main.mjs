@@ -17,6 +17,9 @@ export class Emulator {
     this.romInput = opts.romInput || document.getElementById('romFile');
     console.log('[Emulator] constructor: canvas', this.canvas, 'statusEl', this.statusEl, 'romInput', this.romInput);
 
+    // Store options for later use during initialization
+    this._opts = opts;
+
     this.cpu = null;
     this.memory = null;
     this.ula = null;
@@ -29,6 +32,10 @@ export class Emulator {
     this._rafId = null;
     this._lastTime = 0;
     this._acc = 0;
+
+    // Boot frames: Wait for ROM to fully initialize display before rendering
+    // ROM boot takes ~90 frames to reach EI and ~200 frames to print copyright
+    this._bootFramesRemaining = 250;
 
     // Debug API state
     this._debugEnabled = true;
@@ -142,7 +149,10 @@ export class Emulator {
 
   _trackPortWrite(port, value) {
     if (this._debugEnabled) {
-      this._portWrites.push({ port, value, tstates: this.cpu ? this.cpu.tstates : 0 });
+      const entry = { port, value, tstates: this.cpu ? this.cpu.tstates : 0 };
+      this._portWrites.push(entry);
+      // expose to page debug API for tests
+      try{ if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.portWrites = this._portWrites; }catch(e){ /* best-effort only */ }
     }
   }
 
@@ -150,16 +160,61 @@ export class Emulator {
     if (this._debugEnabled) {
       this._executedOpcodes.push(`0x${opcode.toString(16).padStart(2, '0')} at 0x${pc.toString(16).padStart(4, '0')}`);
       this._lastPC = pc;
-      
+
       // Track boot progression
       if (this._bootAddresses.includes(pc)) {
-        // console.log(`[DEBUG] Boot address 0x${pc.toString(16).padStart(4, '0')} reached`);
+        // mark visited set for later inspection
+        try{ if (this.cpu && this.cpu._visitedBootAddresses) this.cpu._visitedBootAddresses.add(pc); }catch(e){ void e; }
       }
-      
+
+      // ensure we update watcher history if present (records every instruction PC)
+      if (typeof window !== 'undefined' && window.__PC_WATCHER__ && Array.isArray(window.__PC_WATCHER__.history)) {
+        try{
+          const h = window.__PC_WATCHER__.history;
+          if(h.length === 0 || h[h.length-1] !== pc) h.push(pc);
+          if(h.length > 10000) h.shift();
+        }catch(e){ void e; }
+      }
+
+      // Expose a small debug API into the page to make tests reliable and robust
+      if (typeof window !== 'undefined') {
+        try{
+          window.__LAST_PC__ = pc;
+          if(!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
+          window.__ZX_DEBUG__.executedOpcodes = this._executedOpcodes;
+          window.__ZX_DEBUG__.bootComplete = this._bootComplete;
+          window.__ZX_DEBUG__.timing = { tstates: this.cpu ? this.cpu.tstates : 0 };
+          window.__ZX_DEBUG__.getRegisters = () => ({
+            A: this.cpu ? this.cpu.A : 0,
+            F: this.cpu ? this.cpu.F : 0,
+            B: this.cpu ? this.cpu.B : 0,
+            C: this.cpu ? this.cpu.C : 0,
+            D: this.cpu ? this.cpu.D : 0,
+            E: this.cpu ? this.cpu.E : 0,
+            H: this.cpu ? this.cpu.H : 0,
+            L: this.cpu ? this.cpu.L : 0,
+            PC: this.cpu ? this.cpu.PC : 0,
+            SP: this.cpu ? this.cpu.SP : 0,
+            IX: this.cpu ? this.cpu.IX : 0,
+            IY: this.cpu ? this.cpu.IY : 0,
+            IFF1: this.cpu ? this.cpu.IFF1 : false,
+            IFF2: this.cpu ? this.cpu.IFF2 : false,
+            IM: this.cpu ? this.cpu.IM : 0,
+            tstates: this.cpu ? this.cpu.tstates : 0
+          });
+          window.__ZX_DEBUG__.peekMemory = (addr, len) => {
+            const out = [];
+            try{ for(let i=0;i<len;i++) out.push(this.memory ? this.memory.read((addr + i) & 0xFFFF) : 0); }catch(e){ void e; }
+            return out;
+          };
+        }catch(e){ /* best-effort only */ }
+      }
+
       // Check for boot completion (at final boot address)
       if (pc === 0x11CB) {
         this._bootComplete = true;
-        // console.log('[DEBUG] Boot sequence complete');
+        // reflect on debug object too
+        try{ if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.bootComplete = true; }catch(e){ void e; }
       }
     }
   }
@@ -278,12 +333,18 @@ export class Emulator {
           window.__LAST_PC__ = pc; // Use the actual instruction PC, not the next one
         }
       };
-      // Enable verbose debugging for tests
-      this.cpu._debugVerbose = true;
+      // Disable verbose debugging to prevent console spam
+      this.cpu._debugVerbose = false;
     }
     
     this.memory.attachCPU(this.cpu);
-    this.ula = new ULA(this.memory, this.canvas);
+    
+    // ULA with DEFERRED RENDERING ENABLED BY DEFAULT (JSSpeccy3-style)
+    // This is the proper fix for the red lines bug - render from frame buffer
+    // captured at END of frame, not live memory during execution
+    this.ula = new ULA(this.memory, this.canvas, { 
+      useDeferredRendering: true  // ENABLED: fixes boot display issues
+    });
     this.ula.attachCPU(this.cpu); // CRITICAL: Connect ULA to CPU for interrupt generation
     this.sound = new Sound();
     
@@ -315,6 +376,8 @@ export class Emulator {
     };
   
     // Add ROM visibility verification to debug API
+    // Ensure __ZX_DEBUG__ exists before accessing it
+    if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
     window.__ZX_DEBUG__.isROMVisible = (address = 0) => {
       // Checks if the byte at address matches the ROM byte
       if (!emu.memory || !window.spec48 || !window.spec48.bytes) return false;
@@ -324,6 +387,18 @@ export class Emulator {
     
     this.cpu.io = ioAdapter;
     console.log('[Emulator] _createCore: connected CPU io adapter for port 0xFE border control');
+
+    // Track writes to video memory and attributes to help diagnose rendering problems
+    this._memWrites = [];
+    try{
+      this.memory.enableStackWatch(0x4000, 0x5AFF, (evt) => {
+        try{
+          if (this._debugEnabled) this._memWrites.push(evt);
+          if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites;
+        }catch(e){ /* best effort */ }
+      });
+      console.log('[Emulator] _createCore: enabled mem write watch for 0x4000-0x5AFF');
+    }catch(e){ /* ignore if memory doesn't support watch */ }
 
     console.log('[Emulator] _createCore: memory', this.memory, 'cpu', this.cpu, 'ula', this.ula);
 
@@ -343,6 +418,10 @@ export class Emulator {
     await this._createCore(arrayBuffer);
     // Boot PC typically 0x0000 (ROM entry)
     this.cpu.reset();
+    // Ensure border color is set to white at boot (OUT 0xFE, 0x07)
+    if (this.cpu && this.cpu.io && typeof this.cpu.io.write === 'function') {
+      this.cpu.io.write(0xFE, 0x07, this.cpu.tstates);
+    }
     // attach ULA keyboard matrix snapshot
     this._applyInputToULA();
   }
@@ -434,8 +513,8 @@ export class Emulator {
           window.__LAST_PC__ = pc; // Use the actual instruction PC, not the next one
         }
       };
-      // Enable verbose debugging for tests
-      this.cpu._debugVerbose = true;
+      // Disable verbose debugging to prevent console spam
+      this.cpu._debugVerbose = false;
     }
     
     // clear ULA flash/timers
@@ -515,8 +594,6 @@ export class Emulator {
 
   _loop(now) {
     if (!this._running) return;
-    // DEBUG: log loop entry
-    // console.log('[Emulator] _loop: running');
     const dt = now - this._lastTime;
     this._lastTime = now;
     this._acc += dt;
@@ -528,21 +605,23 @@ export class Emulator {
 
       // Run CPU for a full frame worth of t-states with interrupt generation
       if (this.cpu && typeof this.cpu.runFor === 'function') {
-        const tstatesBefore = this.cpu.tstates;
         this.cpu.runFor(TSTATES_PER_FRAME);
-        const tstatesExecuted = this.cpu.tstates - tstatesBefore;
         
-        // CRITICAL: Generate 50Hz interrupts based on actual t-states executed
-        if (this.ula && typeof this.ula.generateInterrupt === 'function') {
-          this.ula.generateInterrupt(tstatesExecuted);
-          this.ula.updateInterruptState(); // Update interrupt enable state
+        // QUICK FIX: Synchronous interrupt generation at frame boundary
+        // This replaces the async setTimeout approach that caused timing issues
+        if (this.ula) {
+          this.ula.updateInterruptState();
+          this.ula.generateInterruptSync(); // Use synchronous interrupt
         }
       }
 
-      // ULA render
-      if (this.ula) {
-        // DEBUG: log ULA render
-        // console.log('[Emulator] _loop: ula.render');
+      // QUICK FIX: Skip rendering during boot frames to let ROM fully initialize
+      if (this._bootFramesRemaining > 0) {
+        this._bootFramesRemaining--;
+        if (this._bootFramesRemaining === 0) {
+          console.log('[Emulator] Boot frames complete, starting normal rendering');
+        }
+      } else if (this.ula) {
         this.ula.render();
       }
 
@@ -603,6 +682,10 @@ window.addEventListener('DOMContentLoaded', async () => {
       
       console.log('[Emulator] ROM load completed, CPU PC:', emu.cpu.PC);
       emu.status('default ROM: spec48 loaded');
+      
+      // CRITICAL FIX: Auto-start the emulator after loading ROM
+      console.log('[Emulator] Auto-starting emulator...');
+      emu.start();
     } else {
       console.log('[Emulator] spec48 not available for auto-loading');
     }
@@ -613,6 +696,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Expose for console debugging
   window.emu = emu;
+  // Expose as window.emulator for test compatibility
+  window.emulator = emu;
   
   // Expose spec48 ROM data globally for test access
   if (typeof spec48 !== 'undefined' && spec48) {
