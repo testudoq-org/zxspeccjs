@@ -37,6 +37,9 @@ export class Emulator {
     // ROM boot takes ~90 frames to reach EI and ~200 frames to print copyright
     this._bootFramesRemaining = 250;
 
+    // Track the number of memWrites observed so we can detect new video writes during boot
+    this._lastMemWritesLen = 0;
+
     // Debug API state
     this._debugEnabled = true;
     this._bootAddresses = [0x0000, 0x0001, 0x0002, 0x0005, 0x11CB];
@@ -275,6 +278,14 @@ export class Emulator {
 
     // Virtual keyboard toggle (optional)
     try { this.input.createVirtualKeyboard('body'); } catch (e) {}
+
+    // Make the canvas focusable and focus on click so keyboard events reach it reliably
+    try {
+      if (this.canvas && typeof this.canvas === 'object') {
+        this.canvas.tabIndex = 0; // allow focus via script
+        this.canvas.addEventListener('click', () => { try { this.canvas.focus(); } catch (e) { /* ignore */ } });
+      }
+    } catch (e) {}
   }
 
   async handleLoad() {
@@ -403,6 +414,9 @@ export class Emulator {
     try{
       this.memory.enableStackWatch(0x4000, 0x5AFF, (evt) => {
         try{
+          // Include the current PC and registers for easier attribution of writes to ROM code
+          try { evt.pc = this.cpu ? this.cpu.PC : undefined; } catch (e) { evt.pc = undefined; }
+          try { evt.regs = this.cpu && typeof this.cpu.getRegisters === 'function' ? this.cpu.getRegisters() : undefined; } catch (e) { evt.regs = undefined; }
           if (this._debugEnabled) this._memWrites.push(evt);
           if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites;
         }catch(e){ /* best effort */ }
@@ -444,6 +458,9 @@ export class Emulator {
       const full = (rowVal & 0x1f) | 0b11100000;
       if (this.ula && this.ula.keyMatrix) this.ula.keyMatrix[r] = full;
     }
+
+    // Test hook: record last applied key matrix for diagnostics
+    try { if (typeof window !== 'undefined' && window.__TEST__ && this.ula && this.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(this.ula.keyMatrix); } catch (e) { void e; }
     
     if (this._keyboardDebug) {
       const pressed = [];
@@ -572,51 +589,24 @@ export class Emulator {
     }
   }
 
-  // CRITICAL: Initialize I/O channel system for boot sequence
+  // NOTE: _initializeIOSystem() was REMOVED
+  // 
+  // The previous implementation was INCORRECTLY writing to 0x5C36 (CHARS system variable)
+  // instead of the proper CHANS address at 0x5C4F. This corrupted the character set pointer,
+  // causing the © symbol (character 0x7F) not to display correctly.
+  //
+  // ZX Spectrum System Variables (correct addresses):
+  // - 0x5C36-0x5C37: CHARS - Character set address - 256 (should be 0x3C00 for ROM charset)
+  // - 0x5C4F-0x5C50: CHANS - Channel information area
+  //
+  // The ROM properly initializes all system variables during its boot sequence.
+  // Pre-initializing them here was causing conflicts with the ROM's initialization.
   _initializeIOSystem() {
-    if (!this.memory) return;
-    
-    // Initialize system variables for I/O channel system
-    // CHANS (0x5C36) - Channel information table address
-    // CURCHL (0x5C37) - Current channel address
-    
-    // Create basic channel table in RAM
-    // Channel table format: [stream_type, stream_params...]
-    // K = keyboard channel, S = screen channel, P = printer channel
-    
-    const channelTable = [
-      0x4B, 0x00, 0x00, // 'K' (keyboard) - 3 bytes
-      0x53, 0x00, 0x00, // 'S' (screen) - 3 bytes  
-      0x50, 0x00, 0x00, // 'P' (printer) - 3 bytes
-      0x80              // End marker
-    ];
-    
-    // Store channel table in RAM starting at 0x5C36
-    for (let i = 0; i < channelTable.length && (0x5C36 + i) < 0x5C40; i++) {
-      this.memory.write(0x5C36 + i, channelTable[i]);
-    }
-    
-    // Set CURCHL to point to screen channel (0x5C39)
-    this.memory.write(0x5C37, 0x39); // Low byte of screen channel address
-    this.memory.write(0x5C38, 0x5C); // High byte of screen channel address
-    
-    // Initialize other system variables
-    // DF_SZ (0x5C6B) - Display file size (24 lines)
-    this.memory.write(0x5C6B, 24);
-    
-    // DF_CC (0x5C6C) - Display file cursor column
-    this.memory.write(0x5C6C, 0);
-    
-    // DF_CC (0x5C6D) - Display file cursor row  
-    this.memory.write(0x5C6D, 0);
-    
-    // S_POSN (0x5C7A) - Stream position
-    this.memory.write(0x5C7A, 0); // Column
-    this.memory.write(0x5C7B, 0); // Row
-    
-    if (typeof console !== 'undefined' && console.log) {
-      console.log('[Emulator] I/O channel system initialized');
-      console.log(`[Emulator] CHANS table at 0x5C36: ${channelTable.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}`);
+    // Let the ROM handle all system variable initialization
+    // This ensures the character set pointer (CHARS at 0x5C36) is set correctly
+    // to 0x3C00, which points to the ROM character set at 0x3D00 minus 256
+    if (this._debug && typeof console !== 'undefined') {
+      console.log('[Emulator] Letting ROM handle system variable initialization');
     }
   }
 
@@ -645,6 +635,22 @@ export class Emulator {
 
       // QUICK FIX: Skip rendering during boot frames to let ROM fully initialize
       if (this._bootFramesRemaining > 0) {
+        // If display memory writes occur during boot, render once so users can see progress
+        try {
+          if (this._memWrites && this._memWrites.length > (this._lastMemWritesLen || 0)) {
+            const newWrites = this._memWrites.slice(this._lastMemWritesLen || 0);
+            const madeDisplayWrite = newWrites.some(w => {
+              try {
+                return Object.values(w).some(v => (typeof v === 'number' && v >= 0x4000 && v <= 0x5AFF));
+              } catch (e) { return false; }
+            });
+            if (madeDisplayWrite && this.ula) {
+              try { this.ula.render(); } catch (e) { void e; }
+            }
+            this._lastMemWritesLen = this._memWrites.length;
+          }
+        } catch (e) { void e; }
+
         this._bootFramesRemaining--;
         if (this._bootFramesRemaining === 0) {
           console.log('[Emulator] Boot frames complete, starting normal rendering');
@@ -797,9 +803,164 @@ window.addEventListener('DOMContentLoaded', async () => {
         return true;
       }
       return false;
+    },
+    // Test helper: snapshot a single character column's bitmap/attr and try to match it to ROM charset
+    snapshotGlyph: (col, topRow) => {
+      try {
+        const result = { col, topRow, bitmapAddrs: [], bitmapBytes: [], attrAddr: null, attrByte: null, fbBytes: [], romMatchAddr: null, matchToRom: false, lastPC: emu.getLastPC ? emu.getLastPC() : (emu.getPC ? emu.getPC() : 0) };
+        if (!emu || !emu.peekMemory || typeof emu.readRAM !== 'function' || typeof emu.readROM !== 'function') return result;
+
+        // Read the 8 bitmap bytes for the character vertical (8 rows)
+        for (let i = 0; i < 8; i++) {
+          const y = topRow + i;
+          const y0 = y & 0x07;
+          const y1 = (y & 0x38) >> 3;
+          const y2 = (y & 0xC0) >> 6;
+          const bitmapIndex = (y0 << 8) | (y1 << 5) | (y2 << 11) | col;
+          const addr = 0x4000 + bitmapIndex;
+          result.bitmapAddrs.push(addr);
+          result.bitmapBytes.push(emu.readRAM(addr));
+        }
+
+        // Attribute byte for the character cell
+        const attrAddr = 0x5800 + (Math.floor(topRow / 8) * 32) + col;
+        result.attrAddr = attrAddr;
+        result.attrByte = emu.readRAM(attrAddr);
+
+        // FrameBuffer sample if available
+        try {
+          const emuWindow = window.emulator || window.emu;
+          if (emuWindow && emuWindow.ula && emuWindow.ula.frameBuffer && emuWindow.ula.frameBuffer.buffer) {
+            const buf = emuWindow.ula.frameBuffer.buffer;
+            const topBorderBytes = 24 * 160;
+            const lineStride = 16 + 64 + 16;
+            for (let i = 0; i < 8; i++) {
+              const y = topRow + i;
+              const bufferPtr = topBorderBytes + y * lineStride + 16 + col * 2;
+              result.fbBytes.push(buf[bufferPtr]);
+            }
+          }
+        } catch (e) { /* ignore */ }
+
+        // Try to find a matching glyph in ROM charset area 0x3C00..0x3FFF (256 bytes = 32 glyphs? actually 0x400 bytes = 512 glyphs? we search whole 0x3C00..0x3FFF by 8-byte steps)
+        let found = null;
+        for (let a = 0x3C00; a <= 0x3FFF; a += 8) {
+          let ok = true;
+          for (let j = 0; j < 8; j++) {
+            const b = emu.readROM(a + j);
+            if (b !== result.bitmapBytes[j]) { ok = false; break; }
+          }
+          if (ok) { found = a; break; }
+        }
+        if (found) {
+          result.romMatchAddr = found;
+          result.matchToRom = true;
+        }
+        return result;
+      } catch (e) {
+        return { error: String(e) };
+      }
+    },
+
+    // Test helper: Compare the rendered canvas pixels for a character column against expected bitmap bytes
+    compareColumnPixels: (col, topRow) => {
+      try {
+        const snap = window.__ZX_DEBUG__.snapshotGlyph(col, topRow);
+        if (!snap || snap.error) return { error: 'snapshot_failed', snap };
+
+        const canvas = document.getElementById('screen');
+        if (!canvas) return { error: 'no_canvas' };
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return { error: 'no_ctx' };
+
+        // Compute canvas coordinates
+        const xStart = 16 * 2 + col * 8; // left border (16 bytes -> 32 pixels) + col*8 pixels
+        const yStart = 24 + topRow; // top border 24 pixels
+
+        // Recreate palette used by renderer
+        const baseColours = [
+          [0, 0, 0],
+          [0, 0, 192],
+          [192, 0, 0],
+          [192, 0, 192],
+          [0, 192, 0],
+          [0, 192, 192],
+          [192, 192, 0],
+          [192, 192, 192],
+        ];
+        const brightColours = [
+          [0, 0, 0],
+          [0, 0, 255],
+          [255, 0, 0],
+          [255, 0, 255],
+          [0, 255, 0],
+          [0, 255, 255],
+          [255, 255, 0],
+          [255, 255, 255],
+        ];
+
+        // Determine ink/paper and brightness/flash
+        let ink = snap.attrByte & 0x07;
+        let paper = (snap.attrByte >> 3) & 0x07;
+        const bright = (snap.attrByte & 0x40) ? true : false;
+        const flash = (snap.attrByte & 0x80) ? true : false;
+
+        // If flash is set, consult frameBuffer flashPhase
+        try {
+          const fb = (window.emulator && window.emulator.ula && window.emulator.ula.frameBuffer) ? window.emulator.ula.frameBuffer : null;
+          if (flash && fb && typeof fb.getFlashPhase === 'function') {
+            const phase = fb.getFlashPhase();
+            if (phase & 0x10) {
+              const tmp = ink; ink = paper; paper = tmp;
+            }
+          }
+        } catch (e) { /* ignore */ }
+
+        const palette = (bright ? brightColours : baseColours);
+
+        const mismatches = [];
+
+        // For each of 8 rows
+        for (let row = 0; row < 8; row++) {
+          const bitmap = snap.bitmapBytes[row];
+          for (let bit = 0; bit < 8; bit++) {
+            const mask = 0x80 >> bit;
+            const pixelSet = (bitmap & mask) !== 0;
+            const expected = pixelSet ? palette[ink] : palette[paper];
+
+            const img = ctx.getImageData(xStart + bit, yStart + row, 1, 1).data;
+            const actual = [img[0], img[1], img[2]];
+
+            if (actual[0] !== expected[0] || actual[1] !== expected[1] || actual[2] !== expected[2]) {
+              mismatches.push({ row, bit, expected, actual });
+            }
+          }
+        }
+
+        return { col, topRow, mismatches, snap };
+      } catch (e) {
+        return { error: String(e) };
+      }
+    },
+
+    // Test helper: return bottom two lines (190..191) bitmap bytes for cols 0..31
+    peekBottomLines: () => {
+      try {
+        const out = [];
+        if (!emu || typeof emu.readRAM !== 'function') return null;
+        for (let r = 190; r <= 191; r++) {
+          const row = [];
+          for (let c = 0; c < 32; c++) {
+            const rel = ((r & 0xC0) << 5) + ((r & 0x07) << 8) + ((r & 0x38) << 2) + c;
+            row.push(emu.readRAM(rel));
+          }
+          out.push(row);
+        }
+        return out;
+      } catch (e) { return null; }
     }
   };
-  
+
   // Expose legacy global for compatibility
   window.__LAST_PC__ = 0;
   

@@ -324,6 +324,13 @@ export class Memory {
     writeView[offset] = value;
     this._applyContention(addr);
 
+    // Diagnostic: warn on accidental writes to CHARS (0x5C36/0x5C37)
+    if (addr === 0x5C36 || addr === 0x5C37) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(`[Memory] Write to CHARS at 0x${addr.toString(16)} = 0x${value.toString(16)} (t=${this.cpu && this.cpu.tstates ? this.cpu.tstates : 'unknown'})`);
+      }
+    }
+
     // If stack watch enabled and access falls in range, invoke callback
     if (this._stackWatch) {
       const s = this._stackWatch;
@@ -410,6 +417,7 @@ export class Memory {
       this.configureBanks('48k');
       // CRITICAL: Do NOT re-initialize video RAM here - let ROM boot sequence handle it
       // This allows copyright message to appear during boot
+      if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.memoryResetLog = (window.__TEST__.memoryResetLog || []).concat({ t: Date.now(), pc: (window.__LAST_PC__ || null) });
       console.log('[Memory] Reset complete - video RAM preserved for boot sequence');
     }
   }

@@ -124,6 +124,7 @@ export class FrameBuffer {
       let nonZero = 0;
       for (let i = 0; i < bitmap.length; i++) if (bitmap[i] !== 0) nonZero++;
       if (typeof console !== 'undefined') console.log(`[FrameBuffer] Frame ${this._debugCount}: Bitmap non-zero: ${nonZero}/${bitmap.length}`);
+      if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.lastFrameBitmapNonZero = nonZero;
       if (nonZero > 0 && this._debugCount <= 5) {
         // Find which addresses have non-zero bytes
         const sample = Array.from(bitmap.slice(0, 64)).map(b => b.toString(16).padStart(2, '0')).join(' ');
@@ -177,6 +178,13 @@ export class FrameBuffer {
     
     // CRITICAL: Update writePtr so endFrame() doesn't overwrite the buffer
     this.writePtr = ptr;
+
+    // Test hook: notify tests that a fresh frame buffer was generated
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameGenerated === 'function') {
+        window.__TEST__.frameGenerated();
+      }
+    } catch (e) { /* nom */ }
   }
   
   /**
@@ -329,6 +337,13 @@ export class FrameRenderer {
     
     // Draw to canvas
     this.ctx.putImageData(this.imageData, 0, 0);
+
+    // Test hook: notify tests that a render finished
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameRendered === 'function') {
+        window.__TEST__.frameRendered();
+      }
+    } catch (e) { /* nom */ }
   }
 }
 

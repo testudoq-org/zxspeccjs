@@ -5,25 +5,25 @@
 // Each row is read when corresponding address line A8-A15 is LOW
 // Each column corresponds to data bits D0-D4 (active low: 0 = pressed, 1 = released)
 //
-// Standard ZX Spectrum 48K Layout:
-// Row 0 (A8=0, 0xFEFE): 1,2,3,4,5         (D0-D4)
-// Row 1 (A9=0, 0xFDFE): Q,W,E,R,T         (D0-D4)
-// Row 2 (A10=0, 0xFBFE): A,S,D,F,G        (D0-D4)
-// Row 3 (A11=0, 0xF7FE): Caps Shift,Z,X,C,V (D0-D4)
-// Row 4 (A12=0, 0xEFFE): 0,9,8,7,6        (D0-D4)
-// Row 5 (A13=0, 0xDFFE): P,O,I,U,Y        (D0-D4)
-// Row 6 (A14=0, 0xBFFE): Enter,L,K,J,H    (D0-D4)
-// Row 7 (A15=0, 0x7FFE): Space,Symbol Shift,M,N,B (D0-D4)
+// ZX Spectrum 48K Hardware Layout (matches jsspeccy3 reference):
+// Row 0 (A8=0, 0xFEFE): Caps Shift, Z, X, C, V   (D0-D4)
+// Row 1 (A9=0, 0xFDFE): A, S, D, F, G            (D0-D4)
+// Row 2 (A10=0, 0xFBFE): Q, W, E, R, T           (D0-D4)
+// Row 3 (A11=0, 0xF7FE): 1, 2, 3, 4, 5           (D0-D4)
+// Row 4 (A12=0, 0xEFFE): 0, 9, 8, 7, 6           (D0-D4)
+// Row 5 (A13=0, 0xDFFE): P, O, I, U, Y           (D0-D4)
+// Row 6 (A14=0, 0xBFFE): Enter, L, K, J, H       (D0-D4)
+// Row 7 (A15=0, 0x7FFE): Space, Symbol Shift, M, N, B (D0-D4)
 
 const DEFAULT_ROW = 0b11111; // 5 bits, all 1 = no key pressed
 
-// Correct ZX Spectrum 48K keyboard matrix layout
+// ZX Spectrum 48K keyboard matrix layout (matches jsspeccy3 reference)
 // Each row contains keys from D0 (bit 0) to D4 (bit 4)
 const ROW_KEYS = [
-  ['1', '2', '3', '4', '5'],           // Row 0: A8=0
-  ['q', 'w', 'e', 'r', 't'],           // Row 1: A9=0
-  ['a', 's', 'd', 'f', 'g'],           // Row 2: A10=0
-  ['shift', 'z', 'x', 'c', 'v'],       // Row 3: A11=0 (Caps Shift)
+  ['shift', 'z', 'x', 'c', 'v'],       // Row 0: A8=0 (Caps Shift)
+  ['a', 's', 'd', 'f', 'g'],           // Row 1: A9=0
+  ['q', 'w', 'e', 'r', 't'],           // Row 2: A10=0
+  ['1', '2', '3', '4', '5'],           // Row 3: A11=0
   ['0', '9', '8', '7', '6'],           // Row 4: A12=0
   ['p', 'o', 'i', 'u', 'y'],           // Row 5: A13=0
   ['enter', 'l', 'k', 'j', 'h'],       // Row 6: A14=0
@@ -173,6 +173,9 @@ export default class Input {
     if (this._debug) {
       console.log(`[Input] Key DOWN: ${name} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}, matrix[${pos.row}]=0x${this.matrix[pos.row].toString(16)}`);
     }
+
+    // Immediately sync input to emulator's ULA so key presses take effect without waiting for the next frame
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
   }
 
   _keyup(e) {
@@ -205,6 +208,9 @@ export default class Input {
     if (this._debug) {
       console.log(`[Input] Key UP: ${name} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}, matrix[${pos.row}]=0x${this.matrix[pos.row].toString(16)}`);
     }
+
+    // Immediately sync input to emulator's ULA so key releases take effect without waiting for the next frame
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
   }
 
   // Programmatically press a key (for virtual keyboard or testing)
@@ -222,7 +228,20 @@ export default class Input {
     if (this._debug) {
       console.log(`[Input] pressKey: ${normalizedName} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}`);
     }
-    return true;
+
+    // Test hook: emit key event to window.__TEST__ for diagnostics
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
+        window.__TEST__.keyEvents.push({ type: 'press', key: normalizedName, row: pos.row, mask: pos.mask, t: (this._debugTstates || performance.now()) });
+        if (window.__TEST__.keyEvents.length > 256) window.__TEST__.keyEvents.shift();
+      }
+    } catch (e) { /* ignore */ }
+
+    // Also sync immediately to emulator's ULA
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
+
+    return true; 
   }
 
   // Programmatically release a key
@@ -240,6 +259,19 @@ export default class Input {
     if (this._debug) {
       console.log(`[Input] releaseKey: ${normalizedName} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}`);
     }
+
+    // Test hook: emit key event to window.__TEST__ for diagnostics
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
+        window.__TEST__.keyEvents.push({ type: 'release', key: normalizedName, row: pos.row, mask: pos.mask, t: (this._debugTstates || performance.now()) });
+        if (window.__TEST__.keyEvents.length > 256) window.__TEST__.keyEvents.shift();
+      }
+    } catch (e) { /* ignore */ }
+
+    // Also sync immediately to emulator's ULA
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
+
     return true;
   }
 

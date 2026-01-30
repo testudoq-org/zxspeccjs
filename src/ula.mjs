@@ -102,6 +102,7 @@ export class ULA {
   // QUICK FIX: Initialize display memory early to avoid race conditions with ROM
   _initializeDisplayMemory() {
     if (!this.mem) return;
+    if (typeof window !== 'undefined' && window.__TEST__) (window.__TEST__.ulaInitCalls = window.__TEST__.ulaInitCalls || []).push({ t: Date.now(), pc: (window.__LAST_PC__ || null) });
     
     const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
     const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
@@ -185,6 +186,14 @@ export class ULA {
       if (this._debug && (result & 0x1f) !== 0x1f) {
         console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, result=0x${result.toString(16)}`);
       }
+      // Test hook: capture port reads for diagnostics
+      try {
+        if (typeof window !== 'undefined' && window.__TEST__) {
+          window.__TEST__.portReads = window.__TEST__.portReads || [];
+          window.__TEST__.portReads.push({ port: port & 0xffff, high, result: result & 0xff, t: (this.cpu && this.cpu.tstates) || 0 });
+          if (window.__TEST__.portReads.length > 256) window.__TEST__.portReads.shift();
+        }
+      } catch (e) { /* ignore */ }
       
       return result & 0xff;
     }
@@ -240,6 +249,8 @@ export class ULA {
 
     const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null; // 6912 bytes: arranged in Spectrum scanline order
     const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null; // 768 bytes
+
+    if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__._lastRenderContext = { useDeferred: this.useDeferredRendering, t: Date.now(), pc: (window.__LAST_PC__ || null) };
 
     // --- REMOVED AGGRESSIVE VIDEO MEMORY PROTECTION ---
     // The previous protection was destroying display content and preventing
@@ -307,5 +318,12 @@ export class ULA {
 
     // Blit to canvas
     this.ctx.putImageData(this.image, 0, 0);
+
+    // Test hook: notify tests that a render finished (legacy path)
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameRendered === 'function') {
+        window.__TEST__.frameRendered();
+      }
+    } catch (e) { /* ignore */ }
   }
 }

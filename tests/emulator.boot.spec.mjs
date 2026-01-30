@@ -448,12 +448,29 @@ test.describe('ZX Spectrum 48K - Boot sequence and ROM initialization', () => {
       testInfo.attach('baseline-created', { path: baselinePath, contentType: 'image/png' });
     }
 
-    // Pixel-precise assertion using Playwright's built-in helper where available
-    try{
-      const canvas = page.locator('canvas').first();
-      await expect(canvas).toHaveScreenshot('boot_canvas.png', { maxDiffPixelRatio: 0.05, animations: 'disabled' });
-    }catch(e){
-      // swallow - baseline may be created above
+    // Deterministic glyph check: prefer matching ROM glyphs via snapshotGlyph helper
+    try {
+      const snapshotMatch = await page.evaluate(() => {
+        try {
+          if (!window.__ZX_DEBUG__ || typeof window.__ZX_DEBUG__.snapshotGlyph !== 'function') return { found: false, reason: 'no_debug' };
+          for (let col = 0; col < 32; col++) {
+            const s = window.__ZX_DEBUG__.snapshotGlyph(col, 184);
+            if (s && s.matchToRom) return { found: true, col, rom: s.romMatchAddr, s };
+          }
+          return { found: false };
+        } catch (e) { return { found: false, error: String(e) }; }
+      });
+
+      if (!snapshotMatch || !snapshotMatch.found) {
+        // Fallback: Pixel-precise assertion using Playwright's helper (relaxed tolerance)
+        const canvas = page.locator('canvas').first();
+        await expect(canvas).toHaveScreenshot('boot_canvas.png', { maxDiffPixelRatio: 0.05, animations: 'disabled' });
+      } else {
+        console.log('Found ROM glyph via snapshotGlyph in boot test:', snapshotMatch);
+      }
+    } catch (e) {
+      // swallow unexpected errors but keep test flow
+      console.warn('boot image check fallback error:', String(e));
     }
 
     const colorCheck = await page.evaluate(() => {

@@ -625,14 +625,15 @@ export class Z80 {
   _handleChanOpen() {
     const channel = this.A & 0xFF;
     if (channel === 0) {
-      // Channel 0 points to screen channel at 0x5C39
+      // Channel 0 points to screen channel at 0x5C39; set CURCHL at 0x5C51/0x5C52 to point to it
       if (this.mem && typeof this.mem.write === 'function') {
-        this.mem.write(0x5C37, 0x39);
-        this.mem.write(0x5C38, 0x5C);
+        // Store low byte then high byte for address 0x5C39 into CURCHL (0x5C51/0x5C52)
+        this.mem.write(0x5C51, 0x39);
+        this.mem.write(0x5C52, 0x5C);
       } else if (this.mem && this.mem.mem instanceof Uint8Array) {
         // Use flat memory if available
-        this.mem.mem[0x5C37 & 0xFFFF] = 0x39;
-        this.mem.mem[0x5C38 & 0xFFFF] = 0x5C;
+        this.mem.mem[0x5C51 & 0xFFFF] = 0x39;
+        this.mem.mem[0x5C52 & 0xFFFF] = 0x5C;
       }
     }
   }
