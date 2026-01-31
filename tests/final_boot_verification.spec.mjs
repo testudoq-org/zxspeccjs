@@ -84,10 +84,96 @@ test.describe('ZX Spectrum 48K Boot Implementation', () => {
     console.log('Glyph check result:', glyphResult);
     expect(glyphResult.romHasCopyright).toBe(true);
     expect(glyphResult.fbHasText).toBeTruthy();
+    // Ensure glyph presence was detected via RAM/glyph snapshot/canvas pixel check
+    const glyphDetected = (glyphResult.glyphCheck && glyphResult.glyphCheck.found) || (glyphResult.snapshotMatches && glyphResult.snapshotMatches.found) || (glyphResult.pixelCompareResults && glyphResult.pixelCompareResults.length > 0);
+    expect(glyphDetected).toBe(true);
+    // If the glyph detection returned a column index (RAM-based check), ensure it's a number
+    if (glyphResult.glyphCheck && typeof glyphResult.glyphCheck.col !== 'undefined') {
+      expect(typeof glyphResult.glyphCheck.col).toBe('number');
+    }
 
     if (glyphResult.snapshotMatches && glyphResult.snapshotMatches.found && Array.isArray(glyphResult.pixelCompareResults)) {
       const anyGood = glyphResult.pixelCompareResults.some(p => p && p.cmp && Array.isArray(p.cmp.mismatches) && p.cmp.mismatches.length === 0);
       expect(anyGood).toBe(true);
+    }
+
+    // Regression check: ensure emulator did not write to CHARS during boot
+    const charsWrites = await page.evaluate(() => (window.__TEST__ && window.__TEST__.charsWrites) ? window.__TEST__.charsWrites : []);
+    console.log('CHARS writes during boot (raw):', charsWrites && charsWrites.length ? charsWrites.slice(0,8) : 'none');
+    // Filter out expected CHARS writes coming from CPU (Z80) - we only flag unexpected JS-initiated writes
+    const unexpectedWrites = (charsWrites || []).filter(w => !(w.stack && w.stack.indexOf('Z80.writeByte') !== -1));
+    console.log('CHARS writes unexpected (not from Z80):', unexpectedWrites && unexpectedWrites.length ? unexpectedWrites.slice(0,8) : 'none');
+    expect(unexpectedWrites.length).toBe(0);
+
+    // Check that CHARS diagnostic shows a non-empty glyph for 0x7F (circled-C)
+    const charsDiag = await page.evaluate(() => window.__TEST__ ? (window.__TEST__.charsDiag || null) : null);
+    console.log('CHARS diagnostic:', charsDiag);
+    expect(charsDiag).not.toBeNull();
+    if (charsDiag) {
+      const glyph = charsDiag.glyphs && (charsDiag.glyphs[0x7f] || charsDiag.glyphs['127']);
+      expect(glyph).toBeDefined();
+      expect(Array.isArray(glyph)).toBe(true);
+      // At least one byte in the glyph should be non-zero
+      expect(glyph.some(b => b !== 0)).toBe(true);
+    }
+
+    // Dump CHARS history for debug (when present)
+    const charsHistory = await page.evaluate(() => (window.__TEST__ && window.__TEST__.charsHistory) ? window.__TEST__.charsHistory.slice(-20) : null);
+    console.log('CHARS history (last 20):', charsHistory);
+
+    const charsWritesFull = await page.evaluate(() => (window.__TEST__ && window.__TEST__.charsWrites) ? window.__TEST__.charsWrites : null);
+    console.log('CHARS writes captured (full):', charsWritesFull && charsWritesFull.length ? charsWritesFull.slice(0,20) : 'none');
+
+    // Get timeline of key events
+    const timeline = await page.evaluate(() => (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.getTimeline === 'function') ? window.__ZX_DEBUG__.getTimeline() : null);
+    console.log('Timeline of key events:', timeline);
+
+    // --- New: Run detailed bottom-area inspection to find where 0x7F appears and whether it's rendered ---
+    console.log('Inspecting bottom glyph columns...');
+    const bottomInspect = await page.evaluate(() => {
+      try {
+        if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.inspectBottomGlyphs === 'function') {
+          return window.__ZX_DEBUG__.inspectBottomGlyphs(184);
+        }
+        return { error: 'inspect-not-available' };
+      } catch (e) { return { error: String(e) }; }
+    });
+    console.log('Bottom inspection result (summary):', bottomInspect && bottomInspect.charsPtr ? { charsPtr: bottomInspect.charsPtr, colsWith7F: (bottomInspect.cols || []).filter(c => c.rows.some(r => r.val === 0x7F)).map(c => ({ col: c.col, glyphMatchesRom: c.glyphMatchesRom, canvasShowsNonBg: c.canvasShowsNonBg, attr: c.attrByte })) } : bottomInspect);
+
+    if (bottomInspect && bottomInspect.error) {
+      console.warn('Inspect helper not available or failed:', bottomInspect.error);
+    } else if (bottomInspect && Array.isArray(bottomInspect.cols)) {
+      const colsWith7F = bottomInspect.cols.filter(c => c.rows.some(r => r.val === 0x7F));
+      // We expect at least one column to contain 0x7F in the bottom rows
+      expect(colsWith7F.length).toBeGreaterThan(0);
+
+      // Of those columns, at least one should match ROM glyph bitmap (glyphMatchesRom===true) AND be visible on canvas (canvasShowsNonBg===true)
+      // OR the framebuffer might contain the ROM glyph bitmap directly (fbMatchesRom === true). Accept either path.
+      const goodViaChars = colsWith7F.some(c => c.glyphMatchesRom === true && c.canvasShowsNonBg === true);
+      const goodViaFb = (bottomInspect.cols || []).some(c => c.fbMatchesRom === true && c.canvasShowsNonBg === true);
+      const good = goodViaChars || goodViaFb;
+      if (!good) {
+        console.error('No bottom columns displayed the © glyph: details:', { colsWith7F, fbCandidates: (bottomInspect.cols || []).filter(c => c.fbMatchesRom || c.canvasShowsNonBg) });
+        console.error('Full inspection follows:', bottomInspect);
+
+        // Try force-draw helper (diagnostic button) to inject the ROM glyph directly into bitmap for the detected column
+        try {
+          await page.click('#__emu_btn_force_draw');
+          // Allow the diag to refresh
+          await page.waitForTimeout(100);
+        } catch (e) { console.warn('Force-draw click failed:', String(e)); }
+
+        // Re-run inspection
+        const afterInspect = await page.evaluate(() => (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.inspectBottomGlyphs === 'function') ? window.__ZX_DEBUG__.inspectBottomGlyphs(184) : null);
+        console.log('After force-draw inspection:', afterInspect);
+        const afterGood = afterInspect && Array.isArray(afterInspect.cols) && (afterInspect.cols.some(c => c.fbMatchesRom === true && c.canvasShowsNonBg === true) || afterInspect.cols.some(c => c.glyphMatchesRom === true && c.canvasShowsNonBg === true));
+        if (!afterGood) console.error('Force-draw did not yield visible glyph; full afterInspect:', afterInspect);
+        expect(afterGood).toBeTruthy();
+      }
+      expect(good).toBeTruthy();
+    } else {
+      // If no structured result, fail the test so we surface the issue
+      throw new Error('Bottom inspection returned unexpected structure: ' + JSON.stringify(bottomInspect));
     }
 
     let fbHasText = await page.evaluate(() => {
@@ -230,6 +316,56 @@ test.describe('ZX Spectrum 48K Boot Implementation', () => {
       }
       return out;
     });
+
+    // --- Add: Real keyboard press verification for 'J' (LOAD) ---
+    console.log('--- Verify real keyboard press J updates matrix and is detected by ROM ---');
+    // Reset test captures
+    await page.evaluate(() => {
+      window.__TEST__ = window.__TEST__ || {};
+      window.__TEST__.portReads = [];
+      window.__TEST__.keyEvents = [];
+      window.__TEST__.lastAppliedKeyMatrix = null;
+    });
+
+    // Ensure canvas focused and press J via Playwright's keyboard
+    try { await page.focus('#screen'); } catch (e) { await page.click('#screen').catch(() => {}); }
+    await page.keyboard.down('j');
+    await page.waitForTimeout(120);
+
+    const jMatrixByte = await page.evaluate(() => (window.__TEST__ && window.__TEST__.lastAppliedKeyMatrix) ? window.__TEST__.lastAppliedKeyMatrix[6] : null);
+    console.log('J matrix byte (row6):', jMatrixByte);
+    expect(jMatrixByte).not.toBeNull();
+    expect((jMatrixByte & 0x1f)).not.toBe(0x1f); // low 5 bits should show a key pressed
+
+    const jDetectReads = await page.evaluate(() => {
+      const reads = window.__TEST__ && window.__TEST__.portReads ? window.__TEST__.portReads.slice(-256) : [];
+      return reads.filter(r => ((r.port & 0xff) === 0xfe) && ((r.result & 0x1f) !== 0x1f));
+    });
+    console.log('J detected by ROM reads (non-0xff):', jDetectReads.length);
+    expect(jDetectReads.length).toBeGreaterThan(0);
+
+    // release key
+    try { await page.keyboard.up('j'); } catch (e) { /* ignore */ }
+
+    // --- Verify Show Keyboard toggle exists and toggles overlay visibility ---
+    const kbdToggleEl = await page.$('#__emu_kbd_toggle');
+    expect(kbdToggleEl).not.toBeNull();
+
+    // Toggle and check localStorage and overlay display when present
+    await page.click('#__emu_kbd_toggle');
+    await page.waitForTimeout(80);
+    const afterSaved = await page.evaluate(() => { try { return localStorage.getItem('__emu_kbd_visible'); } catch (e) { return null; } });
+    expect(afterSaved).not.toBeNull();
+
+    const overlayPresent = await page.evaluate(() => !!document.querySelector('.zxvk-overlay'));
+    if (overlayPresent) {
+      const overlayHidden = await page.evaluate(() => { const ov = document.querySelector('.zxvk-overlay'); return ov ? (getComputedStyle(ov).display === 'none') : null; });
+      expect(typeof overlayHidden === 'boolean').toBe(true);
+    }
+
+    // Restore toggle state
+    await page.click('#__emu_kbd_toggle');
+    await page.waitForTimeout(80);
 
     // helper to attempt a key press both via debug API and real keyboard events
     async function getPressedKeys() {

@@ -109,6 +109,21 @@ export class Memory {
     
     // Verify the mapping worked
     console.log(`[Memory] Verification: pages[0][0] = ${this.pages[0][0]}`);
+
+    // Diagnostic: dump ROM bytes around where the copyright glyph is expected
+    try {
+      if (this.romBanks[bank] && this.romBanks[bank].length > 0x0EA0) {
+        if (typeof console !== 'undefined' && console.log) {
+          console.log('[Memory] ROM bytes 0x0E90-0x0EA0:', Array.from(this.romBanks[bank].slice(0x0E90, 0x0EA0)).map(b=>b.toString(16).padStart(2,'0')));
+        }
+      }
+      // Also dump the ROM region containing the builtin copyright text (0x1530-0x1550)
+      if (this.romBanks[bank] && this.romBanks[bank].length > 0x1550) {
+        if (typeof console !== 'undefined' && console.log) {
+          console.log('[Memory] ROM bytes 0x1530-0x1550:', Array.from(this.romBanks[bank].slice(0x1530, 0x1550)).map(b=>b.toString(16).padStart(2,'0')));
+        }
+      }
+    } catch (e) { /* ignore */ }
   }
 
   /** Map the visible ROM bank into address 0x0000-0x3FFF */
@@ -326,9 +341,48 @@ export class Memory {
 
     // Diagnostic: warn on accidental writes to CHARS (0x5C36/0x5C37)
     if (addr === 0x5C36 || addr === 0x5C37) {
+      const stack = (new Error()).stack;
+      const pc = (typeof window !== 'undefined' && window.__LAST_PC__) ? window.__LAST_PC__ : (this.cpu ? this.cpu.PC : null);
       if (typeof console !== 'undefined' && console.warn) {
-        console.warn(`[Memory] Write to CHARS at 0x${addr.toString(16)} = 0x${value.toString(16)} (t=${this.cpu && this.cpu.tstates ? this.cpu.tstates : 'unknown'})`);
+        console.warn(`[Memory] Write to CHARS at 0x${addr.toString(16)} = 0x${value.toString(16)} (t=${this.cpu && this.cpu.tstates ? this.cpu.tstates : 'unknown'}, pc=0x${pc ? pc.toString(16) : 'unknown'})`);
+        console.warn(stack);
       }
+      try {
+        if (typeof window !== 'undefined' && window.__TEST__) {
+          window.__TEST__.charsWrites = window.__TEST__.charsWrites || [];
+          window.__TEST__.charsWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, stack, timestamp: Date.now() });
+          if (window.__TEST__.charsWrites.length > 128) window.__TEST__.charsWrites.shift();
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // Instrument writes to character bitmap region (0x3C00-0x43FF = 1024 bytes, 128 chars * 8 bytes)
+    // This covers the ROM character set area and potential RAM copies
+    if (addr >= 0x3C00 && addr < 0x4400) {
+      const pc = (typeof window !== 'undefined' && window.__LAST_PC__) ? window.__LAST_PC__ : (this.cpu ? this.cpu.PC : null);
+      const stack = (new Error()).stack;
+      try {
+        if (typeof window !== 'undefined' && window.__TEST__) {
+          window.__TEST__.charBitmapWrites = window.__TEST__.charBitmapWrites || [];
+          window.__TEST__.charBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, stack, timestamp: Date.now() });
+          if (window.__TEST__.charBitmapWrites.length > 128) window.__TEST__.charBitmapWrites.shift();
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // Instrument writes to screen bitmap (0x4000-0x57FF) to track character rendering
+    if (addr >= 0x4000 && addr < 0x5800) {
+      const pc = (typeof window !== 'undefined' && window.__LAST_PC__) ? window.__LAST_PC__ : (this.cpu ? this.cpu.PC : null);
+      try {
+        if (typeof window !== 'undefined' && window.__TEST__) {
+          window.__TEST__.screenBitmapWrites = window.__TEST__.screenBitmapWrites || [];
+          // Only log if it's not too frequent (sample every 100th write to avoid overflow)
+          if (window.__TEST__.screenBitmapWrites.length === 0 || 
+              (window.__TEST__.screenBitmapWrites.length < 1000 && Math.random() < 0.01)) {
+            window.__TEST__.screenBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
+          }
+        }
+      } catch (e) { /* ignore */ }
     }
 
     // If stack watch enabled and access falls in range, invoke callback

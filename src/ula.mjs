@@ -227,6 +227,26 @@ export class ULA {
   render() {
     // Update flash timing
     this._updateFlash();
+
+    // Diagnostic: on first render, capture CHARS pointer and glyph bytes for 0x7F/0x80
+    if (!this._firstRenderLogged) {
+      this._firstRenderLogged = true;
+      try {
+        const lo = this.mem.read(0x5C36);
+        const hi = this.mem.read(0x5C37);
+        const chars = (hi << 8) | lo;
+        const glyphs = {};
+        [0x7f, 0x80].forEach(code => {
+          const bytes = [];
+          for (let i = 0; i < 8; i++) bytes.push(this.mem.read((chars + code*8 + i) & 0xffff));
+          glyphs[code] = bytes;
+        });
+        if (typeof console !== 'undefined' && console.log) console.log('[ULA] CHARS pointer:', '0x' + chars.toString(16).padStart(4,'0'), 'glyphs:', glyphs);
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.charsDiag = { chars, glyphs, t: Date.now(), pc: (window.__LAST_PC__||null) }; } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('[ULA] chars diagnostic failed', e);
+      }
+    }
     
     // Use deferred rendering if enabled (JSSpeccy3 style)
     if (this.useDeferredRendering && this.frameBuffer && this.frameRenderer) {

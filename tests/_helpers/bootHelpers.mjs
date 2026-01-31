@@ -379,6 +379,9 @@ export async function verifyBootGlyph(page) {
           hasFrameRendered: !!window.__TEST__.frameRendered,
           portReads: window.__TEST__.portReads ? window.__TEST__.portReads.slice(-20) : undefined,
           keyEvents: window.__TEST__.keyEvents ? window.__TEST__.keyEvents.slice(-20) : undefined,
+          domLog: window.__TEST__.domLog ? window.__TEST__.domLog.slice(-20) : undefined,
+          charsDiag: window.__TEST__.charsDiag || null,
+          charsWrites: window.__TEST__.charsWrites ? window.__TEST__.charsWrites.slice(-20) : undefined
         } : null;
         const emu = window.emulator || window.emu;
         out.frameBufferNonZero = false;

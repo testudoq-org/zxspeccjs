@@ -103,12 +103,25 @@ export default class Input {
   start() {
     window.addEventListener('keydown', this._keydown, { passive: false });
     window.addEventListener('keyup', this._keyup, { passive: false });
+    // Also listen on document in capture phase to catch events from embedded contexts
+    try {
+      if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('keydown', this._keydown, { passive: false, capture: true });
+        document.addEventListener('keyup', this._keyup, { passive: false, capture: true });
+      }
+    } catch (e) { /* ignore */ }
     if (this._debug) console.log('[Input] Keyboard listeners started');
   }
 
   stop() {
     window.removeEventListener('keydown', this._keydown);
     window.removeEventListener('keyup', this._keyup);
+    try {
+      if (typeof document !== 'undefined' && document.removeEventListener) {
+        document.removeEventListener('keydown', this._keydown, { capture: true });
+        document.removeEventListener('keyup', this._keyup, { capture: true });
+      }
+    } catch (e) { /* ignore */ }
     if (this._debug) console.log('[Input] Keyboard listeners stopped');
   }
 
@@ -170,12 +183,27 @@ export default class Input {
     // Set bit to 0 when pressed (active low)
     this.matrix[pos.row] &= ~pos.mask;
     
+    // Test hook: record DOM-driven key press for diagnostics
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
+        window.__TEST__.keyEvents.push({ type: 'dom-press', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: (this._debugTstates || performance.now()) });
+        if (window.__TEST__.keyEvents.length > 512) window.__TEST__.keyEvents.shift();
+
+        // Also add a short DOM-focused log for quick inspection
+        window.__TEST__.domLog = window.__TEST__.domLog || [];
+        window.__TEST__.domLog.push({ type: 'keydown', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: Date.now() });
+        if (window.__TEST__.domLog.length > 256) window.__TEST__.domLog.shift();
+      }
+    } catch (err) { /* ignore */ }
+
     if (this._debug) {
       console.log(`[Input] Key DOWN: ${name} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}, matrix[${pos.row}]=0x${this.matrix[pos.row].toString(16)}`);
     }
 
     // Immediately sync input to emulator's ULA so key presses take effect without waiting for the next frame
-    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
+    // Use setTimeout(…,0) to schedule after the event handling cycle to avoid ordering issues
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
   }
 
   _keyup(e) {
@@ -204,13 +232,28 @@ export default class Input {
     
     // Set bit to 1 when released (active low)
     this.matrix[pos.row] |= pos.mask;
-    
+
+    // Test hook: record DOM-driven key release for diagnostics
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
+        window.__TEST__.keyEvents.push({ type: 'dom-release', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: (this._debugTstates || performance.now()) });
+        if (window.__TEST__.keyEvents.length > 512) window.__TEST__.keyEvents.shift();
+
+        // Also add a short DOM-focused log for quick inspection
+        window.__TEST__.domLog = window.__TEST__.domLog || [];
+        window.__TEST__.domLog.push({ type: 'keyup', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: Date.now() });
+        if (window.__TEST__.domLog.length > 256) window.__TEST__.domLog.shift();
+      }
+    } catch (err) { /* ignore */ }
+
     if (this._debug) {
       console.log(`[Input] Key UP: ${name} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}, matrix[${pos.row}]=0x${this.matrix[pos.row].toString(16)}`);
     }
 
     // Immediately sync input to emulator's ULA so key releases take effect without waiting for the next frame
-    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
+    // Schedule via setTimeout to ensure ordering after DOM event handling
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
   }
 
   // Programmatically press a key (for virtual keyboard or testing)
@@ -237,6 +280,9 @@ export default class Input {
         if (window.__TEST__.keyEvents.length > 256) window.__TEST__.keyEvents.shift();
       }
     } catch (e) { /* ignore */ }
+
+    // Also schedule ULA sync in microtask so test/API-driven presses take effect quickly
+    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
 
     // Also sync immediately to emulator's ULA
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
@@ -341,6 +387,33 @@ export default class Input {
       font-family: monospace;
     `;
 
+    // Add a small header so the keyboard can be dragged
+    const header = document.createElement('div');
+    header.style.cssText = 'cursor:move; display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;';
+    header.innerHTML = `<div style="font-weight:bold;color:#fff;font-size:12px;">Keyboard</div>`;
+    overlay.appendChild(header);
+
+    // Restore saved visibility
+    try {
+      const savedVisible = localStorage.getItem('__emu_kbd_visible');
+      const isVisible = savedVisible === null ? true : (savedVisible === 'true');
+      overlay.style.display = isVisible ? 'block' : 'none';
+    } catch (e) { /* ignore */ }
+
+    // Restore saved position if available
+    try {
+      const posJson = localStorage.getItem('__emu_kbd_pos');
+      if (posJson) {
+        const pos = JSON.parse(posJson);
+        if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+          overlay.style.left = pos.left + 'px';
+          overlay.style.top = pos.top + 'px';
+          overlay.style.right = 'auto';
+          overlay.style.bottom = 'auto';
+        }
+      }
+    } catch (e) { /* ignore */ }
+
     // ZX Spectrum keyboard layout (visual representation)
     const keyboardLayout = [
       ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
@@ -410,13 +483,10 @@ export default class Input {
       overlay.appendChild(rowDiv);
     });
 
-    // Add close button
+    // Add close button (placed in header)
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '×';
     closeBtn.style.cssText = `
-      position: absolute;
-      top: 2px;
-      right: 2px;
       width: 20px;
       height: 20px;
       background: #666;
@@ -427,10 +497,33 @@ export default class Input {
       font-size: 14px;
       line-height: 1;
     `;
+    // Hide overlay and persist visibility, also update controls toggle if present
     closeBtn.addEventListener('click', () => {
-      overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+      overlay.style.display = 'none';
+      try { localStorage.setItem('__emu_kbd_visible', 'false'); } catch(e) {}
+      const t = document.getElementById('__emu_kbd_toggle'); if (t) t.checked = false;
     });
-    overlay.appendChild(closeBtn);
+    header.appendChild(closeBtn);
+
+    // Add drag/persist handlers bound to header
+    try {
+      let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+      const onMove = (clientX, clientY) => {
+        const dx = clientX - startX; const dy = clientY - startY;
+        overlay.style.left = (startLeft + dx) + 'px';
+        overlay.style.top = (startTop + dy) + 'px';
+        overlay.style.right = 'auto'; overlay.style.bottom = 'auto';
+      };
+
+      const onMouseMove = (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); };
+      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch(e){} };
+      header.addEventListener('mousedown', (ev) => { dragging = true; startX = ev.clientX; startY = ev.clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); ev.preventDefault(); });
+
+      // Touch support
+      const onTouchMove = (ev) => { if (!dragging) return; if (ev.touches && ev.touches[0]) onMove(ev.touches[0].clientX, ev.touches[0].clientY); ev.preventDefault(); };
+      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch(e){} };
+      header.addEventListener('touchstart', (ev) => { dragging = true; if (ev.touches && ev.touches[0]) { startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; } document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); ev.preventDefault(); });
+    } catch (e) { /* non-critical */ }
 
     root.appendChild(overlay);
     this.overlay = overlay;

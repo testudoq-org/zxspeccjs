@@ -40,9 +40,12 @@ export class Emulator {
     // Track the number of memWrites observed so we can detect new video writes during boot
     this._lastMemWritesLen = 0;
 
+    // Track last observed CHARS system variable to detect when ROM sets character set pointer
+    this._lastChars = 0;  // 16-bit value (hi<<8 | lo) - used to trigger a one-time re-render when ROM sets CHARS
+
     // Debug API state
     this._debugEnabled = true;
-    this._bootAddresses = [0x0000, 0x0001, 0x0002, 0x0005, 0x11CB];
+    this._bootAddresses = [0x15EB];
     this._portWrites = [];
     this._executedOpcodes = [];
     this._lastPC = 0;
@@ -224,7 +227,7 @@ export class Emulator {
       }
 
       // Check for boot completion (at final boot address)
-      if (pc === 0x11CB) {
+      if (this._bootAddresses.includes(pc)) {
         this._bootComplete = true;
         // reflect on debug object too
         try{ if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.bootComplete = true; }catch(e){ void e; }
@@ -278,6 +281,32 @@ export class Emulator {
 
     // Virtual keyboard toggle (optional)
     try { this.input.createVirtualKeyboard('body'); } catch (e) {}
+
+    // Add Show Keyboard toggle to controls and persist visibility
+    try {
+      const controls = document.querySelector('.controls');
+      if (controls) {
+        const label = document.createElement('label');
+        label.style.color = '#ccc';
+        label.style.marginTop = '6px';
+        label.innerHTML = `<input id="__emu_kbd_toggle" type="checkbox" style="margin-right:6px;"> Show Keyboard`;
+        controls.appendChild(label);
+
+        const toggle = label.querySelector('#__emu_kbd_toggle');
+        const savedVisible = localStorage.getItem('__emu_kbd_visible');
+        const isVisible = savedVisible === null ? true : (savedVisible === 'true');
+        toggle.checked = isVisible;
+
+        // Apply initial visibility to overlay if created
+        try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = isVisible ? 'block' : 'none'; } catch(e) {}
+
+        toggle.addEventListener('change', (e) => {
+          const show = !!e.target.checked;
+          try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = show ? 'block' : 'none'; } catch(e) {}
+          try { localStorage.setItem('__emu_kbd_visible', String(show)); } catch (err) {}
+        });
+      }
+    } catch (e) { /* non-critical */ }
 
     // Make the canvas focusable and focus on click so keyboard events reach it reliably
     try {
@@ -429,12 +458,29 @@ export class Emulator {
     // Input wiring
     this.input.start();
 
+    // Test helper alias: support window.TEST from console by mirroring into window.__TEST__
+    try { if (typeof window !== 'undefined') window.__TEST__ = window.__TEST__ || window.TEST || {}; } catch (e) { /* ignore */ }
+
+    // Canvas-level forwarding: some environments may not deliver keyboard events to window/document reliably.
+    // Forward key events directly to the Input handlers to ensure DOM-driven keys are processed.
+    try {
+      if (this.canvas && this.input) {
+        const forwardDown = (e) => { try { this.input._keydown(e); } catch (err) { /* ignore */ } };
+        const forwardUp = (e) => { try { this.input._keyup(e); } catch (err) { /* ignore */ } };
+        this.canvas.addEventListener('keydown', forwardDown, { capture: true });
+        this.canvas.addEventListener('keyup', forwardUp, { capture: true });
+        if (this._debug) console.log('[Emulator] Canvas key forwarding attached');
+      }
+    } catch (e) { /* ignore */ }
+
     // If ROM buffer provided, keep a copy for resets
     if (romBuffer) this.romBuffer = romBuffer.slice ? romBuffer.slice(0) : romBuffer;
 
     // initial render
     this.ula.render();
     console.log('[Emulator] _createCore: initial render called');
+    // Ensure the canvas has focus so keyboard events are delivered reliably (helpful for E2E tests)
+    try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); }, 0); } catch (e) { /* ignore */ }
   }
 
   async loadROM(arrayBuffer) {
@@ -659,6 +705,58 @@ export class Emulator {
         this.ula.render();
       }
 
+      // Detect CHARS (0x5C36..0x5C37) changes and schedule a re-render/check loop when ROM sets it
+      try {
+        const lo = this.memory.read(0x5C36);
+        const hi = this.memory.read(0x5C37);
+        const chars = (hi << 8) | lo;
+        if (this._lastChars !== chars) {
+          // record the change into test-visible history
+          try { window.__TEST__ = window.__TEST__ || {}; window.__TEST__.charsHistory = window.__TEST__.charsHistory || []; window.__TEST__.charsHistory.push({ t: Date.now(), chars, pc: (window.__LAST_PC__ || null), tstates: (this.cpu ? this.cpu.tstates : null) }); if (window.__TEST__.charsHistory.length > 128) window.__TEST__.charsHistory.shift(); } catch (e) { /* ignore */ }
+
+          this._lastChars = chars;
+          // When CHARS becomes non-zero (ROM has initialized it), ensure ULA re-renders and verify the ROM-copied glyph bytes are present
+          // Some ROMs set CHARS first and then copy glyph bytes slightly later. Instead of a blind set of renders, poll the glyph bytes for 0x7F
+          // and keep rendering until we observe non-zero glyph data (or exhaust attempts).
+          if (chars !== 0 && this.ula) {
+            // Helper to check glyph bytes for 0x7F
+            const checkGlyph = () => {
+              try {
+                const lo2 = this.memory.read(0x5C36);
+                const hi2 = this.memory.read(0x5C37);
+                const ptr = ((hi2 << 8) | lo2) || 0x3C00;
+                const glyphBytes = [];
+                for (let i = 0; i < 8; i++) {
+                  glyphBytes.push(this.memory.read((ptr + 0x7F * 8 + i) & 0xffff));
+                }
+                const populated = glyphBytes.some(b => b !== 0 && typeof b === 'number');
+                // Record for diagnostics so tests can inspect attempts
+                try { window.__TEST__ = window.__TEST__ || {}; window.__TEST__.charsCheck = window.__TEST__.charsCheck || []; window.__TEST__.charsCheck.push({ t: Date.now(), ptr, glyphBytes, populated }); if (window.__TEST__.charsCheck.length > 32) window.__TEST__.charsCheck.shift(); } catch (e) { /* best-effort */ }
+                if (populated) {
+                  try { this.ula.render(); } catch (e) { /* ignore */ }
+                  return true;
+                }
+              } catch (e) { /* ignore */ }
+              try { this.ula.render(); } catch (e) { /* ignore */ }
+              return false;
+            };
+
+            // Immediate check + schedule retries at increasing delays
+            const delays = [0, 20, 60, 120, 250, 500];
+            let done = false;
+            for (const d of delays) {
+              setTimeout(() => {
+                if (done) return;
+                try {
+                  const ok = checkGlyph();
+                  if (ok) done = true;
+                } catch (e) { /* ignore */ }
+              }, d);
+            }
+          }
+        }
+      } catch (e) { void e; }
+
       // Optionally update sound using CPU tstates / port toggles (best-effort)
       // Sound integration requires CPU OUT implementation; here we provide a hook
       if (this.sound && this.cpu && typeof this.sound.notifyToggleAt === 'function') {
@@ -701,6 +799,264 @@ window.addEventListener('DOMContentLoaded', async () => {
     const sel = document.getElementById('rom-select');
     if (sel) sel.value = 'spec48';
   } catch (e) {}
+
+  // --- Diagnostic overlay: on-page debug panel for ROM/CHARS/canvas checks ---
+  try {
+    const dbgPanel = document.createElement('div');
+    dbgPanel.id = '__emu_debug_panel';
+    // Position above on-screen keyboard to avoid overlap; reduce width slightly for better fit
+    Object.assign(dbgPanel.style, { position: 'fixed', right: '12px', bottom: '120px', background: '#111', color: '#fff', padding: '10px', border: '1px solid #333', fontFamily: 'monospace', zIndex: 9999, width: '300px', maxHeight: '50vh', overflow: 'auto', fontSize: '12px', borderRadius: '4px' });
+    dbgPanel.innerHTML = `
+      <div id="__emu_diag_header" style="cursor:move; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-weight:bold;">Emu Diagnostics</div>
+        <button id="__emu_diag_close" style="background:#222;color:#fff;border:0;padding:2px 6px;cursor:pointer">×</button>
+      </div>
+      <div id="__emu_diag_out" style="white-space:pre-wrap; color:#ddd; margin-bottom:8px; min-height:40px;">Ready</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button id="__emu_btn_run" style="padding:6px">Run Diag</button>
+        <button id="__emu_btn_force" style="padding:6px">Force render</button>
+        <button id="__emu_btn_reveal" style="padding:6px">Reveal glyph</button>
+        <button id="__emu_btn_force_draw" style="padding:6px">Force draw ©</button>
+        <button id="__emu_btn_clearcache" style="padding:6px">Clear cache & reload</button>
+      </div>`;
+    document.body.appendChild(dbgPanel);
+
+    // Add a persistent toggle control into the UI controls area
+    try {
+      const controls = document.querySelector('.controls');
+      if (controls) {
+        const label = document.createElement('label');
+        label.style.color = '#ccc';
+        label.style.marginTop = '6px';
+        label.innerHTML = `<input id="__emu_diag_toggle" type="checkbox" style="margin-right:6px;"> Show Diagnostics`;
+        controls.appendChild(label);
+
+        const toggle = label.querySelector('#__emu_diag_toggle');
+        const savedVisible = localStorage.getItem('__emu_diag_visible');
+        const isVisible = savedVisible === null ? true : (savedVisible === 'true');
+        toggle.checked = isVisible;
+        if (!isVisible) dbgPanel.style.display = 'none';
+        toggle.addEventListener('change', (e) => {
+          const show = !!e.target.checked;
+          dbgPanel.style.display = show ? 'block' : 'none';
+          localStorage.setItem('__emu_diag_visible', String(show));
+        });
+      }
+    } catch (e) { /* non-critical */ }
+
+    // Drag/persist handlers
+    try {
+      // Restore saved position if available
+      const posJson = localStorage.getItem('__emu_diag_pos');
+      if (posJson) {
+        const pos = JSON.parse(posJson);
+        if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+          dbgPanel.style.left = pos.left + 'px';
+          dbgPanel.style.top = pos.top + 'px';
+          dbgPanel.style.right = 'auto';
+          dbgPanel.style.bottom = 'auto';
+        }
+      }
+
+      const header = document.getElementById('__emu_diag_header');
+      const closeBtn = document.getElementById('__emu_diag_close');
+      if (closeBtn) closeBtn.addEventListener('click', () => {
+        dbgPanel.style.display = 'none';
+        localStorage.setItem('__emu_diag_visible', 'false');
+        const t = document.getElementById('__emu_diag_toggle'); if (t) t.checked = false;
+      });
+
+      let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+      const onMove = (clientX, clientY) => {
+        const dx = clientX - startX; const dy = clientY - startY;
+        dbgPanel.style.left = (startLeft + dx) + 'px';
+        dbgPanel.style.top = (startTop + dy) + 'px';
+        dbgPanel.style.right = 'auto'; dbgPanel.style.bottom = 'auto';
+      };
+
+      const onMouseMove = (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); };
+      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch(e){} };
+      header.addEventListener('mousedown', (ev) => { dragging = true; startX = ev.clientX; startY = ev.clientY; const r = dbgPanel.getBoundingClientRect(); startLeft = r.left; startTop = r.top; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); ev.preventDefault(); });
+
+      // Touch support
+      const onTouchMove = (ev) => { if (!dragging) return; if (ev.touches && ev.touches[0]) onMove(ev.touches[0].clientX, ev.touches[0].clientY); ev.preventDefault(); };
+      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch(e){} };
+      header.addEventListener('touchstart', (ev) => { dragging = true; if (ev.touches && ev.touches[0]) { startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; const r = dbgPanel.getBoundingClientRect(); startLeft = r.left; startTop = r.top; } document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); ev.preventDefault(); });
+    } catch (e) { /* non-critical */ }
+
+    async function gatherDiag() {
+      const out = {};
+      out.time = (new Date()).toISOString();
+      out.debugAvailable = !!window.__ZX_DEBUG__;
+      out.romHas7F = false;
+      out.romOffsets = [];
+      try {
+        if (typeof window.__ZX_DEBUG__?.readROM === 'function') {
+          for (let i = 0x1530; i < 0x1550; i++) {
+            if (window.__ZX_DEBUG__.readROM(i) === 0x7F) { out.romHas7F = true; out.romOffsets.push(i); }
+          }
+        }
+      } catch (e) { out.romErr = String(e); }
+
+      try { out.CHARS = window.__ZX_DEBUG__?.peekMemory ? window.__ZX_DEBUG__.peekMemory(0x5C36,2) : null; } catch(e) { out.CHARS = 'err'; }
+      out.CHARSptr = (Array.isArray(out.CHARS) ? ((out.CHARS[1]<<8) | out.CHARS[0]) : null);
+      out.emu_lastChars = (window.emulator && typeof window.emulator._lastChars !== 'undefined') ? window.emulator._lastChars : null;
+
+      // glyph bytes (use CHARSptr or default 0x3C00)
+      const ptr = out.CHARSptr || 0x3C00;
+      out.glyph = [];
+      try {
+        for (let i = 0; i < 8; i++) {
+          let v = null;
+          try { v = window.__ZX_DEBUG__?.readRAM ? window.__ZX_DEBUG__.readRAM((ptr + 0x7F*8 + i) & 0xffff) : (window.__ZX_DEBUG__?.readMemory ? window.__ZX_DEBUG__.readMemory((ptr + 0x7F*8 + i) & 0xffff) : null); } catch(e) { v = null; }
+          out.glyph.push(v);
+        }
+      } catch (e) { out.glyphErr = String(e); }
+
+      // scan screen RAM for 0x7F
+      out.screenHas7F = false;
+      try {
+        if (window.__ZX_DEBUG__?.readRAM) {
+          for (let col = 0; col < 32; col++) {
+            for (let r = 184; r < 192; r++) {
+              const rel = ((r & 0xC0) << 5) + ((r & 0x07) << 8) + ((r & 0x38) << 2) + col;
+              if (window.__ZX_DEBUG__.readRAM(rel) === 0x7F) out.screenHas7F = true;
+            }
+          }
+        }
+      } catch (e) { out.screenScanErr = String(e); }
+
+      // check canvas pixels in bottom area
+      out.canvasNonBg = false;
+      try {
+        const canvas = document.getElementById('screen');
+        if (canvas && canvas.getContext) {
+          const ctx = canvas.getContext('2d');
+          const w = canvas.width, h = canvas.height;
+          const sx = Math.max(0, Math.floor(w * 0.05));
+          const sy = Math.max(0, Math.floor(h * 0.86));
+          const sw = Math.min(32, w - sx), sh = Math.min(24, h - sy);
+          const img = ctx.getImageData(sx, sy, sw, sh);
+          const d = img.data;
+          const br = d[0], bg = d[1], bb = d[2];
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i] !== br || d[i+1] !== bg || d[i+2] !== bb) { out.canvasNonBg = true; break; }
+          }
+        }
+      } catch (e) { out.canvasErr = String(e); }
+
+      return out;
+    }
+
+    async function runAndUpdate() {
+      const out = await gatherDiag();
+      const el = document.getElementById('__emu_diag_out');
+      el.textContent = JSON.stringify(out, null, 2);
+      return out;
+    }
+
+    document.getElementById('__emu_btn_run').addEventListener('click', async () => { try { await runAndUpdate(); } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Diag failed: ' + String(e); } });
+    document.getElementById('__emu_btn_force').addEventListener('click', async () => { try {
+      if (window.emulator && window.emulator.ula && typeof window.emulator.ula.render === 'function') { for (let i=0;i<4;i++){ window.emulator.ula.render(); await new Promise(r=>requestAnimationFrame(r)); } }
+      await runAndUpdate();
+    } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Force failed: ' + String(e); } });
+
+    // Reveal glyph helper: if ROM contains 0x7F and screen RAM uses 0x7F but canvas is unchanged,
+    // allow the user to force attribute overrides on the bottom text area so glyph becomes visible.
+    document.getElementById('__emu_btn_reveal').addEventListener('click', async () => {
+      try {
+        const outEl = document.getElementById('__emu_diag_out');
+        if (!window.emulator || !window.__ZX_DEBUG__) { outEl.textContent = 'Emulator/debug API not available'; return; }
+        const dbg = window.__ZX_DEBUG__;
+        // Find columns in rows 184..191 that contain 0x7F
+        const foundCols = [];
+        for (let col = 0; col < 32; col++) {
+          for (let r = 184; r < 192; r++) {
+            const rel = ((r & 0xC0) << 5) + ((r & 0x07) << 8) + ((r & 0x38) << 2) + col;
+            const v = dbg.readRAM(rel);
+            if (v === 0x7F) { foundCols.push(col); break; }
+          }
+        }
+        if (foundCols.length === 0) { outEl.textContent = 'No 0x7F character found in bottom rows'; return; }
+
+        // Apply attribute override (white ink on black paper = 0x07) for detected columns
+        const attrRowBase = 0x5800 + (Math.floor(184 / 8) * 32);
+        const changed = [];
+        for (const c of foundCols) {
+          const addr = attrRowBase + c;
+          try { window.emulator.memory.write(addr, 0x07); changed.push({ addr: addr.toString(16), val: 0x07 }); } catch (e) { /* ignore */ }
+        }
+
+        // Force a few renders to update canvas and then refresh diag
+        if (window.emulator && window.emulator.ula && typeof window.emulator.ula.render === 'function') {
+          for (let i = 0; i < 4; i++) { window.emulator.ula.render(); await new Promise(r => requestAnimationFrame(r)); }
+        }
+        outEl.textContent = JSON.stringify({ revealedCols: foundCols, changed }, null, 2);
+        await runAndUpdate();
+      } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Reveal failed: ' + String(e); }
+    });
+
+    document.getElementById('__emu_btn_force_draw').addEventListener('click', async () => {
+      try {
+        const outEl = document.getElementById('__emu_diag_out');
+        if (!window.emulator || !window.__ZX_DEBUG__) { outEl.textContent = 'Emulator/debug API not available'; return; }
+        const dbg = window.__ZX_DEBUG__;
+
+        // Check ROM contains 0x7F
+        let romHas = false;
+        let romAddr = null;
+        for (let i = 0x1530; i < 0x1550; i++) {
+          if (dbg.readROM(i) === 0x7F) { romHas = true; romAddr = i; break; }
+        }
+        if (!romHas) { outEl.textContent = 'ROM does not contain 0x7F; cannot force-draw'; return; }
+
+        // Find a target column to draw into: pick first column with non-background pixels in bottom area
+        const inspect = window.__ZX_DEBUG__.inspectBottomGlyphs(184);
+        let targetCol = null;
+        for (const c of (inspect.cols || [])) {
+          if (c.canvasShowsNonBg === true) { targetCol = c.col; break; }
+        }
+        if (targetCol === null) { outEl.textContent = 'No suitable column found to draw into (no non-bg columns)'; return; }
+
+        // Write ROM glyph bytes directly into bitmap memory for the 8 rows at target column
+        const charsRomGlyph = [];
+        for (let i = 0; i < 8; i++) charsRomGlyph.push(dbg.readROM(0x3C00 + 0x7F * 8 + i));
+
+        // Write into RAM bitmap addresses for each row (topRow..topRow+7)
+        const topRow = 184;
+        for (let row = 0; row < 8; row++) {
+          const y = topRow + row;
+          const y0 = y & 0x07;
+          const y1 = (y & 0x38) >> 3;
+          const y2 = (y & 0xC0) >> 6;
+          const bitmapIndex = (y0 << 8) | (y1 << 5) | (y2 << 11) | targetCol;
+          const addr = 0x4000 + bitmapIndex;
+          try {
+            window.emulator.memory.write(addr, charsRomGlyph[row]);
+          } catch (e) { /* ignore */ }
+        }
+
+        // Set attribute to white ink on black paper (0x07)
+        const attrAddr = 0x5800 + (Math.floor(184 / 8) * 32) + targetCol;
+        try { window.emulator.memory.write(attrAddr, 0x07); } catch (e) {}
+
+        // Force render to update canvas
+        for (let i = 0; i < 4; i++) { if (window.emulator && window.emulator.ula && typeof window.emulator.ula.render === 'function') { window.emulator.ula.render(); await new Promise(r => requestAnimationFrame(r)); } }
+
+        outEl.textContent = JSON.stringify({ forcedCol: targetCol, writtenGlyph: charsRomGlyph }, null, 2);
+        await runAndUpdate();
+      } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Force-draw failed: ' + String(e); }
+    });
+
+    document.getElementById('__emu_btn_clearcache').addEventListener('click', async () => { try {
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
+      if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
+      location.reload(true);
+    } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Cache clear failed: ' + String(e); } });
+
+    // Auto-run once shortly after load
+    setTimeout(runAndUpdate, 500);
+  } catch (e) { console.warn('[Diag] overlay failed', e); }
 
   // Auto-load default preloaded ROM (spec48) if available
   try {
@@ -804,6 +1160,89 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
       return false;
     },
+
+    // Diagnostic helper: perform a comprehensive inspection of the bottom text area (default topRow=184)
+    // Returns per-column info: character codes, attribute byte, glyph bytes at CHARS ptr and ROM, and a simple canvas check
+    inspectBottomGlyphs: (topRow = 184) => {
+      try {
+        if (!emu || typeof emu.readRAM !== 'function') return { error: 'emu-not-ready' };
+        const cols = [];
+        // read CHARS pointer (0x5C36/0x5C37)
+        const lo = emu.peekMemory ? (emu.peekMemory(0x5C36,1)[0]) : emu.readRAM(0x5C36);
+        const hi = emu.peekMemory ? (emu.peekMemory(0x5C37,1)[0]) : emu.readRAM(0x5C37);
+        const charsPtr = ((hi << 8) | lo) || 0x3C00;
+
+        for (let col = 0; col < 32; col++) {
+          const colInfo = { col, rows: [], attrAddr: null, attrByte: null, glyphBytesAtChars: [], glyphBytesAtRom: [], glyphMatchesRom: false, canvasShowsNonBg: null };
+
+          // collect character codes for the vertical 8 rows
+          for (let r = 0; r < 8; r++) {
+            const y = topRow + r;
+            const rel = ((y & 0xC0) << 5) + ((y & 0x07) << 8) + ((y & 0x38) << 2) + col;
+            const val = emu.readRAM(0x4000 + rel);
+            colInfo.rows.push({ y, addr: (0x4000 + rel), val });
+          }
+
+          // attribute byte
+          const attrAddr = 0x5800 + (Math.floor(topRow / 8) * 32) + col;
+          colInfo.attrAddr = attrAddr;
+          colInfo.attrByte = emu.readRAM(attrAddr);
+
+          // glyph bytes at current CHARS pointer for code 0x7F
+          for (let i = 0; i < 8; i++) colInfo.glyphBytesAtChars.push(emu.readRAM((charsPtr + 0x7F * 8 + i) & 0xffff));
+
+          // glyph bytes at ROM 0x3C00 for reference
+          for (let i = 0; i < 8; i++) colInfo.glyphBytesAtRom.push(emu.readROM((0x3C00 + 0x7F * 8 + i) & 0xffff));
+
+          // compare
+          colInfo.glyphMatchesRom = colInfo.glyphBytesAtChars.every((b, idx) => b === colInfo.glyphBytesAtRom[idx]);
+
+          // FrameBuffer sample if available (gives rendered framebuffer bytes for the 8 rows)
+          try {
+            const fb = (window.emulator && window.emulator.ula && window.emulator.ula.frameBuffer) ? window.emulator.ula.frameBuffer : null;
+            colInfo.fbBytes = [];
+            colInfo.fbMatchesRom = false;
+            if (fb && fb.buffer) {
+              const buf = fb.buffer;
+              const topBorderBytes = 24 * 160;
+              const lineStride = 16 + 64 + 16;
+              for (let i = 0; i < 8; i++) {
+                const y = topRow + i;
+                const bufferPtr = topBorderBytes + y * lineStride + 16 + col * 2;
+                colInfo.fbBytes.push(buf[bufferPtr]);
+              }
+              // if fbBytes present and rom glyph bytes are available, compare
+              if (colInfo.fbBytes.length === 8 && colInfo.glyphBytesAtRom && colInfo.glyphBytesAtRom.length === 8) {
+                colInfo.fbMatchesRom = colInfo.fbBytes.every((b, idx) => b === colInfo.glyphBytesAtRom[idx]);
+              }
+            }
+          } catch (e) { colInfo.fbBytes = 'error'; colInfo.fbMatchesRom = 'error'; }
+
+          // light-weight canvas check: sample the 8x8 area and see if all pixels equal the top-left sample (i.e., blank area)
+          try {
+            const canvas = document.getElementById('screen');
+            if (canvas && canvas.getContext) {
+              const ctx = canvas.getContext('2d');
+              const xStart = 16 * 2 + col * 8; // matches FrameRenderer coordinates
+              const yStart = 24 + topRow;
+              const base = ctx.getImageData(xStart, yStart, 1, 1).data;
+              let allSame = true;
+              for (let ry = 0; ry < 8 && allSame; ry++) {
+                for (let rx = 0; rx < 8; rx++) {
+                  const d = ctx.getImageData(xStart + rx, yStart + ry, 1, 1).data;
+                  if (d[0] !== base[0] || d[1] !== base[1] || d[2] !== base[2]) { allSame = false; break; }
+                }
+              }
+              colInfo.canvasShowsNonBg = !allSame;
+            }
+          } catch (e) { colInfo.canvasShowsNonBg = 'error'; }
+
+          cols.push(colInfo);
+        }
+        return { charsPtr, cols };
+      } catch (e) { return { error: String(e) }; }
+    },
+
     // Test helper: snapshot a single character column's bitmap/attr and try to match it to ROM charset
     snapshotGlyph: (col, topRow) => {
       try {
@@ -958,6 +1397,79 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
         return out;
       } catch (e) { return null; }
+    },
+
+    // Timeline of key events for debugging glyph rendering
+    getTimeline: () => {
+      try {
+        const timeline = [];
+        
+        // CHARS changes
+        if (window.__TEST__ && window.__TEST__.charsHistory) {
+          window.__TEST__.charsHistory.forEach(entry => {
+            timeline.push({
+              type: 'chars_change',
+              timestamp: entry.t,
+              pc: entry.pc,
+              tstates: entry.tstates,
+              chars: entry.chars,
+              description: `CHARS set to 0x${entry.chars.toString(16)}`
+            });
+          });
+        }
+        
+        // CHARS writes
+        if (window.__TEST__ && window.__TEST__.charsWrites) {
+          window.__TEST__.charsWrites.forEach(entry => {
+            timeline.push({
+              type: 'chars_write',
+              timestamp: entry.timestamp,
+              pc: entry.pc,
+              tstates: entry.t,
+              addr: entry.addr,
+              value: entry.value,
+              description: `Write to CHARS 0x${entry.addr.toString(16)} = 0x${entry.value.toString(16)}`
+            });
+          });
+        }
+        
+        // Character bitmap writes
+        if (window.__TEST__ && window.__TEST__.charBitmapWrites) {
+          window.__TEST__.charBitmapWrites.forEach(entry => {
+            timeline.push({
+              type: 'char_bitmap_write',
+              timestamp: entry.timestamp,
+              pc: entry.pc,
+              tstates: entry.t,
+              addr: entry.addr,
+              value: entry.value,
+              description: `Write to char bitmap 0x${entry.addr.toString(16)} = 0x${entry.value.toString(16)}`
+            });
+          });
+        }
+        
+        // Screen bitmap writes (sampled)
+        if (window.__TEST__ && window.__TEST__.screenBitmapWrites) {
+          window.__TEST__.screenBitmapWrites.forEach(entry => {
+            timeline.push({
+              type: 'screen_bitmap_write',
+              timestamp: entry.timestamp,
+              pc: entry.pc,
+              tstates: entry.t,
+              addr: entry.addr,
+              value: entry.value,
+              description: `Write to screen bitmap 0x${entry.addr.toString(16)} = 0x${entry.value.toString(16)}`
+            });
+          });
+        }
+        
+        // Sort by timestamp
+        timeline.sort((a, b) => a.timestamp - b.timestamp);
+        
+        return timeline;
+      } catch (e) {
+        return { error: String(e) };
+      }
     }
   };
 
