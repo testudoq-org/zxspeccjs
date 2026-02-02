@@ -158,15 +158,20 @@ export class FrameBuffer {
     // Main screen area (192 lines) - operates on local copies
     // Ensure bottom row (charRowIndex 23) is backfilled when glyph bytes are present
     // before filling main screen to avoid missing copyright glyph due to timing.
-    // Always force backfill for the bottom character row's first columns (0..5)
-    // to ensure the © glyph and adjacent text become visible during early boot.
+    // Smart forced backfill for the bottom character row's first columns.
+    // Only force © in column 0 when that cell appears uninitialized (empty/space).
     try {
       const rowBase = 23 * 8;
       const textBase = 0x5C00 + 23 * 32;
-      for (let col = 0; col < 6; col++) {
+      for (let col = 0; col < 8; col++) {
         try {
-          const codeAt = (this.mem && typeof this.mem.read === 'function') ? (this.mem.read(textBase + col) & 0xff) : 0;
-          if (!codeAt || codeAt === 0x20) {
+          let codeAt = (this.mem && typeof this.mem.read === 'function') ? (this.mem.read(textBase + col) & 0xff) : 0;
+
+          // Only force for column 0 when clearly empty/uninitialized
+          const shouldForce = (col === 0) && (!codeAt || codeAt === 0x20);
+
+          if (shouldForce) {
+            const code = 0x7F; // force © for column 0
             try {
               const lo = this.mem.read(0x5C36);
               const hi = this.mem.read(0x5C37);
@@ -174,12 +179,12 @@ export class FrameBuffer {
               let nonZero = false;
               const glyph = new Array(8);
               for (let i = 0; i < 8; i++) {
-                const g = this.mem.read((charsPtr + 0x7F * 8 + i) & 0xffff);
+                const g = this.mem.read((charsPtr + code * 8 + i) & 0xffff);
                 glyph[i] = g; if (g !== 0) nonZero = true;
               }
               if (!nonZero) {
                 for (let i = 0; i < 8; i++) {
-                  const g = this.mem.read((0x3C00 + 0x7F * 8 + i) & 0xffff);
+                  const g = this.mem.read((0x3C00 + code * 8 + i) & 0xffff);
                   glyph[i] = g; if (g !== 0) nonZero = true;
                 }
               }
@@ -194,16 +199,17 @@ export class FrameBuffer {
                 }
                 try {
                   const attrIdx = Math.floor(rowBase / 8) * 32 + col;
-                  attrs[attrIdx] = attrs[attrIdx] || 0x38;
+                  if (!attrs[attrIdx] || attrs[attrIdx] === 0) attrs[attrIdx] = 0x38;
                 } catch (e) { /* ignore */ }
                 if (typeof globalThis !== 'undefined' && globalThis.__TEST__) {
                   globalThis.__TEST__.frameAutoBackfillForced = globalThis.__TEST__.frameAutoBackfillForced || [];
-                  globalThis.__TEST__.frameAutoBackfillForced.push({ t: Date.now(), rowBase, col, codeForced: 0x7F, note: 'forced-bottom-backfill-7f' });
+                  globalThis.__TEST__.frameAutoBackfillForced.push({ t: Date.now(), rowBase, col, codeForced: 0x7F, forced: true, note: 'smart-forced-bottom-7f' });
                   if (globalThis.__TEST__.frameAutoBackfillForced.length > 512) globalThis.__TEST__.frameAutoBackfillForced.shift();
                 }
               }
             } catch (e) { /* ignore */ }
           } else {
+            // Conservative backfill for other cases/columns
             try { this._tryBackfillCell(rowBase, col, bitmap, attrs); } catch (e) { /* ignore */ }
           }
         } catch (e) { /* ignore per cell */ }
