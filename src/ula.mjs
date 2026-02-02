@@ -45,9 +45,15 @@ export class ULA {
     
     // Display initialization tracking
     this._initialized = false;
+    
+    // Debug logging flag
+    this._debug = false;
 
     // QUICK FIX: Initialize display memory in constructor to avoid race conditions
-    this._initializeDisplayMemory();
+    // When bitmap/attrs are not yet available we initialize; otherwise leave existing RAM intact
+    const _bm = this.mem && this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+    const _at = this.mem && this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+    if (!_bm || !_at) this._initializeDisplayMemory();
 
     // Spectrum palettes (normal and bright)
     this.paletteNormal = [
@@ -91,9 +97,15 @@ export class ULA {
     }
   }
 
+  // Enable/disable debug logging
+  setDebug(enabled) {
+    this._debug = enabled;
+  }
+
   // QUICK FIX: Initialize display memory early to avoid race conditions with ROM
   _initializeDisplayMemory() {
     if (!this.mem) return;
+    if (typeof window !== 'undefined' && window.__TEST__) (window.__TEST__.ulaInitCalls = window.__TEST__.ulaInitCalls || []).push({ t: Date.now(), pc: (window.__LAST_PC__ || null) });
     
     const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
     const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
@@ -160,7 +172,10 @@ export class ULA {
     if (p === 0xfe) {
       // The ZX Spectrum samples the upper address lines to select keyboard rows (active low).
       const high = (port >> 8) & 0xff;
-      // Start with all bits high (no key pressed). Bits 0-4 correspond to keys in the selected rows.
+      // Start with all bits high (no key pressed). 
+      // Bits 0-4 correspond to keys in the selected rows.
+      // Bit 5: tape EAR input (1 = no signal)
+      // Bits 6-7: always 1
       let result = 0xff;
       // For each row: if the corresponding bit in high is zero (selected), AND the row matrix
       for (let row = 0; row < 8; row++) {
@@ -168,7 +183,21 @@ export class ULA {
           result &= this.keyMatrix[row];
         }
       }
-      // The lower 5 bits are keyboard data; keep upper bits as 1 for simplicity
+      // Ensure upper bits are set correctly (tape EAR = 1, bits 6-7 = 1)
+      result |= 0b11100000;
+      
+      if (this._debug && (result & 0x1f) !== 0x1f) {
+        console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, result=0x${result.toString(16)}`);
+      }
+      // Test hook: capture port reads for diagnostics
+      try {
+        if (typeof window !== 'undefined' && window.__TEST__) {
+          window.__TEST__.portReads = window.__TEST__.portReads || [];
+          window.__TEST__.portReads.push({ port: port & 0xffff, high, result: result & 0xff, t: (this.cpu && this.cpu.tstates) || 0 });
+          if (window.__TEST__.portReads.length > 256) window.__TEST__.portReads.shift();
+        }
+      } catch (e) { /* ignore */ }
+      
       return result & 0xff;
     }
     // Unhandled ports return 0xff by default
@@ -188,6 +217,8 @@ export class ULA {
     }
   }
 
+
+
   // Toggle flash state based on time
   _updateFlash() {
     const now = performance.now();
@@ -201,6 +232,26 @@ export class ULA {
   render() {
     // Update flash timing
     this._updateFlash();
+
+    // Diagnostic: on first render, capture CHARS pointer and glyph bytes for 0x7F/0x80
+    if (!this._firstRenderLogged) {
+      this._firstRenderLogged = true;
+      try {
+        const lo = this.mem.read(0x5C36);
+        const hi = this.mem.read(0x5C37);
+        const chars = (hi << 8) | lo;
+        const glyphs = {};
+        [0x7f, 0x80].forEach(code => {
+          const bytes = [];
+          for (let i = 0; i < 8; i++) bytes.push(this.mem.read((chars + code*8 + i) & 0xffff));
+          glyphs[code] = bytes;
+        });
+        if (typeof console !== 'undefined' && console.log) console.log('[ULA] CHARS pointer:', '0x' + chars.toString(16).padStart(4,'0'), 'glyphs:', glyphs);
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.charsDiag = { chars, glyphs, t: Date.now(), pc: (window.__LAST_PC__||null) }; } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('[ULA] chars diagnostic failed', e);
+      }
+    }
     
     // Use deferred rendering if enabled (JSSpeccy3 style)
     if (this.useDeferredRendering && this.frameBuffer && this.frameRenderer) {
@@ -223,6 +274,8 @@ export class ULA {
 
     const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null; // 6912 bytes: arranged in Spectrum scanline order
     const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null; // 768 bytes
+
+    if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__._lastRenderContext = { useDeferred: this.useDeferredRendering, t: Date.now(), pc: (window.__LAST_PC__ || null) };
 
     // --- REMOVED AGGRESSIVE VIDEO MEMORY PROTECTION ---
     // The previous protection was destroying display content and preventing
@@ -248,11 +301,9 @@ export class ULA {
     // addrIndex = ((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte
 
     for (let y = 0; y < height; y++) {
-      const y0 = y & 0x07;
-      const y1 = (y & 0x38) >> 3;
-      const y2 = (y & 0xC0) >> 6;
       for (let xByte = 0; xByte < 32; xByte++) {
-        const bIndex = (y0 << 8) | (y1 << 5) | (y2 << 11) | xByte;
+        // Compute bitmap index using canonical ZX Spectrum layout in one expression
+        const bIndex = (((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte) & 0x1fff;
         const byte = bitmap[bIndex];
 
         // Attribute cell index: 32 bytes across, 24 rows
@@ -273,10 +324,12 @@ export class ULA {
         const inkColor = palette[ink];
         const paperColor = palette[paper];
 
-        // For each bit in the byte (MSB left)
+        // Use MSB-first mask for clarity: mask = 0x80 >> bit
+        // Map bit index 0..7 to left..right within the byte
         for (let bit = 0; bit < 8; bit++) {
-          const x = (xByte << 3) | (7 - bit); // MSB at left
-          const pixelSet = (byte >> bit) & 0x01;
+          const mask = 0x80 >> bit;
+          const pixelSet = (byte & mask) !== 0;
+          const x = (xByte << 3) | bit; // bit 0 -> left-most within byte
           const color = pixelSet ? inkColor : paperColor;
 
           const idx = (y * width + x) * 4;
@@ -290,5 +343,12 @@ export class ULA {
 
     // Blit to canvas
     this.ctx.putImageData(this.image, 0, 0);
+
+    // Test hook: notify tests that a render finished (legacy path)
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameRendered === 'function') {
+        window.__TEST__.frameRendered();
+      }
+    } catch (e) { /* ignore */ }
   }
 }

@@ -1,0 +1,25 @@
+npm verbose cli C:\nvm4w\nodejs\node.exe C:\Users\steph\AppData\Roaming\nvm\v22.16.0\node_modules\npm\bin\npm-cli.js
+npm info using npm@11.7.0
+npm info using node@v22.16.0
+npm verbose title npm exec playwright test tests/boot.test.mjs -u
+npm verbose argv "exec" "--" "playwright" "test" "tests/boot.test.mjs" "-u"
+npm verbose logfile logs-max:10 dir:C:\Users\steph\AppData\Local\npm-cache\_logs\2026-01-29T03_47_04_691Z-
+npm verbose logfile C:\Users\steph\AppData\Local\npm-cache\_logs\2026-01-29T03_47_04_691Z-debug-0.log
+
+Running 2 tests using 1 worker
+
+  Γ£ô  1 [chromium] ΓÇ║ tests\boot.test.mjs:4:3 ΓÇ║ ZX Spectrum Emulator Boot Tests ΓÇ║ boot screen displays ┬⌐ symbol correctly (3.8s)
+  Γ£ô  2 [chromium] ΓÇ║ tests\boot.test.mjs:20:3 ΓÇ║ ZX Spectrum Emulator Boot Tests ΓÇ║ keyboard interaction works in BASIC prompt (7.1s)
+
+  2 passed (12.4s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
+npm verbose cwd D:\Code\GitHub\zxspeccjs
+npm verbose os Windows_NT 10.0.22635
+npm verbose node v22.16.0
+npm verbose npm  v11.7.0
+npm verbose exit 0
+npm info ok
