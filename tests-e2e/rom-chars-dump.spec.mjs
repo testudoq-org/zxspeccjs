@@ -1,7 +1,11 @@
+// @e2e @ui
+/* eslint-env browser, node, es2021 */
+/* global window document console */
+
 import { test, expect } from '@playwright/test';
 import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
 
-test('Dump CHARS pointer and ROM glyph bytes for 0x7F', async ({ page }) => {
+test('Dump CHARS pointer and glyph bytes for 0x7F from ROM/CHARS', async ({ page }) => {
   await setupDiagnostics(page);
   await page.goto('http://localhost:8080/');
   await page.waitForSelector('#screen', { timeout: 10000 });
@@ -9,15 +13,26 @@ test('Dump CHARS pointer and ROM glyph bytes for 0x7F', async ({ page }) => {
   await ensureStarted(page);
 
   const diag = await page.evaluate(() => {
-    const emu = window.emulator || window.emu;
-    if (!emu || !emu.memory) return {};
-    const charsPtr = (emu.memory.read(0x5C36) | (emu.memory.read(0x5C37) << 8));
-    const glyphAddr = (charsPtr * 8) + 0x3C00 + (0x7F * 8);
-    const glyph = [];
-    for (let i = 0; i < 8; i++) glyph.push(emu.memory.read(glyphAddr + i));
-    return { charsPtr, glyph };
+    const dbg = window.__ZX_DEBUG__;
+    if (!dbg || typeof dbg.peekMemory !== 'function') return { error: 'no_debug' };
+
+    const chars = dbg.peekMemory(0x5C36, 2);
+    const charsPtr = (chars && chars[1] !== undefined) ? ((chars[1] << 8) | chars[0]) : 0;
+    const romDump = [];
+    const romRegion = 0x3C00 + (0x7F * 8);
+    for (let i = 0; i < 8; i++) {
+      let vRam = null;
+      try { vRam = dbg.peekMemory((charsPtr + 0x7F*8 + i) & 0xffff, 1)[0]; } catch (e) { vRam = null; }
+      let vRom = null;
+      try { vRom = dbg.readROM((0x3C00 + 0x7F*8 + i) & 0xffff); } catch (e) { vRom = null; }
+      romDump.push({ i, vRam, vRom });
+    }
+    return { charsPtr, romDump };
   });
 
-  expect(diag.charsPtr).toBeDefined();
-  expect(Array.isArray(diag.glyph)).toBe(true);
+  expect(diag).toBeTruthy();
+  expect(diag.charsPtr).toBeGreaterThanOrEqual(0);
+  // ensure at least one glyph byte is non-null in ROM
+  const any = diag.romDump.some(d => d.vRom !== null && d.vRom !== undefined);
+  expect(any).toBe(true);
 });
