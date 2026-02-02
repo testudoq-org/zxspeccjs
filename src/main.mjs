@@ -244,7 +244,15 @@ export class Emulator {
     if (loadBtn) loadBtn.addEventListener('click', () => this.handleLoad());
     if (startBtn) startBtn.addEventListener('click', () => this.start());
     if (stopBtn) stopBtn.addEventListener('click', () => this.pause());
-    if (resetBtn) resetBtn.addEventListener('click', () => this.reset());
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+      try {
+        if (typeof window !== 'undefined' && typeof window.__EMU_clearCacheAndReload === 'function') {
+          window.__EMU_clearCacheAndReload();
+        } else {
+          this.reset();
+        }
+      } catch (e) { try { this.reset(); } catch(err){} }
+    });
 
     // Allow file input drag/drop helpers
     if (this.romInput) Loader.attachInput(this.romInput, (result, file) => this._onFileLoaded(result, file));
@@ -806,6 +814,15 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // --- Diagnostic overlay: on-page debug panel for ROM/CHARS/canvas checks ---
   try {
+    // Provide a global helper so other UI elements (Reset button etc.) can trigger cache-clear + reload
+    window.__EMU_clearCacheAndReload = async function() {
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
+        if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
+        // Use location.reload() — browsers may ignore true param but call reload
+        location.reload(true);
+      } catch (e) { try{ document.getElementById('__emu_diag_out').textContent = 'Cache clear failed: ' + String(e); }catch(err){} }
+    };
     const dbgPanel = document.createElement('div');
     dbgPanel.id = '__emu_debug_panel';
     // Position above on-screen keyboard to avoid overlap; reduce width slightly for better fit
@@ -1085,9 +1102,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('__emu_btn_clearcache').addEventListener('click', async () => { try {
-      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
-      if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
-      location.reload(true);
+      if (typeof window !== 'undefined' && typeof window.__EMU_clearCacheAndReload === 'function') {
+        await window.__EMU_clearCacheAndReload();
+      } else {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
+        if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
+        location.reload(true);
+      }
     } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Cache clear failed: ' + String(e); } });
 
     // Auto-run once shortly after load
