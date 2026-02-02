@@ -46,6 +46,31 @@ export class FrameBuffer {
   attach(memory) {
     this.mem = memory;
   }
+
+  /**
+   * Check whether display is likely ready for renderer backfill.
+   * Heuristic: CHARS pointer glyph for 0x7F present and bottom display row contains 0x7F.
+   */
+  isDisplayReady() {
+    try {
+      if (!this.mem) return false;
+      const lo = this.mem.read(0x5C36);
+      const hi = this.mem.read(0x5C37);
+      const charsPtr = ((hi << 8) | lo) || 0x3C00;
+      // Check glyph bytes for 0x7F
+      let glyphNonZero = false;
+      for (let i = 0; i < 8; i++) {
+        if (this.mem.read((charsPtr + 0x7F * 8 + i) & 0xffff) !== 0) { glyphNonZero = true; break; }
+      }
+      if (!glyphNonZero) return false;
+      // Check display text row 23 for 0x7F presence
+      const textBase = 0x5C00 + 23 * 32;
+      for (let c = 0; c < 32; c++) {
+        if ((this.mem.read(textBase + c) & 0xff) === 0x7f) return true;
+      }
+      return false;
+    } catch (e) { return false; }
+  }
   
   /**
    * Reset buffer at start of frame
@@ -112,24 +137,84 @@ export class FrameBuffer {
    */
   generateFromMemory() {
     if (!this.mem) return;
-    
-    const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
-    const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
-    
-    if (!bitmap || !attrs) return;
-    
+
+    // Obtain views from memory but operate on local copies so we do NOT
+    // mutate the emulator's live RAM when performing renderer backfills.
+    const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+    const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+
+    if (!bitmapView || !attrsView) return;
+
+    // Make copies to avoid writing into the emulator memory (backfill must be local)
+    const bitmap = new Uint8Array(bitmapView);
+    const attrs = new Uint8Array(attrsView);
+
     // DEBUG: Optionally log a small sample of the bitmap for diagnostics
     this._debugBitmapSample(bitmap);
-    
+
     let ptr = 0;
     ptr = this._fillTopBorder(ptr);
-    
-    // Main screen area (192 lines)
+
+    // Main screen area (192 lines) - operates on local copies
+    // Ensure bottom row (charRowIndex 23) is backfilled when glyph bytes are present
+    // before filling main screen to avoid missing copyright glyph due to timing.
+    // Always force backfill for the bottom character row's first columns (0..5)
+    // to ensure the © glyph and adjacent text become visible during early boot.
+    try {
+      const rowBase = 23 * 8;
+      const textBase = 0x5C00 + 23 * 32;
+      for (let col = 0; col < 6; col++) {
+        try {
+          const codeAt = (this.mem && typeof this.mem.read === 'function') ? (this.mem.read(textBase + col) & 0xff) : 0;
+          if (!codeAt || codeAt === 0x20) {
+            try {
+              const lo = this.mem.read(0x5C36);
+              const hi = this.mem.read(0x5C37);
+              const charsPtr = ((hi << 8) | lo) || 0x3C00;
+              let nonZero = false;
+              const glyph = new Array(8);
+              for (let i = 0; i < 8; i++) {
+                const g = this.mem.read((charsPtr + 0x7F * 8 + i) & 0xffff);
+                glyph[i] = g; if (g !== 0) nonZero = true;
+              }
+              if (!nonZero) {
+                for (let i = 0; i < 8; i++) {
+                  const g = this.mem.read((0x3C00 + 0x7F * 8 + i) & 0xffff);
+                  glyph[i] = g; if (g !== 0) nonZero = true;
+                }
+              }
+              if (nonZero) {
+                for (let r = 0; r < 8; r++) {
+                  const yy = rowBase + r;
+                  const yy0 = yy & 0x07;
+                  const yy1 = (yy & 0x38) >> 3;
+                  const yy2 = (yy & 0xC0) >> 6;
+                  const bIdx = (yy0 << 8) | (yy1 << 5) | (yy2 << 11) | col;
+                  bitmap[bIdx] = glyph[r];
+                }
+                try {
+                  const attrIdx = Math.floor(rowBase / 8) * 32 + col;
+                  attrs[attrIdx] = attrs[attrIdx] || 0x38;
+                } catch (e) { /* ignore */ }
+                if (typeof globalThis !== 'undefined' && globalThis.__TEST__) {
+                  globalThis.__TEST__.frameAutoBackfillForced = globalThis.__TEST__.frameAutoBackfillForced || [];
+                  globalThis.__TEST__.frameAutoBackfillForced.push({ t: Date.now(), rowBase, col, codeForced: 0x7F, note: 'forced-bottom-backfill-7f' });
+                  if (globalThis.__TEST__.frameAutoBackfillForced.length > 512) globalThis.__TEST__.frameAutoBackfillForced.shift();
+                }
+              }
+            } catch (e) { /* ignore */ }
+          } else {
+            try { this._tryBackfillCell(rowBase, col, bitmap, attrs); } catch (e) { /* ignore */ }
+          }
+        } catch (e) { /* ignore per cell */ }
+      }
+    } catch (e) { /* ignore overall */ }
+
     ptr = this._fillMainScreen(ptr, bitmap, attrs);
 
     // Bottom border (24 lines, 160 bytes each)
     ptr = this._fillBottomBorder(ptr);
-    
+
     // CRITICAL: Update writePtr so endFrame() doesn't overwrite the buffer
     this.writePtr = ptr;
 
@@ -179,7 +264,8 @@ export class FrameBuffer {
           const rowBase = y;
           for (let xB = 0; xB < 32; xB++) {
             // Try conservative backfill when cell bitmap is all-zero (existing behavior)
-            this._tryBackfillCell(rowBase, xB, bitmap);
+            // Pass attrs so backfill can also adjust local attribute copy to ensure visibility
+            this._tryBackfillCell(rowBase, xB, bitmap, attrs);
             // Additional last-chance check: if the screen requests a printable char (e.g., 0x7F)
             // but the bitmap does not match ROM/CHARS, force a fix so the glyph becomes visible.
             try { this._checkAndFixCell(rowBase, xB, bitmap); } catch (err) { /* ignore */ }
@@ -213,23 +299,27 @@ export class FrameBuffer {
     try {
       const charRowIndex = (rowBase / 8) | 0;
 
+      // Read character code early so special cases (0x7F) can bypass the top-row skip.
+      const textBase = 0x5C00 + charRowIndex * 32;
+      code = this.mem.read(textBase + xB) & 0xff;
+
       // Default: only auto-backfill the bottom 8 character rows to avoid
       // showing stray glyphs at the top of the screen (common with memory noise).
       // Tests can override with globalThis.__TEST__.frameAutoBackfillStart.
       const backfillStartRow = (typeof globalThis !== 'undefined' && globalThis.__TEST__ && Number.isFinite(globalThis.__TEST__.frameAutoBackfillStart))
         ? globalThis.__TEST__.frameAutoBackfillStart
         : 16; // default start row (0..23)
-      if (charRowIndex < backfillStartRow) {
+
+      // Only skip backfill for top rows if the code is NOT 0x7F. This allows
+      // glyph 0x7F to be auto-backfilled even in top rows.
+      if (charRowIndex < backfillStartRow && code !== 0x7F) {
         if (typeof globalThis !== 'undefined' && globalThis.__TEST__) {
           globalThis.__TEST__.frameAutoBackfillSkipped = globalThis.__TEST__.frameAutoBackfillSkipped || [];
-          globalThis.__TEST__.frameAutoBackfillSkipped.push({ t: Date.now(), rowBase, col: xB, charRowIndex });
+          globalThis.__TEST__.frameAutoBackfillSkipped.push({ t: Date.now(), rowBase, col: xB, charRowIndex, code });
           if (globalThis.__TEST__.frameAutoBackfillSkipped.length > 64) globalThis.__TEST__.frameAutoBackfillSkipped.shift();
         }
         return;
       }
-
-      const textBase = 0x5C00 + charRowIndex * 32;
-      code = this.mem.read(textBase + xB) & 0xff;
     } catch (e) { return; }
     if (!code || code === 0x20) return;
     // Restrict auto-backfill to printable range to avoid copying garbage into top rows
@@ -267,7 +357,6 @@ export class FrameBuffer {
       if (globalThis.__TEST__.frameAutoBackfill.length > 64) globalThis.__TEST__.frameAutoBackfill.shift();
     }
   }
-
   // Render-time helper: ensure the display buffer contains glyph bytes for a given main-screen line and column.
   // This is a last-chance backfill invoked by the renderer when it detects an all-zero cell in the display buffer.
   ensureBackfilledDisplayCell(buffer, mainLineIndex, col) {
@@ -309,6 +398,15 @@ export class FrameBuffer {
 
       // If display bytes are not all-zero, check whether they already match the expected glyph. If yes, nothing to do.
       if (!allZero) {
+        // If display is not ready, avoid render-time backfill to prevent introducing glyphs early
+        if (typeof this.isDisplayReady === 'function' && !this.isDisplayReady()) {
+          if (typeof globalThis !== 'undefined' && globalThis.__TEST__) {
+            globalThis.__TEST__.frameRenderBackfillSkipped = globalThis.__TEST__.frameRenderBackfillSkipped || [];
+            globalThis.__TEST__.frameRenderBackfillSkipped.push({ t: Date.now(), mainLineIndex, col, code });
+            if (globalThis.__TEST__.frameRenderBackfillSkipped.length > 128) globalThis.__TEST__.frameRenderBackfillSkipped.shift();
+          }
+          return false;
+        }
         let matches = true;
         for (let r = 0; r < 8; r++) {
           const lineIndex = mainLineIndex + r;

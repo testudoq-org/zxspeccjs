@@ -1,0 +1,14 @@
+{
+  "collected": {
+    "charsPtr": null,
+    "charBitmapReads": null,
+    "screenBitmapReads": null,
+    "frameAutoBackfill": null,
+    "frameRenderBackfill": null,
+    "frameAutoBackfillSkipped": null,
+    "charsDiag": null,
+    "frameBufferNonZero": null
+  },
+  "romDump": null,
+  "ramGlyph": null
+}

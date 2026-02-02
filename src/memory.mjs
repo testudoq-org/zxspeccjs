@@ -303,6 +303,28 @@ export class Memory {
     
     let value = 0xff;
     if (view) value = view[offset];
+
+    // Diagnostic: instrument reads to character bitmap and screen bitmap regions for debugging
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        // Log reads to ROM charset/copy area (0x3C00..0x4400)
+        if (addr >= 0x3C00 && addr < 0x4400) {
+          window.__TEST__.charBitmapReads = window.__TEST__.charBitmapReads || [];
+          window.__TEST__.charBitmapReads.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0 });
+          if (window.__TEST__.charBitmapReads.length > 512) window.__TEST__.charBitmapReads.shift();
+        }
+        // Log reads to screen bitmap (0x4000..0x57FF)
+        if (addr >= 0x4000 && addr < 0x5800) {
+          window.__TEST__.screenBitmapReads = window.__TEST__.screenBitmapReads || [];
+          // sample to avoid huge logs
+          if (window.__TEST__.screenBitmapReads.length === 0 || Math.random() < 0.01) {
+            window.__TEST__.screenBitmapReads.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0 });
+            if (window.__TEST__.screenBitmapReads.length > 1024) window.__TEST__.screenBitmapReads.shift();
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+
     // Apply contention for accesses in 0x4000..0x7fff
     this._applyContention(addr);
     // If stack watch enabled and access falls in range, invoke callback

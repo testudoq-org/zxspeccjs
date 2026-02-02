@@ -50,7 +50,10 @@ export class ULA {
     this._debug = false;
 
     // QUICK FIX: Initialize display memory in constructor to avoid race conditions
-    this._initializeDisplayMemory();
+    // When bitmap/attrs are not yet available we initialize; otherwise leave existing RAM intact
+    const _bm = this.mem && this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+    const _at = this.mem && this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+    if (!_bm || !_at) this._initializeDisplayMemory();
 
     // Spectrum palettes (normal and bright)
     this.paletteNormal = [
@@ -298,11 +301,9 @@ export class ULA {
     // addrIndex = ((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte
 
     for (let y = 0; y < height; y++) {
-      const y0 = y & 0x07;
-      const y1 = (y & 0x38) >> 3;
-      const y2 = (y & 0xC0) >> 6;
       for (let xByte = 0; xByte < 32; xByte++) {
-        const bIndex = (y0 << 8) | (y1 << 5) | (y2 << 11) | xByte;
+        // Compute bitmap index using canonical ZX Spectrum layout in one expression
+        const bIndex = (((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte) & 0x1fff;
         const byte = bitmap[bIndex];
 
         // Attribute cell index: 32 bytes across, 24 rows
@@ -323,10 +324,12 @@ export class ULA {
         const inkColor = palette[ink];
         const paperColor = palette[paper];
 
-        // For each bit in the byte (MSB left)
+        // Use MSB-first mask for clarity: mask = 0x80 >> bit
+        // Map bit index 0..7 to left..right within the byte
         for (let bit = 0; bit < 8; bit++) {
-          const x = (xByte << 3) | (7 - bit); // MSB at left
-          const pixelSet = (byte >> bit) & 0x01;
+          const mask = 0x80 >> bit;
+          const pixelSet = (byte & mask) !== 0;
+          const x = (xByte << 3) | bit; // bit 0 -> left-most within byte
           const color = pixelSet ? inkColor : paperColor;
 
           const idx = (y * width + x) * 4;

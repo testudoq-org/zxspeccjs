@@ -2,7 +2,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: 'tests',
+  testDir: 'tests-e2e',
   use: {
     baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
@@ -17,7 +17,7 @@ export default defineConfig({
   ],
   reporter: [['list'], ['html']],
   // Configure snapshot directory for approved screenshots
-  snapshotDir: './tests/snapshots',
+  snapshotDir: './tests-e2e/snapshots',
   expect: {
     toMatchSnapshot: {
       threshold: 0.05,

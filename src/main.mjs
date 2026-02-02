@@ -481,9 +481,8 @@ export class Emulator {
     // If ROM buffer provided, keep a copy for resets
     if (romBuffer) this.romBuffer = romBuffer.slice ? romBuffer.slice(0) : romBuffer;
 
-    // initial render
-    this.ula.render();
-    console.log('[Emulator] _createCore: initial render called');
+    // initial render - DEFERRED: avoid rendering immediately from constructor to allow ROM to initialize CHARS and glyph bytes
+    console.log('[Emulator] Initial render deferred until emulator loop or CHARS population');
     // Ensure the canvas has focus so keyboard events are delivered reliably (helpful for E2E tests)
     try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') { this.canvas.focus(); try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.canvasFocused = true; } catch(e){} } }, 0); } catch (e) { /* ignore */ }
   }
