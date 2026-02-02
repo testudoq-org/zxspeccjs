@@ -93,6 +93,12 @@ export default class Input {
 
     // Optionally created overlay element
     this.overlay = null;
+
+    // Hidden input to capture IME / mobile soft-keyboard events (best-effort)
+    this._hiddenInput = null;
+    this._onHiddenInput = null;
+    this._onCompositionStart = null;
+    this._onCompositionEnd = null;
   }
 
   // Enable/disable debug logging
@@ -130,6 +136,9 @@ export default class Input {
       }
     } catch (e) { /* ignore */ }
 
+    // Ensure hidden input exists to capture IME / soft-keyboard events (best-effort)
+    try { this._ensureHiddenInput(); } catch (e) { /* ignore */ }
+
     if (this._debug) console.log('[Input] Keyboard listeners started');
   }
 
@@ -152,6 +161,21 @@ export default class Input {
         try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch(e){}
       }
     } catch (e) { /* ignore */ }
+
+    // Remove hidden input and its listeners (best-effort)
+    try {
+      if (this._hiddenInput) {
+        try { this._hiddenInput.removeEventListener('input', this._onHiddenInput); } catch(e){}
+        try { this._hiddenInput.removeEventListener('compositionstart', this._onCompositionStart); } catch(e){}
+        try { this._hiddenInput.removeEventListener('compositionend', this._onCompositionEnd); } catch(e){}
+        try { if (this._hiddenInput.parentNode) this._hiddenInput.parentNode.removeChild(this._hiddenInput); } catch(e){}
+      }
+    } catch (e) { /* ignore */ }
+
+    this._hiddenInput = null;
+    this._onHiddenInput = null;
+    this._onCompositionStart = null;
+    this._onCompositionEnd = null;
 
     // Update test hook to reflect removed listeners
     try {
@@ -407,6 +431,54 @@ export default class Input {
     return state;
   }
 
+  // Ensure hidden input exists to capture IME / soft-keyboard events (best-effort)
+  _ensureHiddenInput() {
+    if (this._hiddenInput) return this._hiddenInput;
+    try {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = '__emu_hidden_input';
+      inp.autocapitalize = 'none';
+      inp.autocomplete = 'off';
+      inp.spellcheck = false;
+      inp.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+      inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); } catch(e){} }, { passive: true });
+      document.body.appendChild(inp);
+      this._hiddenInput = inp;
+
+      this._onHiddenInput = (e) => {
+        try {
+          const v = inp.value || '';
+          const last = v.length ? v[v.length - 1] : '';
+          if (last) {
+            const keyName = ('' + last).toLowerCase();
+            if (KEY_TO_POS.has(keyName)) {
+              this.pressKey(keyName);
+              setTimeout(() => this.releaseKey(keyName), 60);
+            } else if (last === ' ') {
+              this.pressKey('space'); setTimeout(() => this.releaseKey('space'), 60);
+            }
+
+            // synthetic key events for compatibility
+            try {
+              const code = last.match(/[a-z]/i) ? `Key${last.toUpperCase()}` : ('Digit' + last);
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: last, code: code, bubbles: true }));
+              setTimeout(() => { window.dispatchEvent(new KeyboardEvent('keyup', { key: last, code: code, bubbles: true })); }, 60);
+            } catch (e) { /* ignore */ }
+          }
+        } catch (e) { /* ignore */ } finally { inp.value = ''; }
+      };
+
+      this._onCompositionStart = () => {};
+      this._onCompositionEnd = (e) => { try { const text = e.data || ''; if (text) { const last = text[text.length-1]; if (last && KEY_TO_POS.has(last.toLowerCase())) { this.pressKey(last.toLowerCase()); setTimeout(()=>this.releaseKey(last.toLowerCase()),60); } } } catch(e){} };
+
+      inp.addEventListener('input', this._onHiddenInput, { passive: true });
+      inp.addEventListener('compositionstart', this._onCompositionStart, { passive: true });
+      inp.addEventListener('compositionend', this._onCompositionEnd, { passive: true });
+    } catch (e) { /* best effort */ }
+    return this._hiddenInput;
+  }
+
   // Create a simple virtual keyboard overlay inside container (HTMLElement or selector)
   createVirtualKeyboard(container = 'body') {
     const root = typeof container === 'string' ? document.querySelector(container) : container;
@@ -497,24 +569,24 @@ export default class Input {
 
         // Use pointer events for touch and mouse compatibility
         btn.addEventListener('pointerdown', (e) => {
+          // Keep keyboard open during press (good for typing multiple chars)
           e.preventDefault();
           btn.style.background = '#666';
           this.pressKey(key);
-          // focus canvas so physical keyboard continues to control emulator after virtual press
-          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
+          try { this._ensureHiddenInput()?.focus({ preventScroll: true }); } catch (err) { /* ignore */ }
         });
 
         btn.addEventListener('pointerup', (e) => {
           e.preventDefault();
           btn.style.background = '#333';
           this.releaseKey(key);
-          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
+          try { this._ensureHiddenInput()?.blur(); } catch (err) { /* ignore */ }
         });
 
         btn.addEventListener('pointerleave', (e) => {
           btn.style.background = '#333';
           this.releaseKey(key);
-          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
+          try { this._ensureHiddenInput()?.blur(); } catch (err) { /* ignore */ }
         });
 
         // Prevent context menu on long press
