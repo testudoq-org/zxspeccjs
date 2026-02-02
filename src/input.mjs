@@ -285,7 +285,14 @@ export default class Input {
     // Set bit to 0 when pressed (active low)
     this.matrix[pos.row] &= ~pos.mask;
     
-    // Test hook: record DOM-driven key press for diagnostics
+    // Record last captured key for diagnostics and Test hook: record DOM-driven key press for diagnostics
+    try {
+      if (typeof window !== 'undefined') {
+        try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = name; } catch(e){}
+        try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: name, hiddenFocused: (this._hiddenInput && document.activeElement === this._hiddenInput) } })); } catch(e){}
+      }
+    } catch (err) { /* ignore */ }
+
     try {
       if (typeof window !== 'undefined' && window.__TEST__) {
         window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
@@ -388,7 +395,14 @@ export default class Input {
       console.log(`[Input] pressKey: ${normalizedName} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}`);
     }
 
-    // Test hook: emit key event to window.__TEST__ for diagnostics
+    // Record last captured key for diagnostics and emit key event to window.__TEST__ for diagnostics
+    try {
+      if (typeof window !== 'undefined') {
+        try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = normalizedName; } catch(e){}
+        try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: normalizedName, hiddenFocused: (this._hiddenInput && document.activeElement === this._hiddenInput) } })); } catch(e){}
+      }
+    } catch (e) { /* ignore */ }
+
     try {
       if (typeof window !== 'undefined' && window.__TEST__) {
         window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
@@ -495,7 +509,8 @@ export default class Input {
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-      inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); } catch(e){} }, { passive: true });
+      inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = true; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: true } })); } catch(e){} } catch(e){} }, { passive: true });
+      inp.addEventListener('blur', () => { try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = false; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: false } })); } catch(e){} } catch(e){} }, { passive: true });
       document.body.appendChild(inp);
       this._hiddenInput = inp;
 
@@ -505,6 +520,11 @@ export default class Input {
           const last = v.length ? v[v.length - 1] : '';
           if (last) {
             const keyName = ('' + last).toLowerCase();
+
+            // Record last captured key for diagnostics
+            try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.lastCapturedKey = keyName; } catch(e){}
+            try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: keyName, hiddenFocused: (document.activeElement === inp) } })); } catch(e){}
+
             if (KEY_TO_POS.has(keyName)) {
               this.pressKey(keyName);
               setTimeout(() => this.releaseKey(keyName), 60);

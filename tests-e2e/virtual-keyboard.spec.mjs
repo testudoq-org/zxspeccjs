@@ -13,11 +13,24 @@ test.describe('Virtual keyboard IME / mobile interaction @ui', () => {
     // pointerdown should focus the hidden input and register a press
     await btn.dispatchEvent('pointerdown');
 
+    // Open diagnostic status panel before pressing so it doesn't steal focus afterwards
+    const statusBtn = page.locator('#__emu_btn_input_status');
+    await expect(statusBtn).toBeVisible();
+    await statusBtn.click();
+    const lastSpan = page.locator('#__emu_input_last');
+    const focusedSpan = page.locator('#__emu_input_focused');
+
+    // Now pointerdown should focus hidden input and update status
+    await btn.dispatchEvent('pointerdown');
+
     const activeId = await page.evaluate(() => document.activeElement && document.activeElement.id);
     expect(activeId).toBe('__emu_hidden_input');
 
     const pressed = await page.evaluate(() => !!(window.__TEST__ && window.__TEST__.keyEvents && window.__TEST__.keyEvents.some(ev => ev.type === 'press' && ev.key === 'q')));
     expect(pressed).toBe(true);
+
+    await expect(lastSpan).toHaveText(/q|\(none\)/, { timeout: 2000 });
+    await expect(focusedSpan).toHaveText('true');
 
     // pointerup should release and blur
     await btn.dispatchEvent('pointerup');
@@ -27,6 +40,9 @@ test.describe('Virtual keyboard IME / mobile interaction @ui', () => {
 
     const released = await page.evaluate(() => !!(window.__TEST__ && window.__TEST__.keyEvents && window.__TEST__.keyEvents.some(ev => ev.type === 'release' && ev.key === 'q')));
     expect(released).toBe(true);
+
+    // Check status reflects blur
+    await expect(focusedSpan).toHaveText('false');
   });
 
   test('hidden input input/composition events map to key presses (IME) @ui', async ({ page }) => {

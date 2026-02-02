@@ -822,7 +822,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         <button id="__emu_btn_reveal" style="padding:6px">Reveal glyph</button>
         <button id="__emu_btn_force_draw" style="padding:6px">Force draw ©</button>
         <button id="__emu_btn_clearcache" style="padding:6px">Clear cache & reload</button>
-      </div>`;
+        <button id="__emu_btn_input_status" style="padding:6px">Input status</button>
+      </div>
+      <div id="__emu_input_status" style="display:none;margin-top:8px;padding:6px;background:#0b0b0b;border:1px solid #222;color:#bfb; font-size:11px;">Last key: <span id="__emu_input_last">(none)</span><br>Hidden input focused: <span id="__emu_input_focused">false</span></div>`;
     document.body.appendChild(dbgPanel);
 
     // Add a persistent toggle control into the UI controls area
@@ -869,6 +871,36 @@ window.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('__emu_diag_visible', 'false');
         const t = document.getElementById('__emu_diag_toggle'); if (t) t.checked = false;
       });
+
+      // Input status toggle button
+      const statusBtn = document.getElementById('__emu_btn_input_status');
+      const statusDiv = document.getElementById('__emu_input_status');
+      const lastSpan = document.getElementById('__emu_input_last');
+      const focusedSpan = document.getElementById('__emu_input_focused');
+      if (statusBtn && statusDiv) {
+        statusBtn.addEventListener('click', () => {
+          const isNowVisible = (statusDiv.style.display === 'none' || !statusDiv.style.display) ? true : false;
+          statusDiv.style.display = isNowVisible ? 'block' : 'none';
+          // Immediately update with current values to avoid race with event dispatch
+          try {
+            const debug = window.__ZX_DEBUG__ || {};
+            if (lastSpan) lastSpan.textContent = debug.lastCapturedKey || '(none)';
+            const hiddenFocused = !!(debug.hiddenInputFocused || (document.activeElement && document.activeElement.id === '__emu_hidden_input'));
+            if (focusedSpan) focusedSpan.textContent = hiddenFocused ? 'true' : 'false';
+          } catch (e) { /* ignore */ }
+        });
+      }
+
+      // Listen for input status events to update display
+      try {
+        document.addEventListener('emu-input-status', (ev) => {
+          try {
+            const d = ev && ev.detail ? ev.detail : {};
+            if (lastSpan) lastSpan.textContent = d.lastKey || '(none)';
+            if (focusedSpan) focusedSpan.textContent = (!!d.hiddenFocused) ? 'true' : 'false';
+          } catch (e) { /* ignore */ }
+        });
+      } catch (e) { /* non-critical */ }
 
       let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
       const onMove = (clientX, clientY) => {
