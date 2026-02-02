@@ -110,6 +110,16 @@ export default class Input {
         document.addEventListener('keyup', this._keyup, { passive: false, capture: true });
       }
     } catch (e) { /* ignore */ }
+
+    // Emit listener status into test hook so E2E can assert they are attached
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.inputListeners = window.__TEST__.inputListeners || {};
+        window.__TEST__.inputListeners.window = true;
+        window.__TEST__.inputListeners.document = true;
+      }
+    } catch (e) { /* ignore */ }
+
     if (this._debug) console.log('[Input] Keyboard listeners started');
   }
 
@@ -122,6 +132,15 @@ export default class Input {
         document.removeEventListener('keyup', this._keyup, { capture: true });
       }
     } catch (e) { /* ignore */ }
+
+    // Update test hook to reflect removed listeners
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) {
+        window.__TEST__.inputListeners.window = false;
+        window.__TEST__.inputListeners.document = false;
+      }
+    } catch (e) { /* ignore */ }
+
     if (this._debug) console.log('[Input] Keyboard listeners stopped');
   }
 

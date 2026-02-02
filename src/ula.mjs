@@ -214,6 +214,8 @@ export class ULA {
     }
   }
 
+
+
   // Toggle flash state based on time
   _updateFlash() {
     const now = performance.now();

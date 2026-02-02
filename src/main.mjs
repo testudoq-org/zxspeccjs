@@ -461,6 +461,9 @@ export class Emulator {
     // Test helper alias: support window.TEST from console by mirroring into window.__TEST__
     try { if (typeof window !== 'undefined') window.__TEST__ = window.__TEST__ || window.TEST || {}; } catch (e) { /* ignore */ }
 
+    // Provide a noop frameGenerated hook by default so render code can call it unconditionally
+    try { if (typeof window !== 'undefined') window.__TEST__.frameGenerated = window.__TEST__.frameGenerated || function() {}; } catch (e) { /* ignore */ }
+
     // Canvas-level forwarding: some environments may not deliver keyboard events to window/document reliably.
     // Forward key events directly to the Input handlers to ensure DOM-driven keys are processed.
     try {
@@ -469,6 +472,8 @@ export class Emulator {
         const forwardUp = (e) => { try { this.input._keyup(e); } catch (err) { /* ignore */ } };
         this.canvas.addEventListener('keydown', forwardDown, { capture: true });
         this.canvas.addEventListener('keyup', forwardUp, { capture: true });
+        // Expose canvas listener state for tests
+        try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } } catch (e) {}
         if (this._debug) console.log('[Emulator] Canvas key forwarding attached');
       }
     } catch (e) { /* ignore */ }
@@ -480,7 +485,7 @@ export class Emulator {
     this.ula.render();
     console.log('[Emulator] _createCore: initial render called');
     // Ensure the canvas has focus so keyboard events are delivered reliably (helpful for E2E tests)
-    try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); }, 0); } catch (e) { /* ignore */ }
+    try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') { this.canvas.focus(); try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.canvasFocused = true; } catch(e){} } }, 0); } catch (e) { /* ignore */ }
   }
 
   async loadROM(arrayBuffer) {

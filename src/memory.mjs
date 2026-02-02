@@ -391,7 +391,6 @@ export class Memory {
       const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
       if (inRange && typeof s.cb === 'function') s.cb({ type: 'write', addr, value, t: this.cpu ? this.cpu.tstates : 0 });
     }
-
     // if we maintain a flatRam for 48K keep it in sync
     if (this._flatRam) {
       if (addr >= 0x4000 && addr < 0x10000) {
