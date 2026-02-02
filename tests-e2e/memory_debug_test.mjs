@@ -1,3 +1,4 @@
+// @e2e @ui
 import { test, expect } from '@playwright/test';
 
 test.describe('Memory Debug Test', () => {
