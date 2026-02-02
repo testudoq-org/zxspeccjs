@@ -111,6 +111,16 @@ export default class Input {
       }
     } catch (e) { /* ignore */ }
 
+    // Attach canvas-level listeners so canvas can receive and forward keyboard events reliably
+    try {
+      const canvas = (typeof document !== 'undefined') ? document.getElementById('screen') : null;
+      if (canvas) {
+        canvas.addEventListener('keydown', this._keydown, { passive: false, capture: true });
+        canvas.addEventListener('keyup', this._keyup, { passive: false, capture: true });
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } catch(e){}
+      }
+    } catch (e) { /* ignore */ }
+
     // Emit listener status into test hook so E2E can assert they are attached
     try {
       if (typeof window !== 'undefined' && window.__TEST__) {
@@ -130,6 +140,16 @@ export default class Input {
       if (typeof document !== 'undefined' && document.removeEventListener) {
         document.removeEventListener('keydown', this._keydown, { capture: true });
         document.removeEventListener('keyup', this._keyup, { capture: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Remove canvas-level listeners
+    try {
+      const canvas = (typeof document !== 'undefined') ? document.getElementById('screen') : null;
+      if (canvas) {
+        canvas.removeEventListener('keydown', this._keydown, { capture: true });
+        canvas.removeEventListener('keyup', this._keyup, { capture: true });
+        try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch(e){}
       }
     } catch (e) { /* ignore */ }
 
@@ -480,17 +500,21 @@ export default class Input {
           e.preventDefault();
           btn.style.background = '#666';
           this.pressKey(key);
+          // focus canvas so physical keyboard continues to control emulator after virtual press
+          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
         });
 
         btn.addEventListener('pointerup', (e) => {
           e.preventDefault();
           btn.style.background = '#333';
           this.releaseKey(key);
+          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
         });
 
         btn.addEventListener('pointerleave', (e) => {
           btn.style.background = '#333';
           this.releaseKey(key);
+          try { const c = document.getElementById('screen'); if (c && typeof c.focus === 'function') c.focus(); } catch (e) { /* ignore */ }
         });
 
         // Prevent context menu on long press

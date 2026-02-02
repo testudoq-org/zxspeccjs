@@ -59,3 +59,15 @@ The CB-prefix instruction decoder now correctly separates opcode ranges:
 
 ---
 2026-01-28 - Updated with CB instruction fix and boot sequence success
+
+## Recent Changes (2026-02-02)
+
+- **Renderer readiness and backfill refinements**: Implemented deferred rendering snapshot logic in [`src/frameBuffer.mjs`](src/frameBuffer.mjs:1) to avoid mutating emulator RAM during frame generation and to enable conservative backfill strategies.
+- **Selective forced backfill**: Added a smart forced backfill for the bottom display row that only forces the © glyph (0x7F) into column 0 when the display cell is clearly uninitialized (space/zero). This reduced duplicate © glyph artifacts.
+- **Readiness gating**: Added `isDisplayReady()` check to gate render-time backfill and avoid premature patches before CHARS/ATTR memory is populated by ROM.
+- **Diagnostics and instrumentation**: Added runtime instrumentation arrays (`globalThis.__TEST__.*`) and produced artifacts via `scripts/run-emu-diagnostics.mjs`.
+  - Diagnostics artifacts written: `tests/_artifacts/frameBufferDecisions-2026-02-02T07-51-29-744Z.json`, `tests/_artifacts/charBitmapReads-2026-02-02T07-51-29-744Z.json`, `tests/_artifacts/canvas-2026-02-02T07-51-29-744Z.png`.
+- **Keyboard input**: Keyboard wiring and matrix implementation reviewed; next task is to enable canvas/HTML keyboard integration to feed `src/input.mjs` and ULA port reads.
+
+---
+2026-02-02 - Snapshot of renderer/backfill/diagnostics work
