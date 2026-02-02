@@ -94,11 +94,18 @@ export default class Input {
     // Optionally created overlay element
     this.overlay = null;
 
+    // Track key codes seen to handle cases where the same physical key produces
+    // different characters while held (e.g., semicolon -> colon when shift is pressed)
+    this._seenKeyCodes = new Map();
+
     // Hidden input to capture IME / mobile soft-keyboard events (best-effort)
     this._hiddenInput = null;
     this._onHiddenInput = null;
     this._onCompositionStart = null;
     this._onCompositionEnd = null;
+
+    // Clear seenKeyCodes on stop for clean state
+    this._seenKeyCodes = new Map();
   }
 
   // Enable/disable debug logging
@@ -196,7 +203,25 @@ export default class Input {
     if (this._debug) console.log('[Input] Keyboard matrix reset');
   }
 
+  // Punctuation -> ZX key mapping for characters that map to spectrum keys via symbol-shift.
+  // This is a small subset used for correct seenKeyCodes behavior in tests and IME cases.
+  // Based on jsspeccy3 mappings (";" -> O, ":" -> Z, "," -> N, ">" -> T, etc.)
   _normalizeEvent(e) {
+    // If a printable single-character key maps to a known ZX key, prefer that mapping
+    const ch = ('' + (e.key || ''));
+    const PUNCT_MAP = Object.create(null);
+    PUNCT_MAP[';'] = 'o'; // semicolon -> O (symbol shifted in jsspeccy3)
+    PUNCT_MAP[':'] = 'z';
+    PUNCT_MAP[','] = 'n';
+    PUNCT_MAP['<'] = 'r';
+    PUNCT_MAP['.'] = 'm';
+    PUNCT_MAP['>'] = 't';
+    PUNCT_MAP['/'] = 'v';
+    PUNCT_MAP['?'] = 'c';
+    PUNCT_MAP['\''] = '7'; // best-effort - map apostrophe to '7' behavior (rare)
+
+    if (ch && ch.length === 1 && PUNCT_MAP[ch]) return PUNCT_MAP[ch];
+
     // Prefer code mapping, fallback to key
     const code = e.code;
     if (code && CODE_TO_KEYNAME[code] !== undefined) {
@@ -228,18 +253,32 @@ export default class Input {
       return;
     }
 
+    // Determine normalized key name from event
     const name = this._normalizeEvent(e);
     if (!name) return;
-    
+
+    // If the event has a physical code, check seenKeyCodes for changes
+    try {
+      const codeKey = e.code || (typeof e.keyCode === 'number' ? ('kc:' + e.keyCode) : null);
+      if (codeKey) {
+        const prev = this._seenKeyCodes.get(codeKey);
+        if (prev && prev !== name) {
+          // The same physical key now maps to a different logical name; release the previous.
+          try { this.releaseKey(prev); } catch (err) { /* ignore */ }
+        }
+        this._seenKeyCodes.set(codeKey, name);
+      }
+    } catch (err) { /* best-effort only */ }
+
     const pos = KEY_TO_POS.get(name);
     if (!pos) {
       if (this._debug) console.log(`[Input] Unknown key: ${e.code} -> ${name}`);
       return;
     }
-    
+
     // Prevent browser default for keys we handle
     e.preventDefault();
-    
+
     if (this.pressed.has(name)) return; // already pressed
     this.pressed.add(name);
     
@@ -283,6 +322,20 @@ export default class Input {
       }
       return;
     }
+
+    // If we have a code that was mapped to a logical name previously, release that mapping first
+    try {
+      const codeKey = e.code || (typeof e.keyCode === 'number' ? ('kc:' + e.keyCode) : null);
+      if (codeKey) {
+        const last = this._seenKeyCodes.get(codeKey);
+        if (last) {
+          e.preventDefault();
+          this.releaseKey(last);
+          this._seenKeyCodes.delete(codeKey);
+          return;
+        }
+      }
+    } catch (err) { /* ignore */ }
 
     const name = this._normalizeEvent(e);
     if (!name) return;
