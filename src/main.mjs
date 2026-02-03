@@ -185,11 +185,18 @@ export class Emulator {
 
       // ensure we update watcher history if present (records every instruction PC)
       if (typeof window !== 'undefined' && window.__PC_WATCHER__ && Array.isArray(window.__PC_WATCHER__.history)) {
-        try{
+        try {
           const h = window.__PC_WATCHER__.history;
-          if(h.length === 0 || h[h.length-1] !== pc) h.push(pc);
-          if(h.length > 10000) h.shift();
-        }catch(e){ void e; }
+          // Defensive checks: ensure pc is a finite number and history is mutable
+          if (Number.isFinite(pc)) {
+            try {
+              const last = (h.length > 0) ? h[h.length - 1] : null;
+              if (last !== pc && typeof h.push === 'function') h.push(pc);
+            } catch (inner) { /* ignore mutation-read errors */ }
+          }
+          // Trim history safely if shift is available
+          try { if (h.length > 10000 && typeof h.shift === 'function') h.shift(); } catch (inner) { /* ignore */ }
+        } catch (e) { void e; }
       }
 
       // Expose a small debug API into the page to make tests reliable and robust
@@ -463,11 +470,15 @@ export class Emulator {
 
     console.log('[Emulator] _createCore: memory', this.memory, 'cpu', this.cpu, 'ula', this.ula);
 
-    // Input wiring
-    this.input.start();
-
     // Test helper alias: support window.TEST from console by mirroring into window.__TEST__
     try { if (typeof window !== 'undefined') window.__TEST__ = window.__TEST__ || window.TEST || {}; } catch (e) { /* ignore */ }
+
+    // Input wiring
+    // Ensure the Input instance has a stable reference to the emulator before starting
+    try { this.input.emulator = this; } catch(e) { /* best-effort */ }
+    // Expose window.emulator/emu early so external diagnostic scripts can reference it during input start
+    try { if (typeof window !== 'undefined') { window.emu = window.emu || this; window.emulator = window.emulator || this; } } catch(e) { /* ignore */ }
+    this.input.start();
 
     // Provide a noop frameGenerated hook by default so render code can call it unconditionally
     try { if (typeof window !== 'undefined') window.__TEST__.frameGenerated = window.__TEST__.frameGenerated || function() {}; } catch (e) { /* ignore */ }

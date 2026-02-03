@@ -280,39 +280,14 @@ export default class Input {
     e.preventDefault();
 
     if (this.pressed.has(name)) return; // already pressed
-    this.pressed.add(name);
-    
-    // Set bit to 0 when pressed (active low)
-    this.matrix[pos.row] &= ~pos.mask;
-    
-    // Record last captured key for diagnostics and Test hook: record DOM-driven key press for diagnostics
-    try {
-      if (typeof window !== 'undefined') {
-        try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = name; } catch(e){}
-        try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: name, hiddenFocused: (this._hiddenInput && document.activeElement === this._hiddenInput) } })); } catch(e){}
-      }
-    } catch (err) { /* ignore */ }
-
-    try {
-      if (typeof window !== 'undefined' && window.__TEST__) {
-        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
-        window.__TEST__.keyEvents.push({ type: 'dom-press', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: (this._debugTstates || performance.now()) });
-        if (window.__TEST__.keyEvents.length > 512) window.__TEST__.keyEvents.shift();
-
-        // Also add a short DOM-focused log for quick inspection
-        window.__TEST__.domLog = window.__TEST__.domLog || [];
-        window.__TEST__.domLog.push({ type: 'keydown', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: Date.now() });
-        if (window.__TEST__.domLog.length > 256) window.__TEST__.domLog.shift();
-      }
-    } catch (err) { /* ignore */ }
-
-    if (this._debug) {
-      console.log(`[Input] Key DOWN: ${name} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}, matrix[${pos.row}]=0x${this.matrix[pos.row].toString(16)}`);
+    // Route DOM-driven press through pressKey so ULA API path is used consistently
+    try { this.pressKey(name); } catch (err) {
+      // Fallback to previous inline behavior if pressKey fails
+      this.pressed.add(name);
+      this.matrix[pos.row] &= ~pos.mask;
+      try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = name; } catch(e){}
     }
-
-    // Immediately sync input to emulator's ULA so key presses take effect without waiting for the next frame
-    // Use setTimeout(…,0) to schedule after the event handling cycle to avoid ordering issues
-    try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
+    return;
   }
 
   _keyup(e) {
@@ -411,13 +386,34 @@ export default class Input {
       }
     } catch (e) { /* ignore */ }
 
+    // Test hook: count press hits so we can detect whether pressKey was actually invoked
+    try { if (typeof window !== 'undefined') window.__EMU_PRESS_HITS = (window.__EMU_PRESS_HITS || 0) + 1; } catch(e){}
+
+    // Best-effort: update ULA via API so the ROM polling path sees the change immediately
+    try {
+      if (typeof window !== 'undefined' && window.emulator && window.emulator.ula) {
+        try {
+          if (typeof window.emulator.ula.setKey === 'function') {
+            // Prefer the ULA API which encapsulates keyMatrix semantics
+            window.emulator.ula.setKey(pos.row, pos.mask, true);
+          } else if (window.emulator.ula.keyMatrix && (typeof window.emulator.ula.keyMatrix.length === 'number')) {
+            // Fallback to direct mutation if API not present
+            window.emulator.ula.keyMatrix[pos.row] &= ~pos.mask;
+          }
+        } catch (e) { /* ignore per best-effort */ }
+        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
+        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
+        try { if (typeof window !== 'undefined' && window.__TEST__ && window.emulator.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch(e) {}
+      }
+    } catch(e) { /* ignore */ }
+
     // Also schedule ULA sync in microtask so test/API-driven presses take effect quickly
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
 
     // Also sync immediately to emulator's ULA
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
 
-    return true; 
+    return true;
   }
 
   // Programmatically release a key
@@ -444,6 +440,17 @@ export default class Input {
         if (window.__TEST__.keyEvents.length > 256) window.__TEST__.keyEvents.shift();
       }
     } catch (e) { /* ignore */ }
+
+    // Best-effort: update the ULA keyMatrix directly so the ROM polling path sees the change immediately
+    try {
+      if (typeof window !== 'undefined' && window.emulator && window.emulator.ula && window.emulator.ula.keyMatrix && (typeof window.emulator.ula.keyMatrix.length === 'number')) {
+        // set active-low bit to 1 for released key (mark released)
+        window.emulator.ula.keyMatrix[pos.row] |= pos.mask;
+        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
+        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch(e) {}
+      }
+    } catch(e) { /* ignore */ }
 
     // Also sync immediately to emulator's ULA
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
@@ -508,7 +515,7 @@ export default class Input {
       inp.autocapitalize = 'none';
       inp.autocomplete = 'off';
       inp.spellcheck = false;
-      inp.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+      inp.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:auto;';
       inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = true; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: true } })); } catch(e){} } catch(e){} }, { passive: true });
       inp.addEventListener('blur', () => { try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = false; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: false } })); } catch(e){} } catch(e){} }, { passive: true });
       document.body.appendChild(inp);
@@ -527,23 +534,25 @@ export default class Input {
 
             if (KEY_TO_POS.has(keyName)) {
               this.pressKey(keyName);
-              setTimeout(() => this.releaseKey(keyName), 60);
+              // Hold a little longer to increase probability the ROM will poll during the key press
+              setTimeout(() => this.releaseKey(keyName), 200);
             } else if (last === ' ') {
-              this.pressKey('space'); setTimeout(() => this.releaseKey('space'), 60);
+              this.pressKey('space'); setTimeout(() => this.releaseKey('space'), 200);
             }
 
             // synthetic key events for compatibility
             try {
               const code = last.match(/[a-z]/i) ? `Key${last.toUpperCase()}` : ('Digit' + last);
               window.dispatchEvent(new KeyboardEvent('keydown', { key: last, code: code, bubbles: true }));
-              setTimeout(() => { window.dispatchEvent(new KeyboardEvent('keyup', { key: last, code: code, bubbles: true })); }, 60);
+              setTimeout(() => { window.dispatchEvent(new KeyboardEvent('keyup', { key: last, code: code, bubbles: true })); }, 200);
             } catch (e) { /* ignore */ }
+            
           }
         } catch (e) { /* ignore */ } finally { inp.value = ''; }
       };
 
       this._onCompositionStart = () => {};
-      this._onCompositionEnd = (e) => { try { const text = e.data || ''; if (text) { const last = text[text.length-1]; if (last && KEY_TO_POS.has(last.toLowerCase())) { this.pressKey(last.toLowerCase()); setTimeout(()=>this.releaseKey(last.toLowerCase()),60); } } } catch(e){} };
+      this._onCompositionEnd = (e) => { try { const text = e.data || ''; if (text) { const last = text[text.length-1]; if (last && KEY_TO_POS.has(last.toLowerCase())) { this.pressKey(last.toLowerCase()); setTimeout(()=>this.releaseKey(last.toLowerCase()),200); } } } catch(e){} };
 
       inp.addEventListener('input', this._onHiddenInput, { passive: true });
       inp.addEventListener('compositionstart', this._onCompositionStart, { passive: true });
@@ -643,15 +652,18 @@ export default class Input {
         // Use pointer events for touch and mouse compatibility
         btn.addEventListener('pointerdown', (e) => {
           // Keep keyboard open during press (good for typing multiple chars)
-          e.preventDefault();
+          // Don't call preventDefault here; allow browser to process the user gesture so focus() is honored
           btn.style.background = '#666';
           this.pressKey(key);
           try { this._ensureHiddenInput()?.focus({ preventScroll: true }); } catch (err) { /* ignore */ }
         });
 
         btn.addEventListener('pointerup', (e) => {
+          // Prevent default on pointerup to avoid synthetic click behaviours interfering
           e.preventDefault();
           btn.style.background = '#333';
+          // Ensure the hidden input is focused (user gesture on pointerup guarantees keyboard pop on mobile)
+          try { this._ensureHiddenInput()?.focus({ preventScroll: true }); } catch (err) { /* ignore */ }
           this.releaseKey(key);
           try { this._ensureHiddenInput()?.blur(); } catch (err) { /* ignore */ }
         });
