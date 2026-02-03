@@ -1663,6 +1663,13 @@ export class Z80 {
           try { val = this.io.read(port) & 0xff; } catch (e) { val = 0xff; }
         }
         this.A = val;
+        // Minimal test hook: capture last port read for diagnostics (safe, non-invasive)
+        try {
+          if (typeof window !== 'undefined') {
+            window.__TEST__ = window.__TEST__ || {};
+            window.__TEST__.lastPortRead = { port, val, pc: this.PC, t: this.tstates };
+          }
+        } catch (e) { /* ignore */ }
         this.tstates += 11; return 11;
       }
       case 0xD3: { // OUT (n),A - write A to port (A as high byte, imm low byte)
@@ -2479,6 +2486,13 @@ export class Z80 {
             this._setFlagPV((ones % 2) === 0);
             this.F &= ~0x10; // H = 0
             this.F &= ~0x02; // N = 0
+            // Minimal test hook: capture last port read for diagnostics
+            try {
+              if (typeof window !== 'undefined') {
+                window.__TEST__ = window.__TEST__ || {};
+                window.__TEST__.lastPortRead = { port, val, pc: this.PC, t: this.tstates };
+              }
+            } catch (e) { /* ignore */ }
             this.tstates += 12; return 12;
           }
           case 0x79: { // OUT (C),A
