@@ -279,12 +279,30 @@ export default class Input {
       return;
     }
 
+    // Test hook: record DOM-driven key press for diagnostics
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.keyEvents = window.__TEST__.keyEvents || [];
+        window.__TEST__.keyEvents.push({ type: 'dom-press', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: (this._debugTstates || performance.now()) });
+        if (window.__TEST__.keyEvents.length > 512) window.__TEST__.keyEvents.shift();
+
+        // Also add a short DOM-focused log for quick inspection
+        window.__TEST__.domLog = window.__TEST__.domLog || [];
+        window.__TEST__.domLog.push({ type: 'keydown', code: e.code, key: name, row: pos.row, mask: pos.mask, pc: (window.__LAST_PC__||null), t: Date.now() });
+        if (window.__TEST__.domLog.length > 256) window.__TEST__.domLog.shift();
+      }
+    } catch (err) { /* ignore */ }
+
     // Prevent browser default for keys we handle
     e.preventDefault();
 
     if (this.pressed.has(name)) return; // already pressed
     // Route DOM-driven press through pressKey so ULA API path is used consistently
-    try { this.pressKey(name); } catch (err) {
+    try {
+      this.pressKey(name);
+      // Ensure ULA sees the update immediately for diagnostics/e2e
+      try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (err) { /* ignore */ }
+    } catch (err) {
       // Fallback to previous inline behavior if pressKey fails
       this.pressed.add(name);
       this.matrix[pos.row] &= ~pos.mask;
@@ -371,6 +389,17 @@ export default class Input {
     
     if (this._debug) {
       console.log(`[Input] pressKey: ${normalizedName} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}`);
+      try {
+        // Identity/integrity diagnostics to help e2e debugging
+        const sameInstance = (typeof window !== 'undefined' && window.emulator && window.emulator.input === this);
+        console.log('[Input] pressKey: same instance as window.emulator.input?', sameInstance);
+        // Show matrix snapshot (hex)
+        console.log('[Input] pressKey: matrix snapshot:', Array.from(this.matrix).map(v => '0x' + v.toString(16)).join(','));
+        // Also show lastAppliedKeyMatrix snapshot when present (test hook)
+        if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.lastAppliedKeyMatrix) {
+          console.log('[Input] lastAppliedKeyMatrix:', Array.from(window.__TEST__.lastAppliedKeyMatrix).map(v => '0x'+v.toString(16)).join(','));
+        }
+      } catch (err) { console.log('[Input] pressKey debug error', err); }
     }
 
     // Record last captured key for diagnostics and emit key event to window.__TEST__ for diagnostics

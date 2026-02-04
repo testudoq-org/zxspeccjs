@@ -7,7 +7,7 @@ import { Loader } from './loader.mjs';
 import { Z80 } from './z80.mjs';
 import { Memory } from './memory.mjs';
 import { ULA } from './ula.mjs';
-import Input from './input.mjs';
+import Input, { KEY_TO_POS } from './input.mjs';
 import { Sound } from './sound.mjs';
 
 const TSTATES_PER_FRAME = 69888; // ZX Spectrum 50Hz frame
@@ -447,9 +447,14 @@ export class Emulator {
         // Route port 0xFE to ULA for keyboard reading
         if ((port & 0xFF) === 0xFE) {
           const result = this.ula && typeof this.ula.readPort === 'function' ? this.ula.readPort(port) : 0xFF;
-          // Debug: log keyboard port reads when enabled and key pressed (result != 0xFF)
-          if (_portReadDebugEnabled && (result & 0x1F) !== 0x1F) {
-            console.log(`[IO] Port read 0x${port.toString(16)} → 0x${result.toString(16)} (key detected!)`);
+          // Debug: log keyboard port reads when enabled (include high byte and binary view)
+          if (_portReadDebugEnabled) {
+            try {
+              const high = (port >> 8) & 0xff;
+              const highBits = high.toString(2).padStart(8, '0');
+              const keyDetected = (result & 0x1F) !== 0x1F;
+              console.log(`[IO] Port read 0x${port.toString(16)} (high=0x${high.toString(16)} / ${highBits}) → 0x${result.toString(16)} (${keyDetected ? 'KEY' : 'no-key'})`);
+            } catch (err) { /* ignore logging failures */ }
           }
           _portReadCount++;
           return result;
@@ -540,6 +545,21 @@ export class Emulator {
       window.__ZX_DEBUG__.pressKey(key);
       console.log('   Input matrix after press:', window.__ZX_DEBUG__.getKeyMatrix().input);
       console.log('   ULA keyMatrix after press:', window.__ZX_DEBUG__.getKeyMatrix().ula);
+
+      // New direct-matrix diagnostic: directly mutate input.matrix and read port
+      try {
+        const normalized = (''+key).toLowerCase();
+        const pos = KEY_TO_POS.get(normalized);
+        if (pos) {
+          console.log('[__ZX_DEBUG__] Directly mutating input.matrix for diagnostic...');
+          this.input.matrix[pos.row] &= ~pos.mask;
+          if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
+          const directPort = (this.ula && typeof this.ula.readPort === 'function') ? this.ula.readPort(0xBFFE) : null;
+          console.log(`   Direct port read after manual matrix set: 0x${directPort !== null ? directPort.toString(16) : 'null'}`);
+        } else {
+          console.log('[__ZX_DEBUG__] direct diagnostic: unknown key for direct mutation');
+        }
+      } catch (e) { console.log('[__ZX_DEBUG__] direct diagnostic failed', e); }
 
       console.log('3. Testing direct port read (0xBFFE for row 6 where L lives):');
       if (this.ula && typeof this.ula.readPort === 'function') {
