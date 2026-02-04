@@ -1130,17 +1130,17 @@ window.addEventListener('DOMContentLoaded', async () => {
       out.time = (new Date()).toISOString();
       out.debugAvailable = Boolean(window.__ZX_DEBUG__);
 
-      try { await this._gatherRomInfo(out); } catch (e) { out.romErr = String(e); }
-      try { this._gatherCharsInfo(out); } catch (e) { out.CHARS = 'err'; }
-      try { this._gatherGlyph(out); } catch (e) { out.glyphErr = String(e); }
-      try { this._gatherScreenScan(out); } catch (e) { out.screenScanErr = String(e); }
-      try { this._gatherCanvasCheck(out); } catch (e) { out.canvasErr = String(e); }
+      try { _gatherRomInfo(out); } catch (e) { out.romErr = String(e); }
+      try { _gatherCharsInfo(out); } catch (e) { out.CHARS = 'err'; }
+      try { _gatherGlyph(out); } catch (e) { out.glyphErr = String(e); }
+      try { _gatherScreenScan(out); } catch (e) { out.screenScanErr = String(e); }
+      try { _gatherCanvasCheck(out); } catch (e) { out.canvasErr = String(e); }
 
       return out;
     };
 
     // Helper: rom checks
-    _gatherRomInfo(out) {
+    function _gatherRomInfo(out) {
       out.romHas7F = false;
       out.romOffsets = [];
       if (typeof window.__ZX_DEBUG__?.readROM === 'function') {
@@ -1149,14 +1149,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Helper: CHARS info
-    _gatherCharsInfo(out) {
+    function _gatherCharsInfo(out) {
       out.CHARS = window.__ZX_DEBUG__?.peekMemory ? window.__ZX_DEBUG__.peekMemory(0x5C36,2) : null;
       out.CHARSptr = (Array.isArray(out.CHARS) ? ((out.CHARS[1]<<8) | out.CHARS[0]) : null);
       out.emu_lastChars = (window.emulator && typeof window.emulator._lastChars !== 'undefined') ? window.emulator._lastChars : null;
     }
 
     // Helper: glyph bytes
-    _gatherGlyph(out) {
+    function _gatherGlyph(out) {
       const ptr = out.CHARSptr || 0x3C00;
       out.glyph = [];
       for (let i = 0; i < 8; i++) {
@@ -1167,7 +1167,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Helper: screen RAM scan
-    _gatherScreenScan(out) {
+    function _gatherScreenScan(out) {
       out.screenHas7F = false;
       if (window.__ZX_DEBUG__?.readRAM) {
         for (let col = 0; col < 32; col++) {
@@ -1180,7 +1180,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Helper: canvas pixel check
-    _gatherCanvasCheck(out) {
+    function _gatherCanvasCheck(out) {
       out.canvasNonBg = false;
       const canvas = document.getElementById('screen');
       if (canvas && canvas.getContext) {
