@@ -1,3 +1,5 @@
+/* eslint-env browser */
+/* global window, document */
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initKeywordUI } from '../src/ui-keyword.mjs';
@@ -9,9 +11,9 @@ describe('UI Keyword helper', () => {
   });
 
   afterEach(() => {
-    try { vi.useRealTimers(); } catch (e) {}
+    try { vi.useRealTimers(); } catch { /* ignore */ }
     if (window.__EMU_UI__ && window.__EMU_UI__._el) {
-      try { window.__EMU_UI__._el.remove(); } catch (e) {}
+      try { window.__EMU_UI__._el.remove(); } catch { /* ignore */ }
       delete window.__EMU_UI__;
     }
   });

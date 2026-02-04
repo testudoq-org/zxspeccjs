@@ -1,4 +1,5 @@
 // @unit
+/* global global */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Input from '../src/input.mjs';
 
@@ -18,7 +19,7 @@ describe('seenKeyCodes handling and punctuation mapping @unit', () => {
   });
 
   afterEach(() => {
-    try { input.stop(); } catch (e) {}
+    try { input.stop(); } catch { /* ignore */ }
     if (global.__savedDocumentForTests) { global.document = global.__savedDocumentForTests; delete global.__savedDocumentForTests; }
   });
 

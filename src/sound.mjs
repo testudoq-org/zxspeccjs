@@ -1,3 +1,5 @@
+/* eslint-env browser */
+/* global window, console */
 export class Sound {
   constructor() {
     this.ctx = null;
@@ -100,7 +102,7 @@ export class Sound {
     } catch (e) {
       try {
         this.osc.frequency.value = freq;
-      } catch (ee) {}
+      } catch { /* ignore */ }
     }
   }
 
@@ -123,13 +125,13 @@ export class Sound {
   close() {
     try {
       if (this.osc && this.osc.stop) this.osc.stop();
-    } catch (e) {}
+    } catch { /* ignore */ }
     try {
       if (this.gain) this.gain.disconnect();
-    } catch (e) {}
+    } catch { /* ignore */ }
     try {
       if (this.ctx && this.ctx.close) this.ctx.close();
-    } catch (e) {}
+    } catch { /* ignore */ }
     this.ctx = null;
     this.osc = null;
     this.gain = null;

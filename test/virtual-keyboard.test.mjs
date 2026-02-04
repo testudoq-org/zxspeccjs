@@ -45,7 +45,7 @@ describe('Virtual keyboard integration (unit) @unit', () => {
       global.__savedDocumentForTests = origDoc;
     } else {
       // reset existing document body if present
-      try { const app = document.getElementById('app') || document.createElement('div'); app.id = 'app'; if (!document.getElementById('app')) document.body.appendChild(app); } catch (e) {}
+      try { const app = document.getElementById('app') || document.createElement('div'); app.id = 'app'; if (!document.getElementById('app')) document.body.appendChild(app); } catch { /* ignore */ }
     }
 
     input = new Input();

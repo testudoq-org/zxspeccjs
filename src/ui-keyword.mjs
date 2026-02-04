@@ -1,3 +1,5 @@
+/* eslint-env browser */
+/* global window, document, requestAnimationFrame, setTimeout, clearTimeout */
 /* UI helper to display transient keyword text (e.g., LIST) for debugging and accessibility */
 export function initKeywordUI() {
   if (typeof document === 'undefined') return null;
@@ -41,7 +43,7 @@ export function initKeywordUI() {
     el.style.opacity = '0';
     el.setAttribute('aria-hidden', 'true');
     // remove visually after transition
-    setTimeout(() => { try { if (el.style.opacity === '0') el.style.display = 'none'; } catch (e) {} }, 200);
+    setTimeout(() => { try { if (el.style.opacity === '0') el.style.display = 'none'; } catch (e) { /* ignore */ } }, 200);
   }
 
   // Expose a small API via window for tests and debug

@@ -1,3 +1,6 @@
+/* eslint-env browser */
+/* eslint-disable no-empty, no-unused-vars, no-undef */
+/* global window, document, CustomEvent, KeyboardEvent, localStorage, performance, setTimeout, console */
 // src/input.mjs
 // ZX Spectrum 48K keyboard input module (ES6)
 
@@ -130,7 +133,7 @@ export default class Input {
       if (canvas) {
         canvas.addEventListener('keydown', this._keydown, { passive: false, capture: true });
         canvas.addEventListener('keyup', this._keyup, { passive: false, capture: true });
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } catch(e){}
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } catch { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
 
@@ -165,17 +168,17 @@ export default class Input {
       if (canvas) {
         canvas.removeEventListener('keydown', this._keydown, { capture: true });
         canvas.removeEventListener('keyup', this._keyup, { capture: true });
-        try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch(e){}
+        try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
 
     // Remove hidden input and its listeners (best-effort)
     try {
       if (this._hiddenInput) {
-        try { this._hiddenInput.removeEventListener('input', this._onHiddenInput); } catch(e){}
-        try { this._hiddenInput.removeEventListener('compositionstart', this._onCompositionStart); } catch(e){}
-        try { this._hiddenInput.removeEventListener('compositionend', this._onCompositionEnd); } catch(e){}
-        try { if (this._hiddenInput.parentNode) this._hiddenInput.parentNode.removeChild(this._hiddenInput); } catch(e){}
+        try { this._hiddenInput.removeEventListener('input', this._onHiddenInput); } catch { /* ignore */ }
+        try { this._hiddenInput.removeEventListener('compositionstart', this._onCompositionStart); } catch { /* ignore */ }
+        try { this._hiddenInput.removeEventListener('compositionend', this._onCompositionEnd); } catch { /* ignore */ }
+        try { if (this._hiddenInput.parentNode) this._hiddenInput.parentNode.removeChild(this._hiddenInput); } catch { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
 
@@ -285,7 +288,7 @@ export default class Input {
       // Fallback to previous inline behavior if pressKey fails
       this.pressed.add(name);
       this.matrix[pos.row] &= ~pos.mask;
-      try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = name; } catch(e){}
+      try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = name; } catch { /* ignore */ }
     }
     return;
   }
@@ -373,8 +376,8 @@ export default class Input {
     // Record last captured key for diagnostics and emit key event to window.__TEST__ for diagnostics
     try {
       if (typeof window !== 'undefined') {
-        try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = normalizedName; } catch(e){}
-        try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: normalizedName, hiddenFocused: (this._hiddenInput && document.activeElement === this._hiddenInput) } })); } catch(e){}
+        try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = normalizedName; } catch { /* ignore */ }
+        try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: normalizedName, hiddenFocused: (this._hiddenInput && document.activeElement === this._hiddenInput) } })); } catch { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
 
@@ -387,7 +390,7 @@ export default class Input {
     } catch (e) { /* ignore */ }
 
     // Test hook: count press hits so we can detect whether pressKey was actually invoked
-    try { if (typeof window !== 'undefined') window.__EMU_PRESS_HITS = (window.__EMU_PRESS_HITS || 0) + 1; } catch(e){}
+    try { if (typeof window !== 'undefined') window.__EMU_PRESS_HITS = (window.__EMU_PRESS_HITS || 0) + 1; } catch { /* ignore */ }
 
     // Best-effort: update ULA via API so the ROM polling path sees the change immediately
     try {
@@ -403,7 +406,7 @@ export default class Input {
         } catch (e) { /* ignore per best-effort */ }
         try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
         try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
-        try { if (typeof window !== 'undefined' && window.__TEST__ && window.emulator.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch(e) {}
+        try { if (typeof window !== 'undefined' && window.__TEST__ && window.emulator.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch { /* ignore */ }
       }
     } catch(e) { /* ignore */ }
 
@@ -460,7 +463,7 @@ export default class Input {
         window.emulator.ula.keyMatrix[pos.row] |= pos.mask;
         try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
         try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch(e) {}
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch { /* ignore */ }
       }
     } catch(e) { /* ignore */ }
 
@@ -528,12 +531,11 @@ export default class Input {
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:auto;';
-      inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = true; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: true } })); } catch(e){} } catch(e){} }, { passive: true });
-      inp.addEventListener('blur', () => { try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = false; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: false } })); } catch(e){} } catch(e){} }, { passive: true });
-      document.body.appendChild(inp);
-      this._hiddenInput = inp;
+      inp.addEventListener('focus', () => { try { inp.selectionStart = inp.selectionEnd = 0; inp.setSelectionRange(0,0); if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = true; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: true } })); } catch { /* ignore */ } } catch { /* ignore */ } }, { passive: true });
+      inp.addEventListener('blur', () => { try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.hiddenInputFocused = false; try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.lastCapturedKey) || '(none)', hiddenFocused: false } })); } catch { /* ignore */ } } catch { /* ignore */ } }, { passive: true });
+      try { document.body.appendChild(inp); this._hiddenInput = inp; } catch { /* ignore */ }
 
-      this._onHiddenInput = (e) => {
+      this._onHiddenInput = () => {
         try {
           const v = inp.value || '';
           const last = v.length ? v[v.length - 1] : '';
@@ -541,8 +543,8 @@ export default class Input {
             const keyName = ('' + last).toLowerCase();
 
             // Record last captured key for diagnostics
-            try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.lastCapturedKey = keyName; } catch(e){}
-            try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: keyName, hiddenFocused: (document.activeElement === inp) } })); } catch(e){}
+            try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.lastCapturedKey = keyName; } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent('emu-input-status', { detail: { lastKey: keyName, hiddenFocused: (document.activeElement === inp) } })); } catch { /* ignore */ }
 
             if (KEY_TO_POS.has(keyName)) {
               this.pressKey(keyName);
@@ -564,7 +566,7 @@ export default class Input {
       };
 
       this._onCompositionStart = () => {};
-      this._onCompositionEnd = (e) => { try { const text = e.data || ''; if (text) { const last = text[text.length-1]; if (last && KEY_TO_POS.has(last.toLowerCase())) { this.pressKey(last.toLowerCase()); setTimeout(()=>this.releaseKey(last.toLowerCase()),200); } } } catch(e){} };
+      this._onCompositionEnd = (e) => { try { const text = e.data || ''; if (text) { const last = text[text.length-1]; if (last && KEY_TO_POS.has(last.toLowerCase())) { this.pressKey(last.toLowerCase()); setTimeout(()=>this.releaseKey(last.toLowerCase()),200); } } } catch { /* ignore */ } };
 
       inp.addEventListener('input', this._onHiddenInput, { passive: true });
       inp.addEventListener('compositionstart', this._onCompositionStart, { passive: true });
@@ -634,7 +636,7 @@ export default class Input {
       'space': 'SPC'
     };
 
-    keyboardLayout.forEach((rowKeys, rowIndex) => {
+    keyboardLayout.forEach((rowKeys) => {
       const rowDiv = document.createElement('div');
       rowDiv.style.cssText = `
         display: flex;
@@ -662,7 +664,7 @@ export default class Input {
         `;
 
         // Use pointer events for touch and mouse compatibility
-        btn.addEventListener('pointerdown', (e) => {
+        btn.addEventListener('pointerdown', () => {
           // Keep keyboard open during press (good for typing multiple chars)
           // Don't call preventDefault here; allow browser to process the user gesture so focus() is honored
           btn.style.background = '#666';
@@ -680,7 +682,7 @@ export default class Input {
           try { this._ensureHiddenInput()?.blur(); } catch (err) { /* ignore */ }
         });
 
-        btn.addEventListener('pointerleave', (e) => {
+        btn.addEventListener('pointerleave', () => {
           btn.style.background = '#333';
           this.releaseKey(key);
           try { this._ensureHiddenInput()?.blur(); } catch (err) { /* ignore */ }
@@ -728,12 +730,12 @@ export default class Input {
       };
 
       const onMouseMove = (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); };
-      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch(e){} };
+      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('mousedown', (ev) => { dragging = true; startX = ev.clientX; startY = ev.clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); ev.preventDefault(); });
 
       // Touch support
       const onTouchMove = (ev) => { if (!dragging) return; if (ev.touches && ev.touches[0]) onMove(ev.touches[0].clientX, ev.touches[0].clientY); ev.preventDefault(); };
-      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch(e){} };
+      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('touchstart', (ev) => { dragging = true; if (ev.touches && ev.touches[0]) { startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; } document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); ev.preventDefault(); });
     } catch (e) { /* non-critical */ }
 

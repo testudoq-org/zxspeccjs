@@ -1,4 +1,7 @@
-﻿import spec48 from './roms/spec48.js';
+﻿/* eslint-env browser */
+/* eslint-disable no-undef, no-empty */
+/* global window, document, performance, requestAnimationFrame, cancelAnimationFrame, setTimeout, clearTimeout, console, navigator, caches, location, localStorage */
+import spec48 from './roms/spec48.js';
 import romManager from './romManager.mjs';
 import { Loader } from './loader.mjs';
 import { Z80 } from './z80.mjs';
@@ -180,7 +183,7 @@ export class Emulator {
       // Track boot progression
       if (this._bootAddresses.includes(pc)) {
         // mark visited set for later inspection
-        try{ if (this.cpu && this.cpu._visitedBootAddresses) this.cpu._visitedBootAddresses.add(pc); }catch(e){ void e; }
+        try{ if (this.cpu && this.cpu._visitedBootAddresses) this.cpu._visitedBootAddresses.add(pc); }catch{ /* ignore */ }
       }
 
       // ensure we update watcher history if present (records every instruction PC)
@@ -192,11 +195,11 @@ export class Emulator {
             try {
               const last = (h.length > 0) ? h[h.length - 1] : null;
               if (last !== pc && typeof h.push === 'function') h.push(pc);
-            } catch (inner) { /* ignore mutation-read errors */ }
+            } catch { /* ignore mutation-read errors */ }
           }
           // Trim history safely if shift is available
-          try { if (h.length > 10000 && typeof h.shift === 'function') h.shift(); } catch (inner) { /* ignore */ }
-        } catch (e) { void e; }
+          try { if (h.length > 10000 && typeof h.shift === 'function') h.shift(); } catch { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       // Expose a small debug API into the page to make tests reliable and robust
@@ -237,12 +240,19 @@ export class Emulator {
       if (this._bootAddresses.includes(pc)) {
         this._bootComplete = true;
         // reflect on debug object too
-        try{ if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.bootComplete = true; }catch(e){ void e; }
+        try{ if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.bootComplete = true; }catch{ /* ignore */ }
       }
     }
   }
 
   _bindUI() {
+    try { this._bindButtons(); } catch { /* ignore */ }
+    try { this._bindRomSelector(); } catch { /* ignore */ }
+    try { this._bindKeyboardToggle(); } catch { /* ignore */ }
+    try { this._bindCanvasFocus(); } catch { /* ignore */ }
+  }
+
+  _bindButtons() {
     const loadBtn = document.getElementById('loadBtn');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -258,13 +268,14 @@ export class Emulator {
         } else {
           this.reset();
         }
-      } catch (e) { try { this.reset(); } catch(err){} }
+      } catch { try { this.reset(); } catch { /* ignore */ } }
     });
 
     // Allow file input drag/drop helpers
     if (this.romInput) Loader.attachInput(this.romInput, (result, file) => this._onFileLoaded(result, file));
+  }
 
-    // ROM selector UI
+  _bindRomSelector() {
     try {
       const sel = document.getElementById('rom-select');
       if (sel) {
@@ -274,7 +285,7 @@ export class Emulator {
             const data = await romManager.loadRom(id);
             // initialize core with ROM bytes and apply memory configuration
             await this.loadROM(data.rom);
-            try { romManager.applyMemoryConfig(this.memory, data.metadata, data.rom); } catch (e) {}
+            try { romManager.applyMemoryConfig(this.memory, data.metadata, data.rom); } catch { /* ignore */ }
             this.status(`selected ROM: ${id}`);
             this._selectedRom = id;
           } catch (e) {
@@ -283,21 +294,22 @@ export class Emulator {
           }
         });
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
 
-    // If a preloaded ROM is bundled, update UI to reflect default
     try {
       if (typeof spec48 !== 'undefined' && spec48) {
         // indicate default ROM available; keep manual load as an override option
         if (this.statusEl) this.statusEl.textContent = 'Status: default ROM (spec48) available';
+        const loadBtn = document.getElementById('loadBtn');
         if (loadBtn) loadBtn.textContent = 'Load (override default)';
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
 
     // Virtual keyboard toggle (optional)
-    try { this.input.createVirtualKeyboard('body'); } catch (e) {}
+    try { this.input.createVirtualKeyboard('body'); } catch { /* ignore */ }
+  }
 
-    // Add Show Keyboard toggle to controls and persist visibility
+  _bindKeyboardToggle() {
     try {
       const controls = document.querySelector('.controls');
       if (controls) {
@@ -313,23 +325,24 @@ export class Emulator {
         toggle.checked = isVisible;
 
         // Apply initial visibility to overlay if created
-        try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = isVisible ? 'block' : 'none'; } catch(e) {}
+        try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = isVisible ? 'block' : 'none'; } catch { /* ignore */ }
 
         toggle.addEventListener('change', (e) => {
-          const show = !!e.target.checked;
-          try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = show ? 'block' : 'none'; } catch(e) {}
-          try { localStorage.setItem('__emu_kbd_visible', String(show)); } catch (err) {}
+          const show = Boolean(e.target.checked);
+          try { const ov = this.input.overlay || document.querySelector('.zxvk-overlay'); if (ov) ov.style.display = show ? 'block' : 'none'; } catch { /* ignore */ }
+          try { localStorage.setItem('__emu_kbd_visible', String(show)); } catch { /* ignore */ }
         });
       }
-    } catch (e) { /* non-critical */ }
+    } catch { /* ignore */ }
+  }
 
-    // Make the canvas focusable and focus on click so keyboard events reach it reliably
+  _bindCanvasFocus() {
     try {
       if (this.canvas && typeof this.canvas === 'object') {
         this.canvas.tabIndex = 0; // allow focus via script
-        this.canvas.addEventListener('click', () => { try { this.canvas.focus(); } catch (e) { /* ignore */ } });
+        this.canvas.addEventListener('click', () => { try { this.canvas.focus(); } catch { /* ignore */ } });
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
   }
 
   async handleLoad() {
@@ -388,46 +401,42 @@ export class Emulator {
     this.memory = new Memory({ model: '48k', romBuffer });
     this.cpu = new Z80(this.memory);
     
-    // Set debug callback for instruction tracking
-    if (this._debugEnabled) {
-      this.cpu.debugCallback = (opcode, pc) => {
-        // CRITICAL: Use the PC value passed to callback (current instruction address)
-        // NOT this.cpu.PC which would be the NEXT instruction address
-        this._trackOpcodeExecution(opcode, pc);
-        if (typeof window !== 'undefined') {
-          window.__LAST_PC__ = pc; // Use the actual instruction PC, not the next one
-        }
-      };
-      // Disable verbose debugging to prevent console spam
-      this.cpu._debugVerbose = false;
-    }
-    
+    // CPU debug callback and peripheral initialization moved to helpers
+    if (this._debugEnabled) this._setupCpuDebug();
+
     this.memory.attachCPU(this.cpu);
-    
-    // ULA with DEFERRED RENDERING ENABLED BY DEFAULT (JSSpeccy3-style)
-    // This is the proper fix for the red lines bug - render from frame buffer
-    // captured at END of frame, not live memory during execution
-    this.ula = new ULA(this.memory, this.canvas, { 
-      useDeferredRendering: true  // ENABLED: fixes boot display issues
-    });
-    this.ula.attachCPU(this.cpu); // CRITICAL: Connect ULA to CPU for interrupt generation
-    this.sound = new Sound();
+
+    // Initialize ULA, Sound and related peripherals
+    this._initPeripherals();
     
     // CRITICAL: Initialize I/O channel system for boot sequence
     this._initializeIOSystem();
 
+    // Create IO adapter via helper to keep this method focused
+    const ioAdapter = this._createIOAdapter();
+
+    // Install debug helpers and expose useful testing API
+    this._installDebugHelpers(ioAdapter);
+    
+    this.cpu.io = ioAdapter;
+    console.log('[Emulator] _createCore: connected CPU io adapter for port 0xFE border control');
+
+    this._enableMemoryWatch();
+    this._finalizeCoreStart(romBuffer);
+  }
+
+  _createIOAdapter() {
     // Create IO adapter to connect CPU port I/O to ULA and Sound modules
     // DEBUG: Track port reads for keyboard debugging
     let _portReadDebugEnabled = false;
     let _portReadCount = 0;
-    const ioAdapter = {
+    return {
       write: (port, value, tstates) => {
         // Track port write for debug API
         this._trackPortWrite(port, value);
-        
         // Route port 0xFE to ULA for border control
         if ((port & 0xFF) === 0xFE) {
-          this.ula.writePort(port, value);
+          if (this.ula && typeof this.ula.writePort === 'function') this.ula.writePort(port, value);
         }
         // Route other ports to sound if needed
         if (this.sound && typeof this.sound.writePort === 'function') {
@@ -437,7 +446,7 @@ export class Emulator {
       read: (port) => {
         // Route port 0xFE to ULA for keyboard reading
         if ((port & 0xFF) === 0xFE) {
-          const result = this.ula.readPort(port);
+          const result = this.ula && typeof this.ula.readPort === 'function' ? this.ula.readPort(port) : 0xFF;
           // Debug: log keyboard port reads when enabled and key pressed (result != 0xFF)
           if (_portReadDebugEnabled && (result & 0x1F) !== 0x1F) {
             console.log(`[IO] Port read 0x${port.toString(16)} → 0x${result.toString(16)} (key detected!)`);
@@ -451,84 +460,90 @@ export class Emulator {
       enableDebug: (enabled) => { _portReadDebugEnabled = enabled; },
       getReadCount: () => _portReadCount
     };
-  
+  }
+
+  _installDebugHelpers(ioAdapter) {
     // Add ROM visibility verification to debug API
     // Ensure __ZX_DEBUG__ exists before accessing it
     if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
     window.__ZX_DEBUG__.isROMVisible = (address = 0) => {
       // Checks if the byte at address matches the ROM byte
-      if (!emu.memory || !window.spec48 || !window.spec48.bytes) return false;
+      if (!this.memory || !window.spec48 || !window.spec48.bytes) return false;
       if (address < 0 || address >= window.spec48.bytes.length) return false;
-      return emu.memory.read(address) === window.spec48.bytes[address];
+      return this.memory.read(address) === window.spec48.bytes[address];
     };
-    
+
     // Add keyboard debug helpers to __ZX_DEBUG__ so they're always available
-    const self = this;
     window.__ZX_DEBUG__.pressKey = (key) => {
-      if (self.input && typeof self.input.pressKey === 'function') {
-        self.input.pressKey(key);
-        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+      if (this.input && typeof this.input.pressKey === 'function') {
+        this.input.pressKey(key);
+        if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
         console.log(`[__ZX_DEBUG__] pressKey('${key}') - matrix synced to ULA`);
         return true;
       }
       console.warn('[__ZX_DEBUG__] pressKey: input not available');
       return false;
     };
+
     window.__ZX_DEBUG__.releaseKey = (key) => {
-      if (self.input && typeof self.input.releaseKey === 'function') {
-        self.input.releaseKey(key);
-        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+      if (this.input && typeof this.input.releaseKey === 'function') {
+        this.input.releaseKey(key);
+        if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
         console.log(`[__ZX_DEBUG__] releaseKey('${key}')`);
         return true;
       }
       return false;
     };
+
     window.__ZX_DEBUG__.typeKey = async (key, holdMs = 100) => {
       window.__ZX_DEBUG__.pressKey(key);
       await new Promise(r => setTimeout(r, holdMs));
       window.__ZX_DEBUG__.releaseKey(key);
     };
+
     window.__ZX_DEBUG__.resetKeyboard = () => {
-      if (self.input && typeof self.input.reset === 'function') {
-        self.input.reset();
-        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+      if (this.input && typeof this.input.reset === 'function') {
+        this.input.reset();
+        if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
         console.log('[__ZX_DEBUG__] keyboard reset');
       }
     };
-    window.__ZX_DEBUG__.getKeyMatrix = () => {
-      return {
-        input: self.input?.matrix ? Array.from(self.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
-        ula: self.ula?.keyMatrix ? Array.from(self.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
-      };
-    };
+
+    window.__ZX_DEBUG__.getKeyMatrix = () => ({
+      input: this.input?.matrix ? Array.from(this.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
+      ula: this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
+    });
+
     window.__ZX_DEBUG__.enableKeyboardDebug = () => {
-      if (self.setKeyboardDebug) self.setKeyboardDebug(true);
-      if (self.ula) self.ula.setDebug(true);
-      if (self.input) self.input.setDebug(true);
-      if (ioAdapter.enableDebug) ioAdapter.enableDebug(true);
+      if (this.setKeyboardDebug) this.setKeyboardDebug(true);
+      if (this.ula) this.ula.setDebug(true);
+      if (this.input) this.input.setDebug(true);
+      if (ioAdapter && ioAdapter.enableDebug) ioAdapter.enableDebug(true);
       console.log('[__ZX_DEBUG__] keyboard debug ENABLED - watch for [Input], [ULA], and [IO] logs');
     };
+
     window.__ZX_DEBUG__.disableKeyboardDebug = () => {
-      if (self.setKeyboardDebug) self.setKeyboardDebug(false);
-      if (self.ula) self.ula.setDebug(false);
-      if (self.input) self.input.setDebug(false);
-      if (ioAdapter.enableDebug) ioAdapter.enableDebug(false);
+      if (this.setKeyboardDebug) this.setKeyboardDebug(false);
+      if (this.ula) this.ula.setDebug(false);
+      if (this.input) this.input.setDebug(false);
+      if (ioAdapter && ioAdapter.enableDebug) ioAdapter.enableDebug(false);
       console.log('[__ZX_DEBUG__] keyboard debug DISABLED');
     };
+
     window.__ZX_DEBUG__.testKeyboardPath = async (key = 'l') => {
       console.log('=== KEYBOARD PATH TEST ===' );
       console.log('1. Initial state:');
       console.log('   Input matrix:', window.__ZX_DEBUG__.getKeyMatrix().input);
       console.log('   ULA keyMatrix:', window.__ZX_DEBUG__.getKeyMatrix().ula);
-      
+
       console.log(`2. Pressing key '${key}'...`);
       window.__ZX_DEBUG__.pressKey(key);
       console.log('   Input matrix after press:', window.__ZX_DEBUG__.getKeyMatrix().input);
       console.log('   ULA keyMatrix after press:', window.__ZX_DEBUG__.getKeyMatrix().ula);
-      
+
       console.log('3. Testing direct port read (0xBFFE for row 6 where L lives):');
-      if (self.ula && typeof self.ula.readPort === 'function') {
-        const portResult = self.ula.readPort(0xBFFE);
+      if (this.ula && typeof this.ula.readPort === 'function') {
+        const portResult = this.ula.readPort(0xBFFE);
         console.log(`   ULA.readPort(0xBFFE) = 0x${portResult.toString(16)} (expect bit 1 = 0 for L key)`);
         console.log(`   Binary: ${portResult.toString(2).padStart(8, '0')}`);
         if ((portResult & 0x02) === 0) {
@@ -537,10 +552,10 @@ export class Emulator {
           console.log('   ✗ L key NOT detected - check ULA.readPort implementation');
         }
       }
-      
+
       console.log('4. Holding for 500ms to let ROM poll...');
       await new Promise(r => setTimeout(r, 500));
-      
+
       console.log('5. Releasing key...');
       window.__ZX_DEBUG__.releaseKey(key);
       console.log('   Input matrix after release:', window.__ZX_DEBUG__.getKeyMatrix().input);
@@ -553,7 +568,7 @@ export class Emulator {
       try {
         const canvas = document.getElementById('screen');
         if (!canvas) { console.error('[__ZX_DEBUG__] canvas #screen not found'); return null; }
-        try { canvas.focus(); } catch (e) { /* ignore */ }
+        try { canvas.focus(); } catch { /* ignore */ }
 
         console.log(`[__ZX_DEBUG__] Pressing '${key}' for ${holdMs}ms`);
         if (typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey(key);
@@ -598,61 +613,71 @@ export class Emulator {
         return null;
       }
     };
-    
-    this.cpu.io = ioAdapter;
-    console.log('[Emulator] _createCore: connected CPU io adapter for port 0xFE border control');
+  }
 
-    // Track writes to video memory and attributes to help diagnose rendering problems
+  _enableMemoryWatch() {
     this._memWrites = [];
-    try{
+    try {
       this.memory.enableStackWatch(0x4000, 0x5AFF, (evt) => {
-        try{
-          // Include the current PC and registers for easier attribution of writes to ROM code
-          try { evt.pc = this.cpu ? this.cpu.PC : undefined; } catch (e) { evt.pc = undefined; }
-          try { evt.regs = this.cpu && typeof this.cpu.getRegisters === 'function' ? this.cpu.getRegisters() : undefined; } catch (e) { evt.regs = undefined; }
+        try {
+          try { evt.pc = this.cpu ? this.cpu.PC : undefined; } catch { evt.pc = undefined; }
+          try { evt.regs = this.cpu && typeof this.cpu.getRegisters === 'function' ? this.cpu.getRegisters() : undefined; } catch { evt.regs = undefined; }
           if (this._debugEnabled) this._memWrites.push(evt);
-          if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites;
-        }catch(e){ /* best effort */ }
+          try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites; } catch { /* ignore */ }
+        } catch { /* best effort */ }
       });
       console.log('[Emulator] _createCore: enabled mem write watch for 0x4000-0x5AFF');
-    }catch(e){ /* ignore if memory doesn't support watch */ }
+    } catch { /* ignore if memory doesn't support watch */ }
+  }
 
+  _initPeripherals() {
+    // ULA with DEFERRED RENDERING ENABLED BY DEFAULT (JSSpeccy3-style)
+    // This is the proper fix for the red lines bug - render from frame buffer
+    // captured at END of frame, not live memory during execution
+    this.ula = new ULA(this.memory, this.canvas, { useDeferredRendering: true });
+    this.ula.attachCPU(this.cpu); // CRITICAL: Connect ULA to CPU for interrupt generation
+    this.sound = new Sound();
+  }
+
+  _setupCpuDebug() {
+    this.cpu.debugCallback = (opcode, pc) => {
+      // CRITICAL: Use the PC value passed to callback (current instruction address)
+      // NOT this.cpu.PC which would be the NEXT instruction address
+      this._trackOpcodeExecution(opcode, pc);
+      try { if (typeof window !== 'undefined') window.__LAST_PC__ = pc; } catch { /* ignore */ }
+    };
+    // Disable verbose debugging to prevent console spam
+    this.cpu._debugVerbose = false;
+  }
+
+  _finalizeCoreStart(romBuffer) {
     console.log('[Emulator] _createCore: memory', this.memory, 'cpu', this.cpu, 'ula', this.ula);
 
-    // Test helper alias: support window.TEST from console by mirroring into window.__TEST__
-    try { if (typeof window !== 'undefined') window.__TEST__ = window.__TEST__ || window.TEST || {}; } catch (e) { /* ignore */ }
+    try { if (typeof window !== 'undefined') window.__TEST__ = window.__TEST__ || window.TEST || {}; } catch { /* ignore */ }
 
-    // Input wiring
-    // Ensure the Input instance has a stable reference to the emulator before starting
-    try { this.input.emulator = this; } catch(e) { /* best-effort */ }
-    // Expose window.emulator/emu early so external diagnostic scripts can reference it during input start
-    try { if (typeof window !== 'undefined') { window.emu = window.emu || this; window.emulator = window.emulator || this; } } catch(e) { /* ignore */ }
+    try { this.input.emulator = this; } catch { /* best-effort */ }
+
+    try { if (typeof window !== 'undefined') { window.emu = window.emu || this; window.emulator = window.emulator || this; } } catch { /* ignore */ }
+
     this.input.start();
 
-    // Provide a noop frameGenerated hook by default so render code can call it unconditionally
-    try { if (typeof window !== 'undefined') window.__TEST__.frameGenerated = window.__TEST__.frameGenerated || function() {}; } catch (e) { /* ignore */ }
+    try { if (typeof window !== 'undefined') window.__TEST__.frameGenerated = window.__TEST__.frameGenerated || function() {}; } catch { /* ignore */ }
 
-    // Canvas-level forwarding: some environments may not deliver keyboard events to window/document reliably.
-    // Forward key events directly to the Input handlers to ensure DOM-driven keys are processed.
     try {
       if (this.canvas && this.input) {
-        const forwardDown = (e) => { try { this.input._keydown(e); } catch (err) { /* ignore */ } };
-        const forwardUp = (e) => { try { this.input._keyup(e); } catch (err) { /* ignore */ } };
+        const forwardDown = (e) => { try { this.input._keydown(e); } catch { /* ignore */ } };
+        const forwardUp = (e) => { try { this.input._keyup(e); } catch { /* ignore */ } };
         this.canvas.addEventListener('keydown', forwardDown, { capture: true });
         this.canvas.addEventListener('keyup', forwardUp, { capture: true });
-        // Expose canvas listener state for tests
-        try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } } catch (e) {}
+        try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } } catch { /* ignore */ }
         if (this._debug) console.log('[Emulator] Canvas key forwarding attached');
       }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 
-    // If ROM buffer provided, keep a copy for resets
     if (romBuffer) this.romBuffer = romBuffer.slice ? romBuffer.slice(0) : romBuffer;
 
-    // initial render - DEFERRED: avoid rendering immediately from constructor to allow ROM to initialize CHARS and glyph bytes
     console.log('[Emulator] Initial render deferred until emulator loop or CHARS population');
-    // Ensure the canvas has focus so keyboard events are delivered reliably (helpful for E2E tests)
-    try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') { this.canvas.focus(); try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.canvasFocused = true; } catch(e){} } }, 0); } catch (e) { /* ignore */ }
+    try { setTimeout(() => { if (this.canvas && typeof this.canvas.focus === 'function') { this.canvas.focus(); try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.canvasFocused = true; } catch { /* ignore */ } } }, 0); } catch { /* ignore */ }
   }
 
   async loadROM(arrayBuffer) {
@@ -678,7 +703,7 @@ export class Emulator {
     }
 
     // Test hook: record last applied key matrix for diagnostics
-    try { if (typeof window !== 'undefined' && window.__TEST__ && this.ula && this.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(this.ula.keyMatrix); } catch (e) { void e; }
+    try { if (typeof window !== 'undefined' && window.__TEST__ && this.ula && this.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(this.ula.keyMatrix); } catch { /* ignore */ }
     
     if (this._keyboardDebug) {
       const pressed = [];
@@ -964,7 +989,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       try {
         const data = await romManager.loadRom(id);
         await emu.loadROM(data.rom);
-        try { romManager.applyMemoryConfig(emu.memory, data.metadata, data.rom); } catch (e) {}
+        try { romManager.applyMemoryConfig(emu.memory, data.metadata, data.rom); } catch { /* ignore */ }
         emu.status(`selected ROM: ${id}`);
       } catch (e) {
         console.error('ROM selection failed', e);
@@ -973,18 +998,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
     const sel = document.getElementById('rom-select');
     if (sel) sel.value = 'spec48';
-  } catch (e) {}
+  } catch { /* ignore */ }
 
   // --- Diagnostic overlay: on-page debug panel for ROM/CHARS/canvas checks ---
   try {
     // Provide a global helper so other UI elements (Reset button etc.) can trigger cache-clear + reload
     window.__EMU_clearCacheAndReload = async function() {
       try {
-        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch { /* ignore */ } }
         if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
         // Use location.reload() — browsers may ignore true param but call reload
         location.reload(true);
-      } catch (e) { try{ document.getElementById('__emu_diag_out').textContent = 'Cache clear failed: ' + String(e); }catch(err){} }
+      } catch (e) { try{ document.getElementById('__emu_diag_out').textContent = 'Cache clear failed: ' + String(e); }catch{ /* ignore */ } }
     };
     const dbgPanel = document.createElement('div');
     dbgPanel.id = '__emu_debug_panel';
@@ -1023,7 +1048,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         toggle.checked = isVisible;
         if (!isVisible) dbgPanel.style.display = 'none';
         toggle.addEventListener('change', (e) => {
-          const show = !!e.target.checked;
+          const show = Boolean(e.target.checked);
           dbgPanel.style.display = show ? 'block' : 'none';
           localStorage.setItem('__emu_diag_visible', String(show));
         });
@@ -1077,7 +1102,7 @@ window.addEventListener('DOMContentLoaded', async () => {
           try {
             const d = ev && ev.detail ? ev.detail : {};
             if (lastSpan) lastSpan.textContent = d.lastKey || '(none)';
-            if (focusedSpan) focusedSpan.textContent = (!!d.hiddenFocused) ? 'true' : 'false';
+            if (focusedSpan) focusedSpan.textContent = d.hiddenFocused ? 'true' : 'false';
           } catch (e) { /* ignore */ }
         });
       } catch (e) { /* non-critical */ }
@@ -1091,85 +1116,92 @@ window.addEventListener('DOMContentLoaded', async () => {
       };
 
       const onMouseMove = (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); };
-      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch(e){} };
+      const onMouseUp = () => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('mousedown', (ev) => { dragging = true; startX = ev.clientX; startY = ev.clientY; const r = dbgPanel.getBoundingClientRect(); startLeft = r.left; startTop = r.top; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); ev.preventDefault(); });
 
       // Touch support
       const onTouchMove = (ev) => { if (!dragging) return; if (ev.touches && ev.touches[0]) onMove(ev.touches[0].clientX, ev.touches[0].clientY); ev.preventDefault(); };
-      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch(e){} };
+      const onTouchEnd = () => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_diag_pos', JSON.stringify({ left: parseInt(dbgPanel.style.left, 10) || 0, top: parseInt(dbgPanel.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('touchstart', (ev) => { dragging = true; if (ev.touches && ev.touches[0]) { startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; const r = dbgPanel.getBoundingClientRect(); startLeft = r.left; startTop = r.top; } document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); ev.preventDefault(); });
     } catch (e) { /* non-critical */ }
 
-    async function gatherDiag() {
+    const gatherDiag = async () => {
       const out = {};
       out.time = (new Date()).toISOString();
-      out.debugAvailable = !!window.__ZX_DEBUG__;
-      out.romHas7F = false;
-      out.romOffsets = [];
-      try {
-        if (typeof window.__ZX_DEBUG__?.readROM === 'function') {
-          for (let i = 0x1530; i < 0x1550; i++) {
-            if (window.__ZX_DEBUG__.readROM(i) === 0x7F) { out.romHas7F = true; out.romOffsets.push(i); }
-          }
-        }
-      } catch (e) { out.romErr = String(e); }
+      out.debugAvailable = Boolean(window.__ZX_DEBUG__);
 
-      try { out.CHARS = window.__ZX_DEBUG__?.peekMemory ? window.__ZX_DEBUG__.peekMemory(0x5C36,2) : null; } catch(e) { out.CHARS = 'err'; }
-      out.CHARSptr = (Array.isArray(out.CHARS) ? ((out.CHARS[1]<<8) | out.CHARS[0]) : null);
-      out.emu_lastChars = (window.emulator && typeof window.emulator._lastChars !== 'undefined') ? window.emulator._lastChars : null;
-
-      // glyph bytes (use CHARSptr or default 0x3C00)
-      const ptr = out.CHARSptr || 0x3C00;
-      out.glyph = [];
-      try {
-        for (let i = 0; i < 8; i++) {
-          let v = null;
-          try { v = window.__ZX_DEBUG__?.readRAM ? window.__ZX_DEBUG__.readRAM((ptr + 0x7F*8 + i) & 0xffff) : (window.__ZX_DEBUG__?.readMemory ? window.__ZX_DEBUG__.readMemory((ptr + 0x7F*8 + i) & 0xffff) : null); } catch(e) { v = null; }
-          out.glyph.push(v);
-        }
-      } catch (e) { out.glyphErr = String(e); }
-
-      // scan screen RAM for 0x7F
-      out.screenHas7F = false;
-      try {
-        if (window.__ZX_DEBUG__?.readRAM) {
-          for (let col = 0; col < 32; col++) {
-            for (let r = 184; r < 192; r++) {
-              const rel = ((r & 0xC0) << 5) + ((r & 0x07) << 8) + ((r & 0x38) << 2) + col;
-              if (window.__ZX_DEBUG__.readRAM(rel) === 0x7F) out.screenHas7F = true;
-            }
-          }
-        }
-      } catch (e) { out.screenScanErr = String(e); }
-
-      // check canvas pixels in bottom area
-      out.canvasNonBg = false;
-      try {
-        const canvas = document.getElementById('screen');
-        if (canvas && canvas.getContext) {
-          const ctx = canvas.getContext('2d');
-          const w = canvas.width, h = canvas.height;
-          const sx = Math.max(0, Math.floor(w * 0.05));
-          const sy = Math.max(0, Math.floor(h * 0.86));
-          const sw = Math.min(32, w - sx), sh = Math.min(24, h - sy);
-          const img = ctx.getImageData(sx, sy, sw, sh);
-          const d = img.data;
-          const br = d[0], bg = d[1], bb = d[2];
-          for (let i = 0; i < d.length; i += 4) {
-            if (d[i] !== br || d[i+1] !== bg || d[i+2] !== bb) { out.canvasNonBg = true; break; }
-          }
-        }
-      } catch (e) { out.canvasErr = String(e); }
+      try { await this._gatherRomInfo(out); } catch (e) { out.romErr = String(e); }
+      try { this._gatherCharsInfo(out); } catch (e) { out.CHARS = 'err'; }
+      try { this._gatherGlyph(out); } catch (e) { out.glyphErr = String(e); }
+      try { this._gatherScreenScan(out); } catch (e) { out.screenScanErr = String(e); }
+      try { this._gatherCanvasCheck(out); } catch (e) { out.canvasErr = String(e); }
 
       return out;
+    };
+
+    // Helper: rom checks
+    _gatherRomInfo(out) {
+      out.romHas7F = false;
+      out.romOffsets = [];
+      if (typeof window.__ZX_DEBUG__?.readROM === 'function') {
+        for (let i = 0x1530; i < 0x1550; i++) { if (window.__ZX_DEBUG__.readROM(i) === 0x7F) { out.romHas7F = true; out.romOffsets.push(i); } }
+      }
     }
 
-    async function runAndUpdate() {
+    // Helper: CHARS info
+    _gatherCharsInfo(out) {
+      out.CHARS = window.__ZX_DEBUG__?.peekMemory ? window.__ZX_DEBUG__.peekMemory(0x5C36,2) : null;
+      out.CHARSptr = (Array.isArray(out.CHARS) ? ((out.CHARS[1]<<8) | out.CHARS[0]) : null);
+      out.emu_lastChars = (window.emulator && typeof window.emulator._lastChars !== 'undefined') ? window.emulator._lastChars : null;
+    }
+
+    // Helper: glyph bytes
+    _gatherGlyph(out) {
+      const ptr = out.CHARSptr || 0x3C00;
+      out.glyph = [];
+      for (let i = 0; i < 8; i++) {
+        let v = null;
+        try { v = window.__ZX_DEBUG__?.readRAM ? window.__ZX_DEBUG__.readRAM((ptr + 0x7F*8 + i) & 0xffff) : (window.__ZX_DEBUG__?.readMemory ? window.__ZX_DEBUG__.readMemory((ptr + 0x7F*8 + i) & 0xffff) : null); } catch(e) { v = null; }
+        out.glyph.push(v);
+      }
+    }
+
+    // Helper: screen RAM scan
+    _gatherScreenScan(out) {
+      out.screenHas7F = false;
+      if (window.__ZX_DEBUG__?.readRAM) {
+        for (let col = 0; col < 32; col++) {
+          for (let r = 184; r < 192; r++) {
+            const rel = ((r & 0xC0) << 5) + ((r & 0x07) << 8) + ((r & 0x38) << 2) + col;
+            if (window.__ZX_DEBUG__.readRAM(rel) === 0x7F) out.screenHas7F = true;
+          }
+        }
+      }
+    }
+
+    // Helper: canvas pixel check
+    _gatherCanvasCheck(out) {
+      out.canvasNonBg = false;
+      const canvas = document.getElementById('screen');
+      if (canvas && canvas.getContext) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        const sx = Math.max(0, Math.floor(w * 0.05));
+        const sy = Math.max(0, Math.floor(h * 0.86));
+        const sw = Math.min(32, w - sx), sh = Math.min(24, h - sy);
+        const img = ctx.getImageData(sx, sy, sw, sh);
+        const d = img.data;
+        const br = d[0], bg = d[1], bb = d[2];
+        for (let i = 0; i < d.length; i += 4) { if (d[i] !== br || d[i+1] !== bg || d[i+2] !== bb) { out.canvasNonBg = true; break; } }
+      }
+    }
+
+    const runAndUpdate = async () => {
       const out = await gatherDiag();
       const el = document.getElementById('__emu_diag_out');
       el.textContent = JSON.stringify(out, null, 2);
       return out;
-    }
+    };
 
     document.getElementById('__emu_btn_run').addEventListener('click', async () => { try { await runAndUpdate(); } catch (e) { document.getElementById('__emu_diag_out').textContent = 'Diag failed: ' + String(e); } });
     document.getElementById('__emu_btn_force').addEventListener('click', async () => { try {
@@ -1220,9 +1252,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         // Check ROM contains 0x7F
         let romHas = false;
-        let romAddr = null;
         for (let i = 0x1530; i < 0x1550; i++) {
-          if (dbg.readROM(i) === 0x7F) { romHas = true; romAddr = i; break; }
+          if (dbg.readROM(i) === 0x7F) { romHas = true; break; }
         }
         if (!romHas) { outEl.textContent = 'ROM does not contain 0x7F; cannot force-draw'; return; }
 
@@ -1254,7 +1285,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         // Set attribute to white ink on black paper (0x07)
         const attrAddr = 0x5800 + (Math.floor(184 / 8) * 32) + targetCol;
-        try { window.emulator.memory.write(attrAddr, 0x07); } catch (e) {}
+        try { window.emulator.memory.write(attrAddr, 0x07); } catch { /* ignore */ }
 
         // Force render to update canvas
         for (let i = 0; i < 4; i++) { if (window.emulator && window.emulator.ula && typeof window.emulator.ula.render === 'function') { window.emulator.ula.render(); await new Promise(r => requestAnimationFrame(r)); } }
@@ -1268,7 +1299,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (typeof window !== 'undefined' && typeof window.__EMU_clearCacheAndReload === 'function') {
         await window.__EMU_clearCacheAndReload();
       } else {
-        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch(e){} }
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) try{ await r.unregister(); } catch { /* ignore */ } }
         if (window.caches && caches.keys) { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); }
         location.reload(true);
       }

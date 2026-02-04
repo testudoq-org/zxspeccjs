@@ -64,7 +64,7 @@
       const screen = document.getElementById('screen');
       out.screen = screen ? { id: screen.id || null, tabIndex: screen.getAttribute && screen.getAttribute('tabindex'), rect: screen.getBoundingClientRect ? screen.getBoundingClientRect().toJSON() : null } : null;
       if (screen){ const r = screen.getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2); out.elementAtCanvasCenter = el ? (el.id || el.tagName || (el.outerHTML && el.outerHTML.slice(0,200))) : null; }
-      try{ out.windowTest = window.__TEST__ ? { inputListeners: window.__TEST__.inputListeners || null, keyEventsTail: (window.__TEST__.keyEvents || []).slice(-20) } : null; }catch(e){}
+      try { out.windowTest = window.__TEST__ ? { inputListeners: window.__TEST__.inputListeners || null, keyEventsTail: (window.__TEST__.keyEvents || []).slice(-20) } : null; } catch { /* ignore */ }
       console.log(out);
       return out;
     }catch(e){ console.error('[EMU] inspect failed', e); return null; }
@@ -87,7 +87,7 @@
       a.download = filename || ('emu-key-log-' + (new Date()).toISOString().replace(/[:.]/g,'-') + '.json');
       document.body.appendChild(a);
       a.click();
-      setTimeout(function(){ try{ URL.revokeObjectURL(url); a.remove(); }catch(e){} }, 1000);
+      setTimeout(function(){ try{ URL.revokeObjectURL(url); a.remove(); } catch { /* ignore */ } }, 1000);
       console.log('[EMU] dumped', a.download, 'events:', payload.events.length);
       return payload;
     }catch(e){ console.error('[EMU] dump failed', e); return null; }
@@ -96,7 +96,7 @@
   window.__EMU_CLEAR_LOG__ = function(){ window.__EMU_KEY_LOG__ = []; console.log('[EMU] log cleared'); };
 
   // keyboard shortcut: Ctrl+Shift+S to dump
-  window.addEventListener('keydown', function(e){ try{ if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')){ e.preventDefault(); window.__EMU_DUMP_LOG__(); } }catch(err){} }, true);
+  window.addEventListener('keydown', function(e){ try{ if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')){ e.preventDefault(); window.__EMU_DUMP_LOG__(); } }catch{ /* ignore */ } }, true);
 
   // add a small dump button (non-invasive)
   try{
@@ -106,7 +106,7 @@
     btn.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483647;padding:6px 8px;font-size:11px;opacity:0.85;';
     btn.addEventListener('click', function(){ window.__EMU_DUMP_LOG__(); });
     document.body.appendChild(btn);
-  }catch(e){}
+  } catch { /* ignore */ }
 
   console.log('[EMU] capture installed. Use window.__EMU_DUMP_LOG__() to save a JSON log, window.__EMU_INSPECT__() to inspect focus/state, and window.__EMU_CLEAR_LOG__() to clear. Shortcut Ctrl+Shift+S available.');
 })();

@@ -40,7 +40,7 @@ import { chromium } from 'playwright';
   }
 
   const outDir = path.join(process.cwd(), 'tests', '_artifacts');
-  try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) {}
+  try { fs.mkdirSync(outDir, { recursive: true }); } catch { /* ignore */ }
   const outFile = path.join(outDir, `testkey-diagnostic-minimal-${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
   fs.writeFileSync(outFile, JSON.stringify({ url, lastPortRead: last, timestamp: new Date().toISOString() }, null, 2));
   console.log('Wrote diagnostic to', outFile);
