@@ -413,6 +413,18 @@ export default class Input {
     // Also sync immediately to emulator's ULA
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
 
+    // UI hook: reveal common BASIC keywords for quick visual feedback (robust across focus states)
+    try {
+      if (typeof window !== 'undefined') {
+        const KEYWORD_MAP = { l: 'LIST', j: 'LOAD', '0': 'THEN' };
+        const kw = KEYWORD_MAP[normalizedName];
+        if (kw && window.__EMU_UI__ && typeof window.__EMU_UI__.showKeyword === 'function') {
+          // Use short timeout - UI module will auto-hide
+          window.__EMU_UI__.showKeyword(kw, { timeout: 1800 });
+        }
+      }
+    } catch (e) { /* ignore */ }
+
     return true;
   }
 

@@ -949,6 +949,9 @@ export class Emulator {
 
 // Auto-initialize when DOM ready and wire UI elements
 window.addEventListener('DOMContentLoaded', async () => {
+  // Initialize lightweight UI helpers (non-invasive)
+  try { await import('./ui-keyword.mjs').then(m => m.initKeywordUI && m.initKeywordUI()); } catch (e) { /* ignore */ }
+
   // Ensure required elements exist
   const canvas = document.getElementById('screen');
   if (!canvas) return;
