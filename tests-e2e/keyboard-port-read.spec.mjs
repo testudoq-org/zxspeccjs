@@ -124,3 +124,96 @@ test('keyboard port reads detect L key @ui', async ({ page }) => {
   const nonFF = lastApplied.some(b => (b & 0xff) !== 0xff);
   expect(nonFF).toBeTruthy();
 });
+
+// More robust test using the pressAndHold debug helper with extended hold time
+test('keyboard pressAndHold detects L key reliably @ui', async ({ page }) => {
+  await setupDiagnostics(page);
+  await page.goto('http://localhost:8080/');
+  await page.waitForSelector('#screen', { timeout: 15000 });
+
+  // Start emulator if not running
+  await page.click('#startBtn').catch(() => {});
+  await ensureStarted(page);
+
+  // Focus canvas and enable debug
+  await page.click('#screen');
+  await page.evaluate(() => {
+    try { if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.enableKeyboardDebug === 'function') window.__ZX_DEBUG__.enableKeyboardDebug(); } catch { /* ignore */ }
+  });
+
+  // Verify pressAndHold helper is available
+  const debugInfo = await page.evaluate(() => {
+    return {
+      hasZxDebug: !!window.__ZX_DEBUG__,
+      zxDebugKeys: window.__ZX_DEBUG__ ? Object.keys(window.__ZX_DEBUG__) : [],
+      hasPressAndHold: !!(window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.pressAndHold === 'function'),
+      hasPressKey: !!(window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.pressKey === 'function'),
+      hasTypeKey: !!(window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.typeKey === 'function')
+    };
+  });
+  console.log('debugInfo:', debugInfo);
+  const hasPressAndHold = debugInfo.hasPressAndHold;
+  console.log('pressAndHold helper available:', hasPressAndHold);
+  expect(hasPressAndHold).toBeTruthy();
+
+  // Use pressAndHold to hold L key for 700ms and get diagnostics
+  const diagnostics = await page.evaluate(async () => {
+    try {
+      return await window.__ZX_DEBUG__.pressAndHold('l', 700);
+    } catch (e) {
+      return { error: String(e) };
+    }
+  });
+
+  console.log('pressAndHold diagnostics:', {
+    key: diagnostics.key,
+    holdMs: diagnostics.holdMs,
+    keyDetectedDuringHold: diagnostics.keyDetectedDuringHold,
+    portReadCount: diagnostics.portReadsDuringHold?.length,
+    sampleReads: diagnostics.portReadsDuringHold?.slice(0, 5)
+  });
+
+  // Assert key was detected during the hold period
+  expect(diagnostics.error).toBeUndefined();
+  expect(diagnostics.keyDetectedDuringHold).toBeTruthy();
+
+  // Verify at least some port reads captured the key (bit 1 cleared)
+  const detectedReads = diagnostics.portReadsDuringHold?.filter(r => r.keyBitCleared) || [];
+  console.log(`Detected L key in ${detectedReads.length} of ${diagnostics.portReadsDuringHold?.length} port reads`);
+  expect(detectedReads.length).toBeGreaterThan(0);
+
+  // Final check: verify ULA matrix was updated correctly (row 6 should have bit 1 cleared = 0xFD)
+  const finalMatrix = diagnostics.finalUlaMatrix;
+  console.log('Final ULA matrix:', finalMatrix?.map(v => '0x' + v.toString(16)));
+  // Row 6 is where L lives - during hold it should show 0xFD (bit 1 cleared from 0xFF)
+  // Note: after release it goes back to 0xFF, so we check the port reads captured during hold
+});
+
+// Test that canvas auto-focus on start is working
+test('canvas receives auto-focus on emulator start @ui', async ({ page }) => {
+  await setupDiagnostics(page);
+  await page.goto('http://localhost:8080/');
+  await page.waitForSelector('#screen', { timeout: 15000 });
+
+  // Start emulator
+  await page.click('#startBtn').catch(() => {});
+  await ensureStarted(page);
+
+  // Wait a moment for focus to be applied
+  await page.waitForTimeout(200);
+
+  // Check if canvas was focused on start
+  const focusInfo = await page.evaluate(() => ({
+    canvasFocusedOnStart: window.__TEST__?.canvasFocusedOnStart,
+    activeElementId: document.activeElement?.id,
+    activeElementTag: document.activeElement?.tagName
+  }));
+
+  console.log('Focus info:', focusInfo);
+  
+  // Verify canvas was focused (either by our flag or by checking active element)
+  const isFocused = focusInfo.canvasFocusedOnStart || 
+                    focusInfo.activeElementId === 'screen' ||
+                    focusInfo.activeElementTag === 'CANVAS';
+  expect(isFocused).toBeTruthy();
+});

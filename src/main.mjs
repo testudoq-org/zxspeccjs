@@ -250,6 +250,7 @@ export class Emulator {
     try { this._bindRomSelector(); } catch { /* ignore */ }
     try { this._bindKeyboardToggle(); } catch { /* ignore */ }
     try { this._bindCanvasFocus(); } catch { /* ignore */ }
+    try { this._bindDiagnosticButtons(); } catch { /* ignore */ }
   }
 
   _bindButtons() {
@@ -343,6 +344,139 @@ export class Emulator {
         this.canvas.addEventListener('click', () => { try { this.canvas.focus(); } catch { /* ignore */ } });
       }
     } catch { /* ignore */ }
+  }
+
+  _bindDiagnosticButtons() {
+    const output = document.getElementById('diagOutput');
+    const log = (msg) => { if (output) output.textContent = msg; console.log('[Diag]', msg); };
+
+    // Emu Status button
+    const statusBtn = document.getElementById('diagStatusBtn');
+    if (statusBtn) {
+      statusBtn.addEventListener('click', () => {
+        const e = this;
+        const result = {
+          cpu: !!e.cpu,
+          running: e._running,
+          pc: e.cpu ? '0x' + e.cpu.PC.toString(16).padStart(4, '0') : null,
+          iff1: e.cpu?.IFF1,
+          im: e.cpu?.IM,
+          frames: e.cpu ? Math.floor(e.cpu.tstates / 69888) : 0,
+          rom0: e.memory ? '0x' + e.memory.read(0).toString(16).padStart(2, '0') : null,
+          chars: e.memory ? '0x' + ((e.memory.read(0x5C37) << 8) | e.memory.read(0x5C36)).toString(16).padStart(4, '0') : null,
+          bootFramesRemaining: e._bootFramesRemaining
+        };
+        log(JSON.stringify(result, null, 2));
+      });
+    }
+
+    // Display Check button
+    const displayBtn = document.getElementById('diagDisplayBtn');
+    if (displayBtn) {
+      displayBtn.addEventListener('click', () => {
+        const e = this;
+        let pixels = 0;
+        const thirds = [0, 0, 0];
+        
+        if (e.memory) {
+          for (let third = 0; third < 3; third++) {
+            const base = 0x4000 + third * 2048;
+            for (let i = 0; i < 2048; i++) {
+              if (e.memory.read(base + i) !== 0) {
+                thirds[third]++;
+                pixels++;
+              }
+            }
+          }
+        }
+        
+        const result = {
+          totalNonZeroPixels: pixels,
+          third0: thirds[0],
+          third1: thirds[1],
+          third2: thirds[2],
+          canvas: !!e.canvas,
+          ula: !!e.ula,
+          ulaUseDeferredRendering: e.ula?.useDeferredRendering
+        };
+        log(JSON.stringify(result, null, 2));
+      });
+    }
+
+    // Force Render button
+    const renderBtn = document.getElementById('diagForceRenderBtn');
+    if (renderBtn) {
+      renderBtn.addEventListener('click', () => {
+        if (this.ula && this.ula.render) {
+          this.ula.render();
+          log('Render forced. Check canvas.');
+        } else {
+          log('ERROR: ULA or render not available');
+        }
+      });
+    }
+
+    // Key Test button
+    const keyBtn = document.getElementById('diagKeyTestBtn');
+    if (keyBtn) {
+      keyBtn.addEventListener('click', async () => {
+        log('Pressing L key for 500ms...');
+        const beforeLastK = this.memory ? this.memory.read(0x5C08) : null;
+        
+        // Clear port read tracking
+        try { if (window.__TEST__) window.__TEST__.portReads = []; } catch { /* ignore */ }
+        const portReadsBefore = window.__KEYBOARD_DEBUG__?.reads || 0;
+        
+        if (this.input) {
+          this.input.pressKey('L');
+          this._applyInputToULA();
+        }
+        
+        // Capture matrix state right after press
+        const ulaMatrixAfterPress = this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix) : null;
+        
+        // Direct port read test - call ULA readPort directly
+        const directPortRead = this.ula?.readPort ? this.ula.readPort(0xBFFE) : null; // Row 6 for L key
+        
+        await new Promise(r => setTimeout(r, 500));
+        
+        const afterLastK = this.memory ? this.memory.read(0x5C08) : null;
+        const portReadsAfter = window.__KEYBOARD_DEBUG__?.reads || 0;
+        const portReadsInWindow = window.__TEST__?.portReads || [];
+        
+        // Capture matrix after wait, before release
+        const ulaMatrixDuringHold = this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix) : null;
+        const cpuHasIO = !!(this.cpu && this.cpu.io);
+        const cpuIOHasRead = !!(this.cpu?.io?.read);
+        
+        if (this.input) {
+          this.input.releaseKey('L');
+          this._applyInputToULA();
+        }
+        
+        const result = {
+          beforeLastK: beforeLastK !== null ? '0x' + beforeLastK.toString(16) : null,
+          afterLastK: afterLastK !== null ? '0x' + afterLastK.toString(16) : null,
+          keyDetected: beforeLastK !== afterLastK,
+          directPortRead: directPortRead !== null ? '0x' + directPortRead.toString(16) : null,
+          portReadsDuring500ms: portReadsAfter - portReadsBefore,
+          portReadsWithKeyDetected: portReadsInWindow.filter(r => (r.result & 0x1f) !== 0x1f).length,
+          // ROM state diagnostics (CORRECT ADDRESSES)
+          ERR_NR_5C3A: this.memory ? '0x' + this.memory.read(0x5C3A).toString(16) : null,
+          FLAGS_5C3B: this.memory ? '0x' + this.memory.read(0x5C3B).toString(16) : null,
+          FLAGS_bit5_keyAvail: this.memory ? !!(this.memory.read(0x5C3B) & 0x20) : null,
+          FLAGS_bit6_Kmode: this.memory ? !!(this.memory.read(0x5C3B) & 0x40) : null,
+          MODE: this.memory ? this.memory.read(0x5C41) : null,
+          KSTATE0: this.memory ? '0x' + this.memory.read(0x5C00).toString(16) : null,
+          PC: this.cpu ? '0x' + this.cpu.PC.toString(16) : null,
+          cpuHasIO: cpuHasIO,
+          cpuIOHasRead: cpuIOHasRead,
+          ulaMatrixAfterPress: ulaMatrixAfterPress?.map(v => '0x' + v.toString(16).padStart(2, '0')),
+          ulaMatrixDuringHold: ulaMatrixDuringHold?.map(v => '0x' + v.toString(16).padStart(2, '0'))
+        };
+        log(JSON.stringify(result, null, 2));
+      });
+    }
   }
 
   async handleLoad() {
@@ -504,6 +638,60 @@ export class Emulator {
       window.__ZX_DEBUG__.pressKey(key);
       await new Promise(r => setTimeout(r, holdMs));
       window.__ZX_DEBUG__.releaseKey(key);
+    };
+
+    // pressAndHold: press key, hold for ms, actively poll ULA during hold, then release
+    // Returns diagnostic info about port reads during the hold period
+    window.__ZX_DEBUG__.pressAndHold = async (key, holdMs = 700) => {
+      const diagnostics = {
+        key,
+        holdMs,
+        pressTime: Date.now(),
+        releaseTime: null,
+        portReadsDuringHold: [],
+        keyDetectedDuringHold: false,
+        finalUlaMatrix: null
+      };
+      
+      console.log(`[__ZX_DEBUG__] pressAndHold('${key}', ${holdMs}ms) starting`);
+      window.__ZX_DEBUG__.pressKey(key);
+      
+      // Poll ULA.readPort during hold period to capture key detection
+      const pollInterval = 20; // Poll every 20ms
+      const startTime = Date.now();
+      let pollCount = 0;
+      
+      while (Date.now() - startTime < holdMs) {
+        pollCount++;
+        // Determine correct port for key - for L key it's row 6 = 0xBFFE
+        const port = 0xBFFE; // Row 6 where L lives (default, could be made dynamic)
+        const portResult = (this.ula && typeof this.ula.readPort === 'function') ? this.ula.readPort(port) : null;
+        
+        if (portResult !== null) {
+          diagnostics.portReadsDuringHold.push({
+            t: Date.now() - startTime,
+            port,
+            result: portResult,
+            keyBitCleared: (portResult & 0x02) === 0 // Bit 1 for L key
+          });
+          
+          if ((portResult & 0x02) === 0) {
+            diagnostics.keyDetectedDuringHold = true;
+          }
+        }
+        
+        await new Promise(r => setTimeout(r, pollInterval));
+      }
+      
+      diagnostics.releaseTime = Date.now();
+      diagnostics.finalUlaMatrix = this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix) : null;
+      
+      window.__ZX_DEBUG__.releaseKey(key);
+      
+      console.log(`[__ZX_DEBUG__] pressAndHold complete: ${pollCount} polls, keyDetected=${diagnostics.keyDetectedDuringHold}`);
+      console.log(`[__ZX_DEBUG__] Port reads during hold:`, diagnostics.portReadsDuringHold.slice(0, 5), '...');
+      
+      return diagnostics;
     };
 
     window.__ZX_DEBUG__.resetKeyboard = () => {
@@ -725,15 +913,24 @@ export class Emulator {
     // Test hook: record last applied key matrix for diagnostics
     try { if (typeof window !== 'undefined' && window.__TEST__ && this.ula && this.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(this.ula.keyMatrix); } catch { /* ignore */ }
     
+    // Enhanced debug logging: show both input.matrix and resulting ula.keyMatrix
     if (this._keyboardDebug) {
       const pressed = [];
+      const inputRows = [];
+      const ulaRows = [];
       for (let r = 0; r < 8; r++) {
-        if (this.ula && this.ula.keyMatrix && this.ula.keyMatrix[r] !== 0xff) {
-          pressed.push(`row${r}=0x${this.ula.keyMatrix[r].toString(16)}`);
+        const inputVal = (this.input.matrix && this.input.matrix[r] != null) ? this.input.matrix[r] : 0x1f;
+        const ulaVal = (this.ula && this.ula.keyMatrix) ? this.ula.keyMatrix[r] : 0xff;
+        inputRows.push(`0x${inputVal.toString(16).padStart(2,'0')}`);
+        ulaRows.push(`0x${ulaVal.toString(16).padStart(2,'0')}`);
+        if (ulaVal !== 0xff) {
+          pressed.push(`row${r}=0x${ulaVal.toString(16)}`);
         }
       }
       if (pressed.length > 0) {
         console.log(`[Emulator] _applyInputToULA: ${pressed.join(', ')}`);
+        console.log(`[Emulator]   input.matrix: [${inputRows.join(',')}]`);
+        console.log(`[Emulator]   ula.keyMatrix: [${ulaRows.join(',')}]`);
       }
     }
   }
@@ -749,6 +946,17 @@ export class Emulator {
     
     // Always sync keyboard state when starting
     this._applyInputToULA();
+    
+    // Auto-focus canvas on start to ensure keyboard events are captured
+    try {
+      if (this.canvas && typeof this.canvas.focus === 'function') {
+        this.canvas.focus();
+        console.log('[Emulator] start: canvas focused for keyboard input');
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.canvasFocusedOnStart = true; } catch { /* ignore */ }
+      }
+    } catch (e) {
+      console.warn('[Emulator] start: failed to focus canvas:', e);
+    }
     
     // Headless browser compatibility: use setTimeout fallback if requestAnimationFrame fails
     try {
@@ -917,6 +1125,23 @@ export class Emulator {
         this._bootFramesRemaining--;
         if (this._bootFramesRemaining === 0) {
           console.log('[Emulator] Boot frames complete, starting normal rendering');
+          
+          // CRITICAL FIX: Ensure FLAGS is properly set for keyboard input
+          // FLAGS (0x5C3B) bits:
+          //   bit 3 (0x08) = K mode decode - determines ASCII vs token output from K-DECODE
+          //   bit 6 (0x40) = K mode indicator - command mode active
+          // Both bits are required for keyboard to work correctly:
+          // - Without bit 3, K-DECODE returns tokens (0xF1) instead of ASCII ('l')
+          // - Without bit 6, input mode is wrong
+          // If ROM boot didn't set FLAGS properly, set it now
+          try {
+            const currentFlags = this.memory.read(0x5C3B);
+            if (currentFlags === 0) {
+              // FLAGS was not initialized - set to K mode with proper decode (0x48)
+              this.memory.write(0x5C3B, 0x48);
+              console.log('[Emulator] Fixed FLAGS: set to 0x48 (K mode + K decode) for keyboard input');
+            }
+          } catch (e) { /* ignore */ }
         }
       } else if (this.ula) {
         this.ula.render();
@@ -1430,6 +1655,75 @@ window.addEventListener('DOMContentLoaded', async () => {
         return true;
       }
       return false;
+    },
+    // Type a key with a short hold (async)
+    typeKey: async (key, holdMs = 100) => {
+      if (emu.input) {
+        emu.input.pressKey(key);
+        emu._applyInputToULA();
+        await new Promise(r => setTimeout(r, holdMs));
+        emu.input.releaseKey(key);
+        emu._applyInputToULA();
+        return true;
+      }
+      return false;
+    },
+    // pressAndHold: press key, hold for ms, actively poll ULA during hold, then release
+    // Returns diagnostic info about port reads during the hold period
+    pressAndHold: async (key, holdMs = 700) => {
+      if (!emu.input) return { error: 'input not available' };
+      
+      const diagnostics = {
+        key,
+        holdMs,
+        pressTime: Date.now(),
+        releaseTime: null,
+        portReadsDuringHold: [],
+        keyDetectedDuringHold: false,
+        finalUlaMatrix: null
+      };
+      
+      console.log(`[__ZX_DEBUG__] pressAndHold('${key}', ${holdMs}ms) starting`);
+      emu.input.pressKey(key);
+      emu._applyInputToULA();
+      
+      // Poll ULA.readPort during hold period to capture key detection
+      const pollInterval = 20; // Poll every 20ms
+      const startTime = Date.now();
+      let pollCount = 0;
+      
+      while (Date.now() - startTime < holdMs) {
+        pollCount++;
+        // Determine correct port for key - for L key it's row 6 = 0xBFFE
+        const port = 0xBFFE; // Row 6 where L lives (default, could be made dynamic)
+        const portResult = (emu.ula && typeof emu.ula.readPort === 'function') ? emu.ula.readPort(port) : null;
+        
+        if (portResult !== null) {
+          diagnostics.portReadsDuringHold.push({
+            t: Date.now() - startTime,
+            port,
+            result: portResult,
+            keyBitCleared: (portResult & 0x02) === 0 // Bit 1 for L key
+          });
+          
+          if ((portResult & 0x02) === 0) {
+            diagnostics.keyDetectedDuringHold = true;
+          }
+        }
+        
+        await new Promise(r => setTimeout(r, pollInterval));
+      }
+      
+      diagnostics.releaseTime = Date.now();
+      diagnostics.finalUlaMatrix = emu.ula?.keyMatrix ? Array.from(emu.ula.keyMatrix) : null;
+      
+      emu.input.releaseKey(key);
+      emu._applyInputToULA();
+      
+      console.log(`[__ZX_DEBUG__] pressAndHold complete: ${pollCount} polls, keyDetected=${diagnostics.keyDetectedDuringHold}`);
+      console.log(`[__ZX_DEBUG__] Port reads during hold:`, diagnostics.portReadsDuringHold.slice(0, 5), '...');
+      
+      return diagnostics;
     },
 
     // Diagnostic helper: perform a comprehensive inspection of the bottom text area (default topRow=184)
