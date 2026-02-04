@@ -887,6 +887,19 @@ export class Z80 {
         const n = this.readByteFromPC(); this.A |= n; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04; this.tstates += 7; return 7;
       }
 
+      // XOR n -> 0xEE
+      case 0xEE: {
+        const n = this.readByteFromPC();
+        this.A ^= n;
+        this._setFlagZ(this.A);
+        this._setFlagS(this.A);
+        this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0);
+        this.F &= ~0x10; // H = 0
+        this.F &= ~0x02; // N = 0
+        this._setFlagC(false);
+        this.tstates += 7; return 7;
+      }
+
       // CP r
       case 0x87: { // ADD A,A
         this._addA(this.A);
@@ -983,6 +996,11 @@ export class Z80 {
         this.tstates += 4; return 4;
       }
 
+      case 0xC2: { // JP NZ,nn
+        const addr = this.readWordFromPC();
+        if (!(this.F & 0x40)) this.PC = addr;
+        this.tstates += 10; return 10;
+      }
       case 0xCA: { // JP Z,nn
         const addr = this.readWordFromPC();
         if (this.F & 0x40) this.PC = addr;
