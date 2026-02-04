@@ -103,6 +103,7 @@ export class ULA {
   }
 
   // QUICK FIX: Initialize display memory early to avoid race conditions with ROM
+  // IMPORTANT: Sets _initialized flag to prevent duplicate clearing in render()
   _initializeDisplayMemory() {
     if (!this.mem) return;
     if (typeof window !== 'undefined' && window.__TEST__) (window.__TEST__.ulaInitCalls = window.__TEST__.ulaInitCalls || []).push({ t: Date.now(), pc: (window.__LAST_PC__ || null) });
@@ -116,6 +117,11 @@ export class ULA {
     if (attrs) {
       attrs.fill(0x38); // Set attributes to white ink on black paper (0x38 = 00111000)
     }
+    
+    // CRITICAL: Mark as initialized to prevent render() from clearing again
+    // This was the root cause of duplicate copyright glyph - render() would
+    // clear the display AFTER ROM had already written the copyright message
+    this._initialized = true;
     
     console.log('[ULA] Display memory initialized in constructor');
   }
@@ -293,15 +299,15 @@ export class ULA {
 
     if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__._lastRenderContext = { useDeferred: this.useDeferredRendering, t: Date.now(), pc: (window.__LAST_PC__ || null) };
 
-    // --- REMOVED AGGRESSIVE VIDEO MEMORY PROTECTION ---
-    // The previous protection was destroying display content and preventing
-    // copyright message from appearing. Let ROM boot sequence manage display.
-    // Only initialize on first render if memory views are missing.
+    // NOTE: Display memory initialization moved to _initializeDisplayMemory() in constructor
+    // Do NOT clear display memory here - this was causing duplicate copyright glyphs
+    // by overwriting ROM's display output. The _initialized flag is now set in
+    // _initializeDisplayMemory() to prevent any accidental re-initialization.
     if (!this._initialized) {
-      if (bitmap) bitmap.fill(0x00);
-      if (attrs) attrs.fill(0x38);
+      // First render after construction - just mark as initialized, don't clear memory
+      // ROM boot sequence manages display content; clearing here erases copyright message
       this._initialized = true;
-      console.log('[ULA] Initialized display memory once');
+      console.log('[ULA] First render - display ready (not clearing to preserve ROM output)');
     }
 
     if (!bitmap || !attrs) {
