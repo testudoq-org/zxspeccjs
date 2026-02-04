@@ -417,6 +417,9 @@ export class Emulator {
     this._initializeIOSystem();
 
     // Create IO adapter to connect CPU port I/O to ULA and Sound modules
+    // DEBUG: Track port reads for keyboard debugging
+    let _portReadDebugEnabled = false;
+    let _portReadCount = 0;
     const ioAdapter = {
       write: (port, value, tstates) => {
         // Track port write for debug API
@@ -434,10 +437,19 @@ export class Emulator {
       read: (port) => {
         // Route port 0xFE to ULA for keyboard reading
         if ((port & 0xFF) === 0xFE) {
-          return this.ula.readPort(port);
+          const result = this.ula.readPort(port);
+          // Debug: log keyboard port reads when enabled and key pressed (result != 0xFF)
+          if (_portReadDebugEnabled && (result & 0x1F) !== 0x1F) {
+            console.log(`[IO] Port read 0x${port.toString(16)} → 0x${result.toString(16)} (key detected!)`);
+          }
+          _portReadCount++;
+          return result;
         }
         return 0xFF; // Default for unhandled ports
-      }
+      },
+      // Debug helper to enable verbose port read logging
+      enableDebug: (enabled) => { _portReadDebugEnabled = enabled; },
+      getReadCount: () => _portReadCount
     };
   
     // Add ROM visibility verification to debug API
@@ -448,6 +460,143 @@ export class Emulator {
       if (!emu.memory || !window.spec48 || !window.spec48.bytes) return false;
       if (address < 0 || address >= window.spec48.bytes.length) return false;
       return emu.memory.read(address) === window.spec48.bytes[address];
+    };
+    
+    // Add keyboard debug helpers to __ZX_DEBUG__ so they're always available
+    const self = this;
+    window.__ZX_DEBUG__.pressKey = (key) => {
+      if (self.input && typeof self.input.pressKey === 'function') {
+        self.input.pressKey(key);
+        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+        console.log(`[__ZX_DEBUG__] pressKey('${key}') - matrix synced to ULA`);
+        return true;
+      }
+      console.warn('[__ZX_DEBUG__] pressKey: input not available');
+      return false;
+    };
+    window.__ZX_DEBUG__.releaseKey = (key) => {
+      if (self.input && typeof self.input.releaseKey === 'function') {
+        self.input.releaseKey(key);
+        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+        console.log(`[__ZX_DEBUG__] releaseKey('${key}')`);
+        return true;
+      }
+      return false;
+    };
+    window.__ZX_DEBUG__.typeKey = async (key, holdMs = 100) => {
+      window.__ZX_DEBUG__.pressKey(key);
+      await new Promise(r => setTimeout(r, holdMs));
+      window.__ZX_DEBUG__.releaseKey(key);
+    };
+    window.__ZX_DEBUG__.resetKeyboard = () => {
+      if (self.input && typeof self.input.reset === 'function') {
+        self.input.reset();
+        if (typeof self._applyInputToULA === 'function') self._applyInputToULA();
+        console.log('[__ZX_DEBUG__] keyboard reset');
+      }
+    };
+    window.__ZX_DEBUG__.getKeyMatrix = () => {
+      return {
+        input: self.input?.matrix ? Array.from(self.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
+        ula: self.ula?.keyMatrix ? Array.from(self.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
+      };
+    };
+    window.__ZX_DEBUG__.enableKeyboardDebug = () => {
+      if (self.setKeyboardDebug) self.setKeyboardDebug(true);
+      if (self.ula) self.ula.setDebug(true);
+      if (self.input) self.input.setDebug(true);
+      if (ioAdapter.enableDebug) ioAdapter.enableDebug(true);
+      console.log('[__ZX_DEBUG__] keyboard debug ENABLED - watch for [Input], [ULA], and [IO] logs');
+    };
+    window.__ZX_DEBUG__.disableKeyboardDebug = () => {
+      if (self.setKeyboardDebug) self.setKeyboardDebug(false);
+      if (self.ula) self.ula.setDebug(false);
+      if (self.input) self.input.setDebug(false);
+      if (ioAdapter.enableDebug) ioAdapter.enableDebug(false);
+      console.log('[__ZX_DEBUG__] keyboard debug DISABLED');
+    };
+    window.__ZX_DEBUG__.testKeyboardPath = async (key = 'l') => {
+      console.log('=== KEYBOARD PATH TEST ===' );
+      console.log('1. Initial state:');
+      console.log('   Input matrix:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      console.log('   ULA keyMatrix:', window.__ZX_DEBUG__.getKeyMatrix().ula);
+      
+      console.log(`2. Pressing key '${key}'...`);
+      window.__ZX_DEBUG__.pressKey(key);
+      console.log('   Input matrix after press:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      console.log('   ULA keyMatrix after press:', window.__ZX_DEBUG__.getKeyMatrix().ula);
+      
+      console.log('3. Testing direct port read (0xBFFE for row 6 where L lives):');
+      if (self.ula && typeof self.ula.readPort === 'function') {
+        const portResult = self.ula.readPort(0xBFFE);
+        console.log(`   ULA.readPort(0xBFFE) = 0x${portResult.toString(16)} (expect bit 1 = 0 for L key)`);
+        console.log(`   Binary: ${portResult.toString(2).padStart(8, '0')}`);
+        if ((portResult & 0x02) === 0) {
+          console.log('   ✓ L key IS detected in port read!');
+        } else {
+          console.log('   ✗ L key NOT detected - check ULA.readPort implementation');
+        }
+      }
+      
+      console.log('4. Holding for 500ms to let ROM poll...');
+      await new Promise(r => setTimeout(r, 500));
+      
+      console.log('5. Releasing key...');
+      window.__ZX_DEBUG__.releaseKey(key);
+      console.log('   Input matrix after release:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      console.log('=== END TEST ===');
+    };
+
+    // Capture a screenshot after pressing a key to verify ROM interaction with canvas
+    window.__ZX_DEBUG__.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false, filename = null } = {}) => {
+      console.log('=== KEYBOARD SCREENSHOT TEST ===');
+      try {
+        const canvas = document.getElementById('screen');
+        if (!canvas) { console.error('[__ZX_DEBUG__] canvas #screen not found'); return null; }
+        try { canvas.focus(); } catch (e) { /* ignore */ }
+
+        console.log(`[__ZX_DEBUG__] Pressing '${key}' for ${holdMs}ms`);
+        if (typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey(key);
+        else if (window.emu && window.emu.input && typeof window.emu.input.pressKey === 'function') window.emu.input.pressKey(key);
+        if (typeof window.emu !== 'undefined' && typeof window.emu._applyInputToULA === 'function') window.emu._applyInputToULA();
+
+        await new Promise(r => setTimeout(r, holdMs));
+
+        if (typeof window.__ZX_DEBUG__.releaseKey === 'function') window.__ZX_DEBUG__.releaseKey(key);
+        else if (window.emu && window.emu.input && typeof window.emu.input.releaseKey === 'function') window.emu.input.releaseKey(key);
+
+        console.log('[__ZX_DEBUG__] Waiting for ROM to poll and render...');
+        await new Promise(r => setTimeout(r, waitMs));
+
+        // Capture canvas image
+        const dataUrl = canvas.toDataURL('image/png');
+        window.__ZX_DEBUG__.lastKeyboardScreenshot = dataUrl;
+        console.log('[__ZX_DEBUG__] Screenshot captured (dataURL stored in window.__ZX_DEBUG__.lastKeyboardScreenshot)');
+
+        if (download) {
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = filename || `keyboard-${key}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          console.log('[__ZX_DEBUG__] Screenshot downloaded as', a.download);
+        }
+
+        // Return diagnostics summary
+        return {
+          key,
+          holdMs,
+          waitMs,
+          matrices: window.__ZX_DEBUG__.getKeyMatrix(),
+          lastKeyDetected: window.__KEYBOARD_DEBUG__?.lastKeyDetected || null,
+          lastPortReadsTail: (window.__TEST__ && window.__TEST__.portReads) ? window.__TEST__.portReads.slice(-10) : null,
+          screenshotPreview: dataUrl.slice(0, 128) + '...'
+        };
+      } catch (e) {
+        console.error('[__ZX_DEBUG__] testKeyboardAndScreenshot failed', e);
+        return null;
+      }
     };
     
     this.cpu.io = ioAdapter;

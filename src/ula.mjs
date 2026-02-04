@@ -186,9 +186,25 @@ export class ULA {
       // Ensure upper bits are set correctly (tape EAR = 1, bits 6-7 = 1)
       result |= 0b11100000;
       
+      // Debug: log when any key is detected (result bits 0-4 not all 1)
       if (this._debug && (result & 0x1f) !== 0x1f) {
-        console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, result=0x${result.toString(16)}`);
+        console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, keyMatrix=[${Array.from(this.keyMatrix).map(v=>'0x'+v.toString(16)).join(',')}], result=0x${result.toString(16)}`);
       }
+      
+      // Track port read statistics for debugging keyboard issues
+      try {
+        if (typeof window !== 'undefined') {
+          window.__KEYBOARD_DEBUG__ = window.__KEYBOARD_DEBUG__ || { reads: 0, lastResult: null, lastPort: null };
+          window.__KEYBOARD_DEBUG__.reads++;
+          window.__KEYBOARD_DEBUG__.lastResult = result;
+          window.__KEYBOARD_DEBUG__.lastPort = port;
+          // Only log every 1000th read to avoid spam, but always log if key detected
+          if ((result & 0x1f) !== 0x1f) {
+            window.__KEYBOARD_DEBUG__.lastKeyDetected = { port, high, result, t: Date.now() };
+          }
+        }
+      } catch (e) { /* ignore */ }
+      
       // Test hook: capture port reads for diagnostics
       try {
         if (typeof window !== 'undefined' && window.__TEST__) {
