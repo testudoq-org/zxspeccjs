@@ -26,6 +26,16 @@ module.exports = {
         'max-lines': ['warn', { max: 800 }],
         complexity: ['warn', 18]
       }
+    },
+    {
+      files: ['tests/scripts/**/*.mjs'],
+      env: { node: true, browser: true, es2021: true },
+      rules: {
+        // diagnostic scripts intentionally use console and node/browser globals
+        'no-console': 'off',
+        'no-undef': 'off',
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
+      }
     }
   ]
 };
