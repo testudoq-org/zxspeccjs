@@ -71,7 +71,12 @@ foreach ($entry in $plan) {
         $relSrc = (Resolve-Path $entry.source).Path
         $relDest = Join-Path -Path $destDirFull -ChildPath $entry.name
         Write-Host "git mv '$relSrc' -> '$relDest'"
-        & git mv "$relSrc" "$relDest"
+        $mvRes = & git mv "$relSrc" "$relDest" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "git mv failed, falling back to Move-Item + git add: $mvRes"
+            Move-Item -Path $relSrc -Destination $relDest -Force
+            & git add "$destDirFull\$($entry.name)"
+        }
     }
 }
 
