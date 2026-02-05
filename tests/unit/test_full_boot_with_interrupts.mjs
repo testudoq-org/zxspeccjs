@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Full boot test with proper interrupt handling
  * Based on JSSpeccy3's core.ts.in:
@@ -182,3 +186,4 @@ for (let attrY = 21; attrY < 24; attrY++) {
   }
   console.log(`  Row ${attrY}: ${nonDefault} non-default attributes`);
 }
+

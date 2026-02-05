@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Test ROM boot with interrupts
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -37,3 +41,4 @@ if (cpu.IY === 0x5C3A) {
 } else {
   console.log('✗ IY NOT initialized - ROM boot failed');
 }
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace in detail what happens around 0x3DF-0x3F5
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -58,3 +62,4 @@ for (let step = 0; step < 2000000; step++) {
 
 keyMatrix[1] = 0xFF;
 console.log(`\nFinal PC: 0x${cpu.PC.toString(16)}`);
+

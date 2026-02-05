@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Detailed trace of 0x10C5-0x111B area
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -65,3 +69,4 @@ console.log(`\nNow at PC=0x${cpu.PC.toString(16)}`);
 
 // Also release key at some point
 keyMatrix[1] = 0xFF;
+

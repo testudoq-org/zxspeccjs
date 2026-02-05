@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Release key immediately after FLAGS bit 5 is set, before consumption
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -81,3 +85,4 @@ console.log(`Non-zero bytes in screen: ${nonZero}`);
 const eLine = memory.read(0x5C59) | (memory.read(0x5C5A) << 8);
 console.log(`\nE_LINE points to: 0x${eLine.toString(16)}`);
 console.log(`First bytes at E_LINE: 0x${memory.read(eLine).toString(16)} 0x${memory.read(eLine+1).toString(16)} 0x${memory.read(eLine+2).toString(16)}`);
+

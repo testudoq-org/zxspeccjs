@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 #!/usr/bin/env node
 
 /**
@@ -156,3 +160,4 @@ for (let col = 0; col < 32; col++) {
     console.log(`   Col ${col}: ${hex}`);
   }
 }
+

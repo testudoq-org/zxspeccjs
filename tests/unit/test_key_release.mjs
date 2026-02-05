@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace execution - press and RELEASE key
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -81,3 +85,4 @@ console.log(`Non-zero bytes in display file: ${screenWrites}`);
 
 // Also check what ROM routine we're in
 console.log(`\nA=0x${cpu.A.toString(16)}, BC=0x${cpu.BC.toString(16)}, DE=0x${cpu.DE.toString(16)}, HL=0x${cpu.HL.toString(16)}`);
+

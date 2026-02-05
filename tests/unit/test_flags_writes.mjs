@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace writes to FLAGS (0x5C3B)
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -68,3 +72,4 @@ console.log('Last 10 writes:');
 flagsWrites.slice(-10).forEach(w => {
   console.log(`  PC=0x${w.pc.toString(16).padStart(4,'0')}, val=0x${w.val.toString(16).padStart(2,'0')}`);
 });
+

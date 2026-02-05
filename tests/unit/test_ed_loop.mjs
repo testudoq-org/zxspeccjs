@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace ED-LOOP execution step by step
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -109,3 +113,4 @@ for (let i = 0; i < 100; i++) {
 }
 
 console.log(`\nFinal PC: 0x${cpu.PC.toString(16)}`);
+

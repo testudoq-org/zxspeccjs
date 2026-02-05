@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Test full boot sequence with interrupts
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -95,3 +99,4 @@ for (let i = 0; i < 30; i++) {
   if (c & 0x80) break;
 }
 console.log(`ROM copyright at 0x1539: "${copyrightText}"`);
+

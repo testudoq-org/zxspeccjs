@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Check H register in beeper loop
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -61,3 +65,4 @@ console.log(`\nFinal PC: 0x${cpu.PC.toString(16)}`);
 console.log('\nHL was set at 0x0F41 to 0x00C8 - let me verify H');
 // HL=0x00C8 means H=0x00, L=0xC8
 // That means B gets loaded with 0!
+

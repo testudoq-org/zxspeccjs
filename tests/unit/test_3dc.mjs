@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace after 0x3DC (JP NZ)
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -57,3 +61,4 @@ for (let step = 0; step < 50000; step++) {
 }
 
 keyMatrix[1] = 0xFF;
+

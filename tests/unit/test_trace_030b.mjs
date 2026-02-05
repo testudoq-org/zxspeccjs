@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace if SET 5,(IY+1) at 0x030B is ever executed
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -61,3 +65,4 @@ for (let frame = 0; frame < 20; frame++) {
 console.log('After 20 frames with L pressed: hitCount at 0x030B = ' + hitCount);
 console.log('FLAGS = 0x' + memory.read(0x5C3B).toString(16));
 console.log('LASTK = 0x' + memory.read(0x5C08).toString(16));
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Comprehensive test for ZX Spectrum 48K boot implementation
 // Tests all critical fixes: I register, 50Hz interrupts, frame counter, I/O channels
 

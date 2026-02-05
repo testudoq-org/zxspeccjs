@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Check I/O channel setup
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -82,3 +86,4 @@ console.log('DF_CC (display position) = 0x' + dfcc.toString(16));
 const sposn_col = memory.read(0x5C88);
 const sposn_row = memory.read(0x5C89);
 console.log('S_POSN (col,row) = (' + sposn_col + ',' + sposn_row + ')');
+

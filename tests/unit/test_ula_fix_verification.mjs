@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Verification test for ULA port I/O fix
 import { Memory } from './src/memory.mjs';
 import { ULA } from './src/ula.mjs';

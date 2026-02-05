@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace DEC B at 0x3DB
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -65,3 +69,4 @@ for (let step = 0; step < 100000 && count < 5; step++) {
 }
 
 keyMatrix[1] = 0xFF;
+

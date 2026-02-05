@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Detailed step-by-step trace after key consumption
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -107,3 +111,4 @@ for (let i = 0; i < 500; i++) {
 
 console.log('\n...continued...');
 console.log(`Final PC: 0x${cpu.PC.toString(16)}`);
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Test keyboard input after proper ROM boot
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -64,3 +68,4 @@ if (finalFlags & 0x20) {
 } else {
   console.log('✗ FLAGS bit 5 is CLEAR - keyboard input NOT detected');
 }
+

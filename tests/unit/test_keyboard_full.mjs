@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // test_keyboard_full.mjs - Full keyboard test with port monitoring
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -127,3 +131,4 @@ if (rst10Hits > 0) {
 } else {
     console.log('\n✗ FAIL: No printing occurred');
 }
+

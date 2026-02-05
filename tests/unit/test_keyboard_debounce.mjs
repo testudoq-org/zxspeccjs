@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Run multiple keyboard interrupts to test debounce
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -74,3 +78,4 @@ async function testKeyboardDebounce() {
 }
 
 testKeyboardDebounce().catch(console.error);
+

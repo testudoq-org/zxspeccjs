@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace specific ROM addresses after key consumption
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -85,3 +89,4 @@ console.log('\nFinal PC=0x' + cpu.PC.toString(16));
 
 // Check ERR_NR system variable
 console.log('ERR_NR (0x5C3A) = ' + (memory.read(0x5C3A) - 1));  // ERR_NR + 1 is stored
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Detailed trace of SET 5,(IY+1) instruction
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -75,3 +79,4 @@ for (let frame = 0; frame < 20 && !stopped; frame++) {
 }
 
 console.log('\nFinal FLAGS = 0x' + memory.read(0x5C3B).toString(16));
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
 import { loadRom } from './src/romManager.mjs';

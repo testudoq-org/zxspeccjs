@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace keyboard processing flow
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -88,3 +92,4 @@ for (let row = 0; row < 2; row++) {
   }
   console.log(`  Row ${row}: ${line.join(' ')}`);
 }
+

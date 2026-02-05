@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Test CB 00 (RLC B) instruction
  */
@@ -105,3 +109,4 @@ for (let i = 0; i < 10; i++) {
         break;
     }
 }
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Test LD HL,(nn) instruction - does it work?
  */
@@ -56,3 +60,4 @@ if ((cpu.H << 8 | cpu.L) === 0x5000) {
 } else {
   console.log('\n❌ LD HL,(nn) is BROKEN!');
 }
+

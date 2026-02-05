@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Test CALL instruction directly
  */
@@ -113,3 +117,4 @@ if (romStackVal === 0x02C2) {
     console.log(`  Wait - 0x3F46 < 0x4000 so it's in ROM page!`);
     console.log(`  The ROM is read-only, so writes to 0x3F46 are being ignored!`);
 }
+

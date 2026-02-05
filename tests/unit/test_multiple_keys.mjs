@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // test_multiple_keys.mjs - Test multiple key presses
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -102,3 +106,4 @@ if (totalRst10 >= testKeys.length) {
 } else {
     console.log('\n✗ FAIL: Some keys did not produce output');
 }
+

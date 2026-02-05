@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Test LD IY,nn opcode
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -17,3 +21,4 @@ console.log('Before: IY=0x' + cpu.IY.toString(16) + ', PC=0x' + cpu.PC.toString(
 const consumed = cpu.step();
 console.log('After:  IY=0x' + cpu.IY.toString(16) + ', PC=0x' + cpu.PC.toString(16) + ', consumed=' + consumed);
 console.log('Expected: IY=0x5c3a, PC=0x4004');
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Check if LDDR is causing the alternating pattern
  * The ROM early boot uses LDDR to copy attributes
@@ -78,3 +82,4 @@ console.log('Destination values (should match source):');
 for (let i = 0x7100; i < 0x7110; i++) {
   console.log(`  0x${i.toString(16)}: 0x${mem.read(i).toString(16).padStart(2, '0')}`);
 }
+

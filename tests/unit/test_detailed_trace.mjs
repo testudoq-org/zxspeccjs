@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Detailed trace after key consumption
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -83,3 +87,4 @@ console.log('PRINT-A (0x09F4+) hits: ' + printHits);
 // Check for calls to TOKENS table
 const tokenHits = traceLog.filter(t => t.pc >= 0x0095 && t.pc < 0x0100).length;
 console.log('Token area (0x0095+) hits: ' + tokenHits);
+

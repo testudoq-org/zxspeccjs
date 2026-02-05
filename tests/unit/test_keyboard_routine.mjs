@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Test full KEYBOARD routine (0x02BF) with L key pressed
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -102,3 +106,4 @@ async function testKeyboard() {
 }
 
 testKeyboard().catch(console.error);
+

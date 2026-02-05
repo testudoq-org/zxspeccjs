@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace if we ever return from 0x03B5 call to 0x0F47
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -81,3 +85,4 @@ console.log(`Reached 0x0F47: ${reached0F47}`);
 console.log(`Reached 0x0F4C: ${reached0F4C}`);
 console.log(`Reached 0x0F81: ${reached0F81}`);
 console.log(`Final PC: 0x${cpu.PC.toString(16)}`);
+

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace what happens after key is consumed - longer trace
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -115,3 +119,4 @@ for (let step = 0; step < 100000; step++) {
 }
 
 console.log(`\nRST 10 hits in next 100k steps: ${rst10Hits}`);
+

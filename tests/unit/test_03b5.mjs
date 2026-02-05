@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace inside 0x03B5 to see why it never returns
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -93,3 +97,4 @@ for (let i = 0; i < 1000; i++) {
 }
 
 console.log(`\nFinal PC: 0x${cpu.PC.toString(16)}`);
+

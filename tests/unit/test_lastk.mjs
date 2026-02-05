@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Debug keyboard scanning - trace what values are generated
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -100,3 +104,4 @@ console.log('Actually: 0x1E | 0xE0 = 0xFE... no wait');
 // Check what keyMatrix actually is:
 console.log(`\nkeyMatrix[1] = 0x${keyMatrix[1].toString(16)}`);
 console.log(`For A pressed, should be 0xFE (bit 0 clear)`);
+

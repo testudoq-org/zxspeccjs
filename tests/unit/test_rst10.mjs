@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace looking for RST 10 call
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -102,3 +106,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
     if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`Non-zero bytes in screen: ${nonZero}`);
+

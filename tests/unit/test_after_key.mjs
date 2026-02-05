@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Trace what happens after key is consumed
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -73,3 +77,4 @@ for (let frame = 0; frame < 5; frame++) {
 }
 
 console.log('\nFinal PC=0x' + cpu.PC.toString(16));
+

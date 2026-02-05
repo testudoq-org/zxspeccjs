@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Check what key value the ROM actually reads
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -82,3 +86,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
     if (memory.read(addr) !== 0) screenWrites++;
 }
 console.log(`\nNon-zero bytes in display file: ${screenWrites}`);
+

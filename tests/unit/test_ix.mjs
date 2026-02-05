@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Check IX register when entering 0x03B5
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -75,3 +79,4 @@ for (let step = 0; step < 1000000; step++) {
 
 console.log(`\nTotal JP (IX) hits: ${jpIxCount}`);
 console.log(`Final PC: 0x${cpu.PC.toString(16)}`);
+

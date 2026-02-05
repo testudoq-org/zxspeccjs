@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Complete trace: press K, track CLS and printing
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -103,3 +107,4 @@ for (let i = 0; i < 32; i++) {
     line += memory.read(0x4000 + i).toString(16).padStart(2,'0') + ' ';
 }
 console.log(line);
+
