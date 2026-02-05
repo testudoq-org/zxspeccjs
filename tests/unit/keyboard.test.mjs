@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import Input, { ROW_KEYS, KEY_TO_POS, DEFAULT_ROW } from '../src/input.mjs';
+import Input, { ROW_KEYS, KEY_TO_POS, DEFAULT_ROW } from '../../src/input.mjs';
 
 describe('ZX Spectrum Keyboard Matrix', () => {
   let input;

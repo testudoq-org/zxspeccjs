@@ -2,7 +2,7 @@
 /* global window, document */
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initKeywordUI } from '../src/ui-keyword.mjs';
+import { initKeywordUI } from '../../src/ui-keyword.mjs';
 
 describe('UI Keyword helper', () => {
   beforeEach(() => {

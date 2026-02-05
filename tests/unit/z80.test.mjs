@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Memory } from '../src/memory.mjs';
-import { Z80 } from '../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 
 describe('Z80 basic operations', () => {
   it('should load immediate into A (LD A,n)', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Memory } from '../src/memory.mjs';
-import { ULA } from '../src/ula.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { ULA } from '../../src/ula.mjs';
 
 // Mock canvas for Node.js environment
 function createMockCanvas() {

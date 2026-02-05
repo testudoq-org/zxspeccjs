@@ -4,7 +4,7 @@
 /* global document, global, Event */
 /* eslint-disable no-unused-vars, no-undef */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Input from '../src/input.mjs';
+import Input from '../../src/input.mjs';
 
 describe('Virtual keyboard integration (unit) @unit', () => {
   let input;

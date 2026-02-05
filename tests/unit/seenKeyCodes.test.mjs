@@ -1,7 +1,7 @@
 // @unit
 /* global global */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Input from '../src/input.mjs';
+import Input from '../../src/input.mjs';
 
 describe('seenKeyCodes handling and punctuation mapping @unit', () => {
   let input;
