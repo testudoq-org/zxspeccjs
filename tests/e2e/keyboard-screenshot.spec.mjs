@@ -1,3 +1,6 @@
+// @e2e @ui
+/* eslint-env browser, node, es2021 */
+/* global window document console setTimeout process Buffer */
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
@@ -5,7 +8,7 @@ import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 // This test presses 'L' via in-page helper and saves a screenshot PNG
 test('keyboard screenshot test (LIST) @ui', async ({ page }) => {
-  const consoleMsgs = await setupDiagnostics(page);
+  await setupDiagnostics(page);
   await page.goto('http://localhost:8080/');
   await page.waitForSelector('#screen', { timeout: 15000 });
 
@@ -23,7 +26,7 @@ test('keyboard screenshot test (LIST) @ui', async ({ page }) => {
   await page.evaluate(() => {
     if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
     if (!window.__ZX_DEBUG__.testKeyboardAndScreenshot) {
-      window.__ZX_DEBUG__.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false } = {}) => {
+      window.__ZX_DEBUG__.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500 } = {}) => {
         try {
           const canvas = document.getElementById('screen');
           if (!canvas) return { error: 'no_canvas' };
@@ -69,4 +72,40 @@ test('keyboard screenshot test (LIST) @ui', async ({ page }) => {
   console.log('Saved keyboard screenshot to', filename, 'size', stats.size);
 
   expect(stats.size).toBeGreaterThan(1000);
+
+  // Robustness check: verify the canvas contains visible pixels after the keypress.
+  // Preferred: use debug API's column/bitmap compare helpers, fallback to canvas sampling.
+  const visualOk = await page.evaluate(() => {
+    try {
+      const dbg = window.__ZX_DEBUG__;
+      if (dbg && typeof dbg.compareColumnPixels === 'function') {
+        // Check bottom text area columns for any non-background column
+        for (let c = 0; c < 32; c++) {
+          try {
+            const r = dbg.compareColumnPixels(c, 184);
+            if (r && (r.match || r.matchToRom || r.found)) return true;
+          } catch (e) { /* ignore */ }
+        }
+      }
+
+      // Fallback: sample multiple canvas regions and look for non-background pixels
+      const canvas = document.getElementById('screen');
+      if (!canvas) return false;
+      const ctx = canvas.getContext('2d');
+      const samples = [ [10, 186, 1, 1], [50, 186, 1, 1], [100, 120, 20, 10], [160, 120, 20, 10] ];
+      for (const s of samples) {
+        try {
+          const d = ctx.getImageData(s[0], s[1], s[2], s[3]).data;
+          let nonBg = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if ((d[i] + d[i + 1] + d[i + 2]) < 700) nonBg++;
+          }
+          if (nonBg > 0) return true;
+        } catch (e) { /* ignore */ }
+      }
+    } catch (e) { /* ignore */ }
+    return false;
+  });
+
+  expect(visualOk).toBe(true);
 });
