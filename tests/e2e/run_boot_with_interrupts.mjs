@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Run boot with interrupt simulation to see copyright message
  */
@@ -105,3 +109,4 @@ console.log(`  PC: 0x${cpu.PC.toString(16).padStart(4, '0')}`);
 console.log(`  SP: 0x${cpu.SP.toString(16).padStart(4, '0')}`);
 console.log(`  IFF1: ${cpu.IFF1}`);
 console.log(`  IFF2: ${cpu.IFF2}`);
+

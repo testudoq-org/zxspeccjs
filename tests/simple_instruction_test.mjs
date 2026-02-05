@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 import { test, expect } from '@playwright/test';
 
 test.describe('Simple Instruction Test', () => {

@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Run boot sequence until it reaches EI or error
  */
@@ -85,3 +89,4 @@ if (eiFound) {
     cpu.step();
   }
 }
+

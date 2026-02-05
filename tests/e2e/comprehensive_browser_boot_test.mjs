@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 /**
  * Comprehensive Browser Boot Test
  * This script tests the EXACT same code path used by the browser
@@ -251,3 +255,4 @@ async function runTest() {
 }
 
 runTest().catch(console.error);
+

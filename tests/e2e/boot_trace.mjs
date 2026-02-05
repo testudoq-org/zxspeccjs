@@ -1,3 +1,7 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
+const console = globalThis.console;
+
 // Detailed ROM boot sequence trace
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -57,3 +61,4 @@ function getOpcodeName(opcode, op1, op2) {
     default: return '';
   }
 }
+
