@@ -11,7 +11,10 @@
     "test:unit": "vitest run --dir test",
     "test:e2e": "npx playwright test",
     "test:watch": "vitest --watch --dir test",
-    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev"
+    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev",
+  "vitest": {
+    "exclude": ["tests-e2e/**"]
+  }
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -19,6 +22,7 @@
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-terser": "^0.4.4",
     "http-server": "^14.1.1",
+    "jsdom": "^28.0.0",
     "rollup": "^3.26.3",
     "vitest": "^1.3.0"
   },

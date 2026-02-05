@@ -246,8 +246,10 @@ export class Z80 {
     // Shift/rotate operations are only 0x00-0x3F
     // 0x00..0x07 RLC, 0x08..0x0F RRC, 0x10..0x17 RL, 0x18..0x1F RR,
     // 0x20..0x27 SLA, 0x28..0x2F SRA, 0x30..0x37 SLL, 0x38..0x3F SRL
+    // opType is the shifted value: cbOpcode >> 3 gives 0-7 for the 8 operations
     if (cbOpcode < 0x40) {
-      if (opType >= 0x00 && opType <= 0x07) {
+      // opType after shift: 0=RLC, 1=RRC, 2=RL, 3=RR, 4=SLA, 5=SRA, 6=SLL, 7=SRL
+      if (opType === 0) {
         // RLC
         const val = readTarget();
         const res = this._rlc(val);
@@ -255,7 +257,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x08 && opType <= 0x0F) {
+      if (opType === 1) {
         // RRC
         const val = readTarget();
         const res = this._rrc(val);
@@ -263,7 +265,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x10 && opType <= 0x17) {
+      if (opType === 2) {
         // RL
         const val = readTarget();
         const res = this._rl(val);
@@ -271,7 +273,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x18 && opType <= 0x1F) {
+      if (opType === 3) {
         // RR
         const val = readTarget();
         const res = this._rr(val);
@@ -279,7 +281,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x20 && opType <= 0x27) {
+      if (opType === 4) {
         // SLA
         const val = readTarget();
         const res = this._sla(val);
@@ -287,7 +289,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x28 && opType <= 0x2F) {
+      if (opType === 5) {
         // SRA
         const val = readTarget();
         const res = this._sra(val);
@@ -295,7 +297,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x30 && opType <= 0x37) {
+      if (opType === 6) {
         // SLL
         const val = readTarget();
         const res = this._sll(val);
@@ -303,7 +305,7 @@ export class Z80 {
         if (regIndex === 6) { this.tstates += 15; return 15; }
         this.tstates += 8; return 8;
       }
-      if (opType >= 0x38 && opType <= 0x3F) {
+      if (opType === 7) {
         // SRL
         const val = readTarget();
         const res = this._srl(val);
@@ -317,9 +319,10 @@ export class Z80 {
     if (cbOpcode >= 0x40 && cbOpcode <= 0x7F) {
       const bit = (cbOpcode & 0x38) >>> 3;
       const val = readTarget();
-      const tested = (val & (1 << bit)) !== 0;
-      // Set flags: Z = !tested, S depends only if bit 7 tested, H=1, N=0, C preserved
-      this._setFlagZ(!tested);
+      const bitIsSet = (val & (1 << bit)) !== 0;
+      // Set flags: Z = 1 if bit is 0, Z = 0 if bit is 1
+      // S depends only if bit 7 tested, H=1, N=0, C preserved
+      if (bitIsSet) this.F &= ~0x40; else this.F |= 0x40; // Z = !bitIsSet
       if (bit === 7) this._setFlagS((val & 0x80) !== 0); else this.F &= ~0x80;
       this.F &= ~0x02; // N=0
       this.F |= 0x10; // H=1
@@ -358,7 +361,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -369,7 +372,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -380,7 +383,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -391,7 +394,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -402,7 +405,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -413,7 +416,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -424,7 +427,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -435,7 +438,7 @@ export class Z80 {
     if (carry) this.F |= 0x01; else this.F &= ~0x01;
     this._setFlagZ(result);
     this._setFlagS(result);
-    this.F &= ~0x10; this.F |= 0x10; // H=1
+    this.F &= ~0x10; // H=0
     this.F &= ~0x02; // N=0
     return result;
   }
@@ -449,6 +452,9 @@ export class Z80 {
   _setDE(v) { this.D = (v >>> 8) & 0xFF; this.E = v & 0xFF; }
   _getHL() { return ((this.H & 0xFF) << 8) | (this.L & 0xFF); }
   _setHL(v) { this.H = (v >>> 8) & 0xFF; this.L = v & 0xFF; }
+
+  // Signed byte helper for IX/IY displacement
+  _signedByte(b) { return b < 128 ? b : b - 256; }
 
   // Flag helpers
   _setFlagZ(v) { if ((v & 0xFF) === 0) this.F |= 0x40; else this.F &= ~0x40; }
@@ -881,6 +887,19 @@ export class Z80 {
         const n = this.readByteFromPC(); this.A |= n; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04; this.tstates += 7; return 7;
       }
 
+      // XOR n -> 0xEE
+      case 0xEE: {
+        const n = this.readByteFromPC();
+        this.A ^= n;
+        this._setFlagZ(this.A);
+        this._setFlagS(this.A);
+        this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0);
+        this.F &= ~0x10; // H = 0
+        this.F &= ~0x02; // N = 0
+        this._setFlagC(false);
+        this.tstates += 7; return 7;
+      }
+
       // CP r
       case 0x87: { // ADD A,A
         this._addA(this.A);
@@ -977,6 +996,11 @@ export class Z80 {
         this.tstates += 4; return 4;
       }
 
+      case 0xC2: { // JP NZ,nn
+        const addr = this.readWordFromPC();
+        if (!(this.F & 0x40)) this.PC = addr;
+        this.tstates += 10; return 10;
+      }
       case 0xCA: { // JP Z,nn
         const addr = this.readWordFromPC();
         if (this.F & 0x40) this.PC = addr;
@@ -1663,6 +1687,13 @@ export class Z80 {
           try { val = this.io.read(port) & 0xff; } catch (e) { val = 0xff; }
         }
         this.A = val;
+        // Minimal test hook: capture last port read for diagnostics (safe, non-invasive)
+        try {
+          if (typeof window !== 'undefined') {
+            window.__TEST__ = window.__TEST__ || {};
+            window.__TEST__.lastPortRead = { port, val, pc: this.PC, t: this.tstates };
+          }
+        } catch (e) { /* ignore */ }
         this.tstates += 11; return 11;
       }
       case 0xD3: { // OUT (n),A - write A to port (A as high byte, imm low byte)
@@ -1830,7 +1861,7 @@ export class Z80 {
           // IX with displacement operations
           case 0x34: { // INC (IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = (this.readByte(addr) + 1) & 0xFF;
             this.writeByte(addr, v);
             this._setFlagZ(v); this._setFlagS(v);
@@ -1838,7 +1869,7 @@ export class Z80 {
           }
           case 0x35: { // DEC (IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = (this.readByte(addr) - 1) & 0xFF;
             this.writeByte(addr, v);
             this._setFlagZ(v); this._setFlagS(v);
@@ -1847,7 +1878,7 @@ export class Z80 {
           case 0x36: { // LD (IX+d),n
             const d = this.readByte(this.PC++);
             const n = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, n);
             this.tstates += 19; return 19;
           }
@@ -1855,43 +1886,43 @@ export class Z80 {
           // LD r,(IX+d) operations
           case 0x46: { // LD B,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.B = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x4E: { // LD C,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.C = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x56: { // LD D,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.D = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x5E: { // LD E,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.E = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x66: { // LD H,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.H = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x6E: { // LD L,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.L = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x7E: { // LD A,(IX+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.A = this.readByte(addr);
             this.tstates += 19; return 19;
           }
@@ -1899,43 +1930,43 @@ export class Z80 {
           // LD (IX+d),r operations
           case 0x70: { // LD (IX+d),B
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.B);
             this.tstates += 19; return 19;
           }
           case 0x71: { // LD (IX+d),C
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.C);
             this.tstates += 19; return 19;
           }
           case 0x72: { // LD (IX+d),D
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.D);
             this.tstates += 19; return 19;
           }
           case 0x73: { // LD (IX+d),E
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.E);
             this.tstates += 19; return 19;
           }
           case 0x74: { // LD (IX+d),H
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.H);
             this.tstates += 19; return 19;
           }
           case 0x75: { // LD (IX+d),L
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.L);
             this.tstates += 19; return 19;
           }
           case 0x77: { // LD (IX+d),A
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.A);
             this.tstates += 19; return 19;
           }
@@ -1943,7 +1974,7 @@ export class Z80 {
           // ADD A,(IX+d)
           case 0x86: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._addA(v);
             this.tstates += 19; return 19;
@@ -1952,7 +1983,7 @@ export class Z80 {
           // ADC A,(IX+d)
           case 0x8E: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._adcA(v);
             this.tstates += 19; return 19;
@@ -1961,7 +1992,7 @@ export class Z80 {
           // SUB A,(IX+d)
           case 0x96: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._subA(v);
             this.tstates += 19; return 19;
@@ -1970,7 +2001,7 @@ export class Z80 {
           // SBC A,(IX+d)
           case 0x9E: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._sbcA(v);
             this.tstates += 19; return 19;
@@ -1979,7 +2010,7 @@ export class Z80 {
           // AND A,(IX+d)
           case 0xA6: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A &= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F |= 0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -1988,7 +2019,7 @@ export class Z80 {
           // OR A,(IX+d)
           case 0xB6: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A |= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -1997,7 +2028,7 @@ export class Z80 {
           // XOR A,(IX+d)
           case 0xAE: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A ^= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -2006,7 +2037,7 @@ export class Z80 {
           // CP A,(IX+d)
           case 0xBE: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             const result = this.A - v; this._setFlagZ(result & 0xFF); this._setFlagS(result & 0xFF); this._setFlagC(this.A < v); this.F |= 0x02;
             this.tstates += 19; return 19;
@@ -2016,7 +2047,7 @@ export class Z80 {
           case 0xCB: {
             const d = this.readByte(this.PC++);
             const cbOpcode = this.readByte(this.PC++);
-            const addr = (this.IX + d) & 0xFFFF;
+            const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             
             return this._executeDDCBOperation(cbOpcode, addr);
           }
@@ -2062,7 +2093,7 @@ export class Z80 {
           // IY with displacement operations
           case 0x34: { // INC (IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = (this.readByte(addr) + 1) & 0xFF;
             this.writeByte(addr, v);
             this._setFlagZ(v); this._setFlagS(v);
@@ -2070,7 +2101,7 @@ export class Z80 {
           }
           case 0x35: { // DEC (IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = (this.readByte(addr) - 1) & 0xFF;
             this.writeByte(addr, v);
             this._setFlagZ(v); this._setFlagS(v);
@@ -2079,7 +2110,7 @@ export class Z80 {
           case 0x36: { // LD (IY+d),n
             const d = this.readByte(this.PC++);
             const n = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, n);
             this.tstates += 19; return 19;
           }
@@ -2087,43 +2118,43 @@ export class Z80 {
           // LD r,(IY+d) operations
           case 0x46: { // LD B,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.B = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x4E: { // LD C,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.C = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x56: { // LD D,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.D = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x5E: { // LD E,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.E = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x66: { // LD H,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.H = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x6E: { // LD L,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.L = this.readByte(addr);
             this.tstates += 19; return 19;
           }
           case 0x7E: { // LD A,(IY+d)
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.A = this.readByte(addr);
             this.tstates += 19; return 19;
           }
@@ -2131,43 +2162,43 @@ export class Z80 {
           // LD (IY+d),r operations
           case 0x70: { // LD (IY+d),B
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.B);
             this.tstates += 19; return 19;
           }
           case 0x71: { // LD (IY+d),C
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.C);
             this.tstates += 19; return 19;
           }
           case 0x72: { // LD (IY+d),D
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.D);
             this.tstates += 19; return 19;
           }
           case 0x73: { // LD (IY+d),E
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.E);
             this.tstates += 19; return 19;
           }
           case 0x74: { // LD (IY+d),H
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.H);
             this.tstates += 19; return 19;
           }
           case 0x75: { // LD (IY+d),L
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.L);
             this.tstates += 19; return 19;
           }
           case 0x77: { // LD (IY+d),A
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             this.writeByte(addr, this.A);
             this.tstates += 19; return 19;
           }
@@ -2175,7 +2206,7 @@ export class Z80 {
           // ADD A,(IY+d)
           case 0x86: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._addA(v);
             this.tstates += 19; return 19;
@@ -2184,7 +2215,7 @@ export class Z80 {
           // ADC A,(IY+d)
           case 0x8E: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._adcA(v);
             this.tstates += 19; return 19;
@@ -2193,7 +2224,7 @@ export class Z80 {
           // SUB A,(IY+d)
           case 0x96: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._subA(v);
             this.tstates += 19; return 19;
@@ -2202,7 +2233,7 @@ export class Z80 {
           // SBC A,(IY+d)
           case 0x9E: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this._sbcA(v);
             this.tstates += 19; return 19;
@@ -2211,7 +2242,7 @@ export class Z80 {
           // AND A,(IY+d)
           case 0xA6: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A &= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F |= 0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -2220,7 +2251,7 @@ export class Z80 {
           // OR A,(IY+d)
           case 0xB6: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A |= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -2229,7 +2260,7 @@ export class Z80 {
           // XOR A,(IY+d)
           case 0xAE: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             this.A ^= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
             this.tstates += 19; return 19;
@@ -2238,7 +2269,7 @@ export class Z80 {
           // CP A,(IY+d)
           case 0xBE: {
             const d = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
             const result = this.A - v; this._setFlagZ(result & 0xFF); this._setFlagS(result & 0xFF); this._setFlagC(this.A < v); this.F |= 0x02;
             this.tstates += 19; return 19;
@@ -2248,7 +2279,7 @@ export class Z80 {
           case 0xCB: {
             const d = this.readByte(this.PC++);
             const cbOpcode = this.readByte(this.PC++);
-            const addr = (this.IY + d) & 0xFFFF;
+            const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             
             return this._executeFDCBOperation(cbOpcode, addr);
           }
@@ -2479,6 +2510,13 @@ export class Z80 {
             this._setFlagPV((ones % 2) === 0);
             this.F &= ~0x10; // H = 0
             this.F &= ~0x02; // N = 0
+            // Minimal test hook: capture last port read for diagnostics
+            try {
+              if (typeof window !== 'undefined') {
+                window.__TEST__ = window.__TEST__ || {};
+                window.__TEST__.lastPortRead = { port, val, pc: this.PC, t: this.tstates };
+              }
+            } catch (e) { /* ignore */ }
             this.tstates += 12; return 12;
           }
           case 0x79: { // OUT (C),A

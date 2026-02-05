@@ -1,3 +1,5 @@
+/* eslint-env browser */
+/* global window */
 export class Sound {
   constructor() {
     this.ctx = null;
@@ -9,16 +11,37 @@ export class Sound {
     this._tstatesPerSecond = 3500000; // ZX Spectrum ~3.5 MHz
     this._minFreq = 40;
     this._maxFreq = 8000;
+    this._muted = false; // Allow muting beeper
+    this._volume = 0.2;  // Master volume (0.0 - 1.0)
 
     // Lazy init audio context (many browsers require user gesture to resume)
     this._initContext();
   }
 
+  // Mute/unmute the beeper
+  setMuted(muted) {
+    this._muted = !!muted;
+    if (this._muted && this.gain) {
+      this.gain.gain.setValueAtTime(0, this.ctx ? this.ctx.currentTime : 0);
+    }
+  }
+
+  isMuted() {
+    return this._muted;
+  }
+
+  // Set volume (0.0 - 1.0)
+  setVolume(vol) {
+    this._volume = Math.max(0, Math.min(1, vol));
+  }
+
   _initContext() {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') return;
       const C = window.AudioContext || window.webkitAudioContext;
       if (!C) {
-        console.warn('WebAudio not available');
+        // WebAudio not available - silent fail
         return;
       }
       this.ctx = new C();
@@ -46,7 +69,7 @@ export class Sound {
         this.oscRunning = true;
       }
     } catch (e) {
-      console.warn('Failed to initialize audio context', e);
+      // Audio initialization failed - silent fail (common in Node.js or restricted browsers)
       this.ctx = null;
     }
   }
@@ -57,10 +80,9 @@ export class Sound {
     if ((port & 0xff) !== 0xfe) return;
     const bit = (value & 0x10) ? 1 : 0; // bit 4 = speaker
 
-    // Lazy resume context on first interaction
+    // Lazy resume context on first user interaction (browsers require gesture to start audio)
     if (this.ctx && this.ctx.state === 'suspended') {
-      // try to resume; best-effort
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().catch(() => { /* expected until user gesture */ });
     }
 
     // If bit didn't change, nothing to update
@@ -81,10 +103,10 @@ export class Sound {
     }
 
     // Update amplitude to reflect speaker level (simple model)
-    if (this.gain) {
+    if (this.gain && !this._muted) {
       // when bit=1 we set audible level, bit=0 mute; use a short ramp for smoothing
       const now = this.ctx ? this.ctx.currentTime : 0;
-      const target = bit ? 0.2 : 0.0; // modest volume
+      const target = bit ? this._volume : 0.0;
       if (this.gain.gain.cancelScheduledValues) this.gain.gain.cancelScheduledValues(now);
       this.gain.gain.setTargetAtTime(target, now, 0.01);
     }
@@ -100,7 +122,7 @@ export class Sound {
     } catch (e) {
       try {
         this.osc.frequency.value = freq;
-      } catch (ee) {}
+      } catch { /* ignore */ }
     }
   }
 
@@ -123,13 +145,13 @@ export class Sound {
   close() {
     try {
       if (this.osc && this.osc.stop) this.osc.stop();
-    } catch (e) {}
+    } catch { /* ignore */ }
     try {
       if (this.gain) this.gain.disconnect();
-    } catch (e) {}
+    } catch { /* ignore */ }
     try {
       if (this.ctx && this.ctx.close) this.ctx.close();
-    } catch (e) {}
+    } catch { /* ignore */ }
     this.ctx = null;
     this.osc = null;
     this.gain = null;

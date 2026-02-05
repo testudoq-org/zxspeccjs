@@ -14,11 +14,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Install dependencies
         run: npm ci
-      - name: Run tests
+      - name: Run unit tests (Vitest)
         run: npm test
+      - name: Install Playwright browsers and dependencies
+        run: npx playwright install --with-deps
+      - name: Run E2E tests (Playwright)
+        run: npm run test:e2e
       - name: Build bundle
         run: npm run build
         env:
