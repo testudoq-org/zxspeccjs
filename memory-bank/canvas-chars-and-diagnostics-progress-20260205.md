@@ -1,8 +1,9 @@
-# Canvas / CHARS / Diagnostics — Progress Update
+# Archived — canvas-chars-and-diagnostics-progress-20260205.md
 
-Date: 2026-02-05
+**Archived on 2026-02-06 — original content moved to `archive/memory-bank/canvas-chars-and-diagnostics-progress-20260205.md`**
 
-Summary
+This diagnostic/progress note has been archived to reduce noise in the core memory-bank. See the archive path for full details and diagnostics artifacts.
+
 
 This document records the recent work to make glyph rendering deterministic and robust, the debug surface and instrumentation added to observe CHARS writes, the deferred-frame rendering architecture, automated tests, and outstanding issues and next steps.
 

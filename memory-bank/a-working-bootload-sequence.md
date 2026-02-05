@@ -1,8 +1,11 @@
-# A Working Bootload Sequence: Analysis and Implementation Guide
+# Archived — a-working-bootload-sequence.md
 
-## Executive Summary
+**Archived on 2026-02-06 — original content moved to `archive/memory-bank/a-working-bootload-sequence.md`**
 
-This document provides a comprehensive analysis comparing our ZX Spectrum emulator boot loading approach with the proven JSSpeccy3 implementation by Matt Westcott (gasman). The goal is to identify architectural differences that explain our "red lines" boot issue and propose concrete solutions.
+This file is an archived artifact. The original analysis and implementation guide have been preserved in the archive folder to keep the core `memory-bank/` focused on the canonical project context and progress.
+
+(See: `archive/memory-bank/a-working-bootload-sequence.md` for full content)
+
 
 ---
 

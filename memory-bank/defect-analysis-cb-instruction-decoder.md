@@ -1,9 +1,9 @@
-# Defect Analysis: CB-Prefix Instruction Decoder Bug
+# Archived — defect-analysis-cb-instruction-decoder.md
 
-**Date**: 2026-01-28  
-**Severity**: Critical  
-**Status**: RESOLVED  
-**Affected Component**: `src/z80.mjs` - `_executeCBOperation()` method
+**Archived on 2026-02-06 — original content moved to `archive/memory-bank/defect-analysis-cb-instruction-decoder.md`**
+
+This defect analysis has been archived; the complete investigation and fixes are preserved in the archive for historical reference. See `archive/memory-bank/defect-analysis-cb-instruction-decoder.md` for full details.
+
 
 ---
 

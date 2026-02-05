@@ -1,6 +1,9 @@
-### Architectural Approach for ZX Spectrum Emulator in a Webpage
+# Archived — idea-for-project.md
 
-Building a ZX Spectrum emulator in a webpage is indeed simpler than emulating Windows 95, as the ZX Spectrum is an 8-bit system with a Z80 CPU, 48KB RAM (typically), basic graphics (256x192 pixels with attributes), keyboard input, and beeper sound. The Windows 95 project uses Electron to wrap a full x86 emulator (like v86), but for ZX Spectrum, we can run everything client-side in the browser using JavaScript (ES6 modules via .mjs files). Node.js can be used for development (e.g., bundling with tools like Rollup or serving a local dev server), but the emulator itself will be browser-based.
+**Archived on 2026-02-06 — original content moved to `archive/memory-bank/idea-for-project.md`**
+
+This idea and project note has been archived to `archive/memory-bank/idea-for-project.md` for future reference.
+
 
 #### High-Level Architecture
 

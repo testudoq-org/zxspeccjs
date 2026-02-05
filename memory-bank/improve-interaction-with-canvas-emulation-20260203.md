@@ -277,4 +277,9 @@ Next steps
 
 ---
 
-This file captures the proposed patch and instructions. To inspect it in the workspace open: [`memory-bank/mprove-interaction-with-canvas-emulation-20260203.md`](memory-bank/mprove-interaction-with-canvas-emulation-20260203.md:1)
+# Archived — improve-interaction-with-canvas-emulation-20260203.md
+
+**Archived on 2026-02-06 — original content moved to `archive/memory-bank/improve-interaction-with-canvas-emulation-20260203.md`**
+
+This proposal and instructions document has been archived. See the archive path for the original proposed patch and implementation notes.
+
