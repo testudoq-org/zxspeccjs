@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
-import { Z80 } from '../../src/z80.mjs';
-import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../../src/z80.mjs';
+import { Memory } from '../../../src/memory.mjs';
 
 function runSingleOp(bytes, start = 0x4000){
   const mem = new Memory({ model: '48k' });

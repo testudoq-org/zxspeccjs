@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
-import { Z80 } from '../../src/z80.mjs';
-import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../../src/z80.mjs';
+import { Memory } from '../../../src/memory.mjs';
 
 test('ED prefix fallback does not return undefined', () => {
   const mem = new Memory({ model: '48k' });

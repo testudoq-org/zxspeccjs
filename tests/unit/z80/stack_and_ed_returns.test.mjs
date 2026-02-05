@@ -2,7 +2,7 @@
 /* eslint-env node, browser */
 const console = globalThis.console;
 
-import { Z80 } from '../../src/z80.mjs';
+import { Z80 } from '../../../src/z80.mjs';
 
 function runTests(){
   console.log('🧪 Testing stack and ED return semantics\n');
