@@ -10,11 +10,10 @@ const console = globalThis.console;
 import { Z80 } from '../../src/z80.mjs';
 import { Memory } from '../../src/memory.mjs';
 
-function testZ80Operations() {
+test('ADC HL,BC (16-bit ADC HL,BC)', () => {
   const memory = new Memory();
   const cpu = new Z80(memory);
 
-  // Test 1: Basic 16-bit ADC HL operation
   cpu.reset();
   cpu._setHL(0x1000);
   cpu._setBC(0x0F00);
@@ -26,8 +25,12 @@ function testZ80Operations() {
   const tstates1 = cpu.step();
   expect(cpu._getHL()).toBe(0x1F01);
   expect(tstates1).toBe(15);
+});
 
-  // Test 2: EX AF,AF' operation
+test("EX AF,AF' swaps AF and A_'", () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu.A = 0x12;
   cpu.F = 0x45;
@@ -39,8 +42,12 @@ function testZ80Operations() {
   cpu.step();
   expect(cpu.A).toBe(0x34);
   expect(cpu.F).toBe(0x67);
+});
 
-  // Test 3: EXX operation
+test('EXX swaps register sets (BC/DE/HL)', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu._setBC(0x1234);
   cpu._setDE(0x5678);
@@ -55,8 +62,12 @@ function testZ80Operations() {
   expect(cpu._getBC()).toBe(0xFFEE);
   expect(cpu._getDE()).toBe(0xDDCC);
   expect(cpu._getHL()).toBe(0xBBAA);
+});
 
-  // Test 4: Block memory operation LDI
+test('LDI block transfer updates memory and registers', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu._setHL(0x1000);
   cpu._setDE(0x2000);
@@ -72,112 +83,99 @@ function testZ80Operations() {
   expect(cpu._getHL()).toBe(0x1001);
   expect(cpu._getDE()).toBe(0x2001);
   expect(cpu._getBC()).toBe(0x0002);
+});
 
-  // Test 5: EI/DI operations
+test('EI enables IFF and DI disables IFF', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu.PC = 0x1000;
   memory.write(0x1000, 0xFB); // EI
-
   cpu.step();
   expect(cpu.IFF1).toBe(true);
   expect(cpu.IFF2).toBe(true);
 
   cpu.PC = 0x1001;
   memory.write(0x1001, 0xF3); // DI
-
   cpu.step();
   expect(cpu.IFF1).toBe(false);
   expect(cpu.IFF2).toBe(false);
+});
 
-  // Test 6: IM modes
+test('Interrupt modes IM0 and IM1 set correctly', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu.PC = 0x1000;
   memory.write(0x1000, 0xED);
   memory.write(0x1001, 0x46); // IM 0
-
   cpu.step();
   expect(cpu.IM).toBe(0);
 
   cpu.PC = 0x1002;
   memory.write(0x1002, 0xED);
   memory.write(0x1003, 0x56); // IM 1
-
   cpu.step();
   expect(cpu.IM).toBe(1);
+});
 
-  // Test 7: NEG operation
+test('NEG and CPL operations affect A correctly', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu.A = 0x42;
   cpu.PC = 0x1000;
   memory.write(0x1000, 0xED);
   memory.write(0x1001, 0x44); // NEG
-
   cpu.step();
   expect(cpu.A).toBe(0xBE);
 
-  // Test 8: CPL operation
   cpu.reset();
   cpu.A = 0xAB;
   cpu.PC = 0x1000;
   memory.write(0x1000, 0x2F); // CPL
-
   cpu.step();
   expect(cpu.A).toBe(0x54);
+});
 
-  // Test 9: 16-bit INC operations
+test('INC BC wraps around correctly', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
   cpu.reset();
   cpu._setBC(0xFFFF);
   cpu.PC = 0x1000;
   memory.write(0x1000, 0x03); // INC BC
-
   cpu.step();
   expect(cpu._getBC()).toBe(0x0000);
+});
 
-  // Test 10: ADC A,r operation
+test('ADC A,B and SBC A,C arithmetic', () => {
+  const memory = new Memory();
+  const cpu = new Z80(memory);
+
+  // ADC A,B
   cpu.reset();
   cpu.A = 0xFF;
   cpu.B = 0x01;
   cpu.setCarry(false);
   cpu.PC = 0x1000;
   memory.write(0x1000, 0x88); // ADC A,B
-
   cpu.step();
   expect(cpu.A).toBe(0x00);
   expect(cpu.getCarry()).toBe(true);
   expect(cpu.getZero()).toBe(true);
 
-  // Test 11: SBC A,r operation
+  // SBC A,C
   cpu.reset();
   cpu.A = 0x10;
   cpu.C = 0x05;
   cpu.setCarry(true);
   cpu.PC = 0x1000;
   memory.write(0x1000, 0x99); // SBC A,C
-
   cpu.step();
   expect(cpu.A).toBe(0x0A);
-}
-
-// Helper methods for easier testing
-Z80.prototype.setCarry = function(carry) {
-  if (carry) this.F |= 0x01; else this.F &= ~0x01;
-};
-
-Z80.prototype.getCarry = function() {
-  return (this.F & 0x01) !== 0;
-};
-
-Z80.prototype.getZero = function() {
-  return (this.F & 0x40) !== 0;
-};
-
-Z80.prototype.getSign = function() {
-  return (this.F & 0x80) !== 0;
-};
-
-// Run the test
-// Expose as a Vitest test so failures surface in the test runner
-test('z80 phase2 operations script', () => {
-  const ok = testZ80Operations();
-  expect(ok).toBeTruthy();
 });
