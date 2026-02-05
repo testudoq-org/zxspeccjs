@@ -109,15 +109,17 @@ console.log('\n5. Testing full emulation flow...');
 
 // Reset CPU and test a simple program that changes border
 cpu.reset();
-cpu.PC = 0x0000;
+// Place program in RAM so writes take effect
+cpu.PC = 0x4000;
 
-// Write a simple program: OUT (0xFE), A (opcode 0xD3 0xFE)
-memory.write(0x0000, 0xD3); // OUT (n),A
-memory.write(0x0001, 0xFE); // port 0xFE
-memory.write(0x0002, 0x04); // LD A,4 (green border)
+// Write a simple program in RAM: OUT (0xFE),A ; LD A,4 (opcode sequence: D3 FE 3E 04)
+memory.write(0x4000, 0xD3); // OUT (n),A
+memory.write(0x4001, 0xFE); // port 0xFE
+memory.write(0x4002, 0x3E); // LD A,n opcode
+memory.write(0x4003, 0x04); // operand for LD A,4 (green border)
 
 // Execute the program
-const steps = 3;
+const steps = 4;
 for (let i = 0; i < steps; i++) {
   const used = cpu.step();
   console.log(`Step ${i + 1}: PC=0x${cpu.PC.toString(16).padStart(4, '0')}, tstates=${used}, border=${ula.border}`);
