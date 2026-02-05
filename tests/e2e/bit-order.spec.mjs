@@ -1,5 +1,6 @@
 /* eslint-disable no-console, no-unused-vars, no-undef */
 /* eslint-env browser, node, es2021 */
+/* global window document */
 
 // @e2e @ui
 import { test, expect } from '@playwright/test';
