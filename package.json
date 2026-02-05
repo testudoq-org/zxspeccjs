@@ -14,7 +14,9 @@
                     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
                     "test:watch":  "vitest --watch --dir tests/unit",
                     "setup-and-dev":  "npm install --legacy-peer-deps \u0026\u0026 npm run dev",
-                    "debug:boot":  "node tests/scripts/comprehensive_boot_sequence_test.mjs"
+                    "debug:boot":  "node tests/scripts/comprehensive_boot_sequence_test.mjs",
+                    "ensure-instruction-blocks": "node tools/ensure-instruction-blocks.js",
+                    "prepare": "husky install"
                 },
     "vitest": {
         "exclude": ["tests/e2e/**"]
@@ -28,8 +30,10 @@
                             "jsdom":  "^28.0.0",
                             "rollup":  "^3.26.3",
                             "vitest":  "^4.0.18",
-                            "@vitest/coverage-v8": "^4.0.18"
+                            "@vitest/coverage-v8": "^4.0.18",
+                            "husky": "^8.0.0"
                         },
+
     "dependencies":  {
                          "pngjs":  "^7.0.0"
                      }
