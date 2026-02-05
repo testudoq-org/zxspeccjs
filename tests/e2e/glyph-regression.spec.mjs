@@ -1,4 +1,5 @@
 // @e2e @ui
+/* eslint-disable no-console, no-unused-vars */
 /* eslint-env browser, node, es2021 */
 /* global window document console */
 

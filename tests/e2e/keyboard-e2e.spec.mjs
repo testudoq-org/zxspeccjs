@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-unused-vars */
 // @e2e @ui
 import { test, expect } from '@playwright/test';
 
