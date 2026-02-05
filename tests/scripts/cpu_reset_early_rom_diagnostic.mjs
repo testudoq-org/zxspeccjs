@@ -5,6 +5,7 @@
  * Purpose: Verify CPU reset implementation and track early ROM execution
  * to identify why the boot sequence test is failing.
  */
+/* eslint-disable no-console, no-undef, no-unused-vars */
 
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';

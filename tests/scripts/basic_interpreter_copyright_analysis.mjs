@@ -4,6 +4,7 @@
  * BASIC Interpreter Entry and Copyright Message Analysis
  * Task 6: Examine what happens when boot sequence reaches copyright message display
  */
+/* eslint-disable no-console, no-undef, no-unused-vars */
 
 import { readFileSync } from 'fs';
 

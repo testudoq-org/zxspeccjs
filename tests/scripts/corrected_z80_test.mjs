@@ -3,6 +3,7 @@
 /**
  * Corrected test for Z80 ED prefix handling with proper RAM addresses
  */
+/* eslint-disable no-console, no-undef, no-unused-vars */
 
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
