@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace early boot to understand why RAM test loop doesn't exit
  */
@@ -42,3 +43,4 @@ console.log(`  A: 0x${cpu.A.toString(16).padStart(2, '0')}`);
 console.log(`  H: 0x${cpu.H.toString(16).padStart(2, '0')}`);
 console.log(`  HL: 0x${((cpu.H << 8) | cpu.L).toString(16).padStart(4, '0')}`);
 console.log(`  DE: 0x${((cpu.D << 8) | cpu.E).toString(16).padStart(4, '0')}`);
+

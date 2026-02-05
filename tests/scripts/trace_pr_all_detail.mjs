@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace specifically what happens during PR-ALL (character plotting)
  * and why the system gets corrupted
@@ -117,3 +118,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`Non-zero video bytes: ${nonZero}`);
+

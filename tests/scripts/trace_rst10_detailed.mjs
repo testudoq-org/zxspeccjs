@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace RST 10 (print character) to find why video memory isn't being written
  */
@@ -130,3 +131,4 @@ for (let addr = 0x5800; addr < 0x5B00; addr++) {
   if (attr !== 0x38 && attr !== 0x00) nonDefaultAttrs++;
 }
 console.log(`Non-default attributes: ${nonDefaultAttrs}`);
+

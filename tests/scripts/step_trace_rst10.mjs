@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Step-by-step trace of RST 10 to see why HL gets the wrong value
  */
@@ -100,3 +101,4 @@ for (let f = 0; f < 100; f++) {
   runFrame();
   if (!tracing && instCount > 0) break;
 }
+

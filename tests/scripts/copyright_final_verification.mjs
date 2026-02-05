@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Final verification: ZX Spectrum 48K copyright message display
 // This test confirms the red bands are fixed and copyright message displays
 

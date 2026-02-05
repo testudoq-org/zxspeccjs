@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace boot after RST 10 fix to see what's happening
  */
@@ -83,3 +84,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`Non-zero video bytes: ${nonZero}`);
+

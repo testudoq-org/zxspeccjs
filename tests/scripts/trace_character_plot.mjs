@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the actual LDIR that copies character data to video RAM
  * The PR-ALL routine at 0x0B93 does the actual character plotting
@@ -117,3 +118,4 @@ for (let i = 0; i < 32; i++) {
   const val = memory.read(0x4000 + i);
   if (val !== 0) console.log(`  0x${(0x4000+i).toString(16)}: 0x${val.toString(16)}`);
 }
+

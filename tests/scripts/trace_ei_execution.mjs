@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Test to trace execution and find where EI is executed
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -95,3 +96,4 @@ if (eiPC) {
 }
 
 console.log('\nPCs visited in first 256 bytes:', pcHistory.slice(0, 20).map(p => '0x' + p.toString(16).padStart(4, '0')).join(', '));
+

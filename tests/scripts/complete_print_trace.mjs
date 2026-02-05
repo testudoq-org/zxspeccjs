@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Complete trace of character print path to find where it fails
  * RST 10 -> 0x15F2 -> CALL 0x162C -> eventually writes to video memory
@@ -142,3 +143,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`Non-zero video bytes: ${nonZero}`);
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 
 /**
@@ -157,3 +158,4 @@ for (let i = 0; i < 768; i++) {
 }
 console.log(`Bitmap bytes with content: ${nonZeroPixels} / 6144`);
 console.log(`Attributes with non-default values: ${nonDefaultAttrs} / 768`);
+

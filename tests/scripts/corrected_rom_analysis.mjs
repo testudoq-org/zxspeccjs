@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 /**
  * Corrected ROM Boot Sequence Analysis

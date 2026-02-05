@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Detailed KEY-SCAN trace - step through key detection logic
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -118,3 +119,4 @@ async function traceKeyScan() {
 }
 
 traceKeyScan().catch(console.error);
+

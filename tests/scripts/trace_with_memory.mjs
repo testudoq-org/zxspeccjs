@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace with memory state at each step
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -84,3 +85,4 @@ async function traceWithMemory() {
 }
 
 traceWithMemory().catch(console.error);
+

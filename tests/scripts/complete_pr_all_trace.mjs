@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Complete instruction trace during PR-ALL to find out why video isn't written
  */
@@ -111,3 +112,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`\nNon-zero video bytes: ${nonZero}`);
+

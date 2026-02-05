@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // trace_beeper_e0.mjs - Trace flow around 0x3E0-0x3E7
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -64,3 +65,4 @@ for (let i = 0; i < 50000 && !found; i++) {
 if (!found) {
     console.log('Never reached 0x3DF!');
 }
+

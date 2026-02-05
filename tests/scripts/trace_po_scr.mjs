@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Detailed trace of PO-SCR (0x0B03) to see why HL ends up 0
  */
@@ -112,3 +113,4 @@ for (let i = 0; i < 30; i++) {
 console.log('\n--- After PO-SCR ---');
 console.log(`  HL = 0x${((cpu.H << 8) | cpu.L).toString(16).padStart(4, '0')}`);
 console.log(`  BC = 0x${((cpu.B << 8) | cpu.C).toString(16).padStart(4, '0')}`);
+

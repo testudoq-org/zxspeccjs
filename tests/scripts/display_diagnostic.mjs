@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 /**
  * Display diagnostic - Check if ROM boot generates copyright message
@@ -151,3 +152,4 @@ for (let row = 20; row < 24; row++) {
 }
 
 console.log('\nDone!');
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace what's at the interrupt vector and what happens when it runs
  */
@@ -121,3 +122,4 @@ while (!foundInterrupt && frameCount < 25) {
     
     frameCount++;
 }
+

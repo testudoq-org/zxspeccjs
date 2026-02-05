@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Deep trace what happens during first ~500 frames after boot
  * Looking for why the copyright doesn't print
@@ -180,3 +181,4 @@ console.log(`RAMTOP = 0x${(ramtopL | (ramtopH << 8)).toString(16)}`);
 // Check what's at RAMTOP
 const ramtop = ramtopL | (ramtopH << 8);
 console.log(`Memory at RAMTOP (0x${ramtop.toString(16)}): 0x${memory.read(ramtop).toString(16)}`);
+

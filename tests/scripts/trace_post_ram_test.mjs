@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Continue boot after RAM test completes
  */
@@ -98,3 +99,4 @@ const ramtop = memory.read(RAMTOP_ADDR) | (memory.read(RAMTOP_ADDR + 1) << 8);
 const errSp = memory.read(ERR_SP_ADDR) | (memory.read(ERR_SP_ADDR + 1) << 8);
 console.log(`  RAMTOP (0x5CB2): 0x${ramtop.toString(16).padStart(4, '0')}`);
 console.log(`  ERR_SP (0x5C3D): 0x${errSp.toString(16).padStart(4, '0')}`);
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Deep trace of attribute writes - capture ALL context
  */
@@ -74,3 +75,4 @@ for (let w = 0; w < attrWrites.length; w++) {
     console.log(`  PC=0x${inst.pc.toString(16).padStart(4, '0')} op=${inst.op.toString(16).padStart(2, '0')} ${op2.toString(16).padStart(2, '0')} ${op3.toString(16).padStart(2, '0')} A=0x${inst.A.toString(16).padStart(2, '0')} HL=0x${inst.HL.toString(16).padStart(4, '0')} DE=0x${inst.DE.toString(16).padStart(4, '0')} BC=0x${inst.BC.toString(16).padStart(4, '0')} SP=0x${inst.SP.toString(16).padStart(4, '0')}`);
   }
 }
+

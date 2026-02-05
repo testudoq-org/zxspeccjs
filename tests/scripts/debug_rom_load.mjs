@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Debug the Memory ROM loading process
  */
@@ -43,3 +44,4 @@ if (mem.romBanks[0]) {
 // Check if pages[0] is the same object as romBanks[0]
 console.log('\n--- Identity check ---');
 console.log('pages[0] === romBanks[0]:', mem.pages[0] === mem.romBanks[0]);
+

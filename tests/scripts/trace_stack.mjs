@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the stack during keyboard scan to understand RET Z problem
  */
@@ -104,3 +105,4 @@ for (let frame = 0; frame < 25; frame++) {
         break;
     }
 }
+

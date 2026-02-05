@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Find ROM writes to LAST_K (0x5C08)
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -73,3 +74,4 @@ async function traceLastKWrites() {
 }
 
 traceLastKWrites().catch(console.error);
+

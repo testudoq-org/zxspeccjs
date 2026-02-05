@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Simple ROM examination script
 import spec48 from './src/roms/spec48.js';
 

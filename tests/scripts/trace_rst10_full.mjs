@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace full RST 10 path through ROM to understand the flow
  */
@@ -169,3 +170,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory[addr] !== 0) nonZero++;
 }
 console.log(`\nVideo memory non-zero bytes: ${nonZero}`);
+

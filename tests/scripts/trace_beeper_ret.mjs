@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // trace_beeper_ret.mjs - Check if BEEPER ever returns
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -74,3 +75,4 @@ console.log(`\nBEEPER entries: ${beeperEnter}`);
 console.log(`BEEPER exits (0x03F5): ${beeperExit}`);
 console.log(`KEY-SCAN hits: ${kScanHits}`);
 console.log(`WAIT-KEY hits: ${waitKeyHits}`);
+

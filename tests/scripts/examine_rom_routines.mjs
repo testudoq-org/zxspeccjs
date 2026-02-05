@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Examine ROM routines at critical addresses for I/O channel analysis
 
 // Import ROM data from spec48.js (first few bytes)

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // trace_beeper_flow.mjs - Trace the BEEPER flow to find why it never exits
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -95,3 +96,4 @@ console.log(`0x03F4 (before JP IX): ${addr03F4}`);
 console.log(`0x03F5 (JP IX): ${addr03F5}`);
 console.log(`0x03F6 (after BEEPER): ${addr03F6}`);
 console.log(`\nDE samples at OR E: ${deSamples.map(x => '0x' + x.toString(16).padStart(4,'0')).join(', ')}`);
+

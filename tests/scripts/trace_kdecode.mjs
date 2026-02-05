@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace K-DECODE routine
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -94,3 +95,4 @@ async function traceKDecode() {
 }
 
 traceKDecode().catch(console.error);
+

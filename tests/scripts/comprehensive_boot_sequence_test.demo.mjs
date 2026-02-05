@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 
 /**
@@ -140,3 +141,4 @@ class ComprehensiveBootTest {
             <h2>Boot Sequence Test Results</h2>
             <div id="boot-status" class="status-running">Ready to test...</div>
             <div id="detailed-results"></div>
+

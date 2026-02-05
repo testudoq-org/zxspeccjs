@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 
 /**
@@ -572,3 +573,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { ComprehensiveBootTest };
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Debug script to trace interrupt handler execution flow
 // This will help us understand if the keyboard routine is being called
 
@@ -107,3 +108,4 @@ async function debugInterruptFlow() {
 }
 
 debugInterruptFlow().catch(console.error);
+

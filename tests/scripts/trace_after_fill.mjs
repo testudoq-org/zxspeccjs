@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace execution after the memory fill loop
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -60,3 +61,4 @@ for (let i = 0; i < 500; i++) {
 
 console.log('\n=== After 500 instructions ===');
 console.log(`PC=0x${cpu.PC.toString(16).padStart(4,'0')}, IFF1=${cpu.IFF1}`);
+

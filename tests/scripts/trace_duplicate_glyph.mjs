@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace duplicate copyright glyph rendering
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -132,3 +133,4 @@ if (duplicates.length > 0) {
     console.log(`  0x${addr.toString(16)}: ${writes.length} writes from PCs: ${writes.map(w => '0x' + w.pc.toString(16)).join(', ')}`);
   }
 }
+

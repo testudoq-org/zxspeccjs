@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 import {Z80} from './src/z80.mjs';
 import {Memory} from './src/memory.mjs';
 import rom from './src/roms/spec48.js';
@@ -17,3 +18,4 @@ while (steps < 20000 && cpu.PC < 0x1200) {
   steps += cpu.step();
 }
 console.log('done at PC', cpu.PC.toString(16), 'steps', steps);
+

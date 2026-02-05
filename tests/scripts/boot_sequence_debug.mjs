@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 import { readFileSync } from 'fs';
 import { Z80 } from './src/z80.mjs';

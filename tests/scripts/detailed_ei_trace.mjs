@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Very detailed trace of what happens after EI
  */
@@ -113,3 +114,4 @@ console.log(`\nFinal state:`);
 console.log(`  PC: 0x${cpu.PC.toString(16)}`);
 console.log(`  SP: 0x${cpu.SP.toString(16)}`);
 console.log(`  IFF1: ${cpu.IFF1}`);
+

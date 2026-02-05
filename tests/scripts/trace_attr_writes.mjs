@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace attribute writes during boot to find the bug
  */
@@ -59,3 +60,4 @@ for (let col = 0; col < 32; col++) {
   process.stdout.write(val.toString(16).padStart(2, '0') + ' ');
 }
 console.log();
+

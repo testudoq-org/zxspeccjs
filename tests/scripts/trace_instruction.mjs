@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the actual instruction causing alternating attributes
  */
@@ -51,3 +52,4 @@ for (let i = 0x30; i <= 0x45; i++) {
   const byte = romData[i];
   console.log(`  0x${i.toString(16).padStart(4, '0')}: 0x${byte.toString(16).padStart(2, '0')}`);
 }
+

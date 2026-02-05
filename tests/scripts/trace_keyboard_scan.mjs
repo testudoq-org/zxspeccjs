@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the keyboard scan loop more carefully
  */
@@ -101,3 +102,4 @@ for (let i = 0; i < 100; i++) {
         break;
     }
 }
+

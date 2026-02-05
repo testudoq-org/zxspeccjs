@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace step-by-step around the attribute writes
  */
@@ -75,3 +76,4 @@ function getMnemonic(opcode) {
   };
   return opcodes[opcode] || '???';
 }
+

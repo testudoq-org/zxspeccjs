@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the critical RAM detection section in detail
  */
@@ -103,3 +104,4 @@ console.log(`  SP: 0x${cpu.SP.toString(16).padStart(4, '0')}`);
 const RAMTOP_ADDR = 0x5CB2;
 const ramtop = memory.read(RAMTOP_ADDR) | (memory.read(RAMTOP_ADDR + 1) << 8);
 console.log(`  RAMTOP (0x5CB2): 0x${ramtop.toString(16).padStart(4, '0')}`);
+

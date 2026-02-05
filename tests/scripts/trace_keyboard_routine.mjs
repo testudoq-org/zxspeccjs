@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace KEYBOARD routine with key addresses highlighted
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -115,3 +116,4 @@ async function traceKeyboard() {
 }
 
 traceKeyboard().catch(console.error);
+

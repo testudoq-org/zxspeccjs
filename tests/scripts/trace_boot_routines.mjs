@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Detailed boot trace to find why copyright message isn't displayed
  */
@@ -156,3 +157,4 @@ const tvFlag = memory.read(0x5C3C);
 const flags2 = memory.read(0x5C6A);
 console.log(`  TV_FLAG: 0x${tvFlag.toString(16)}`);
 console.log(`  FLAGS2: 0x${flags2.toString(16)}`);
+

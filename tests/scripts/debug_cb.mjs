@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Debug CB opcode handling
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -42,3 +43,4 @@ async function debugCB() {
 }
 
 debugCB().catch(console.error);
+

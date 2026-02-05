@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Comprehensive Memory and Boot Debug
  * This traces the ZX Spectrum 48K boot to understand:
@@ -203,3 +204,4 @@ if (romSPchanges.length > 0) {
   const first = romSPchanges[0];
   console.log(`  Instruction ${first.instruction}, PC=0x${first.pc.toString(16).padStart(4, '0')}, SP changed to 0x${first.newSP.toString(16).padStart(4, '0')}`);
 }
+

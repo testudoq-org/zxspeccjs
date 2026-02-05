@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace PR-ALL Character Plotting 
  * 
@@ -179,3 +180,4 @@ console.log(`  Video memory non-zero bytes: ${nonZero}`);
 // Check DF_CC position after
 const dfcc = memory[0x5C84] | (memory[0x5C85] << 8);
 console.log(`  DF_CC after: 0x${dfcc.toString(16).padStart(4, '0')}`);
+

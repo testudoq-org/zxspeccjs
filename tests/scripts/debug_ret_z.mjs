@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Debug RET Z issue
  */
@@ -82,3 +83,4 @@ console.log('But we ended up at 0x0044! This means:');
 console.log('1. Stack corruption, or');
 console.log('2. RET Z is not working correctly, or'); 
 console.log('3. The stack was already wrong when KEY_SCAN was called');
+

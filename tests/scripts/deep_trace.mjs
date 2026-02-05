@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Deep dive into boot sequence - trace execution flow after memory init
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -68,3 +69,4 @@ for (let i = 0x1230; i < 0x1240; i++) {
   if (b === 0xFB) note += ' (EI)';
   console.log(`0x${i.toString(16)}: 0x${b.toString(16).padStart(2,'0')}${note}`);
 }
+

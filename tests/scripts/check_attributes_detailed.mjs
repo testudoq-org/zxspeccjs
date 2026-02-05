@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Check attribute values in video memory after boot
  */
@@ -59,3 +60,4 @@ console.log(`\nATTR_P (0x5C8D): 0x${attrP.toString(16).padStart(2, '0')}`);
 // Check BORDCR (border color)
 const bordcr = mem.read(0x5C48);
 console.log(`BORDCR (0x5C48): 0x${bordcr.toString(16).padStart(2, '0')}`);
+

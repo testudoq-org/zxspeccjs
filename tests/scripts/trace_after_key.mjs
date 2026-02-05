@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // trace_after_key.mjs - Trace after key press to see where we get stuck
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -98,3 +99,4 @@ for (let [addr, count] of Object.entries(hits)) {
         console.log(`0x${parseInt(addr).toString(16).padStart(4, '0')} (${name}): ${count} hits`);
     }
 }
+

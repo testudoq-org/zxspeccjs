@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace the JP (HL) at 0x162C which is how RST 10 calls the output routine
  */
@@ -95,3 +96,4 @@ for (let addr = 0x4000; addr < 0x5800; addr++) {
   if (memory.read(addr) !== 0) nonZero++;
 }
 console.log(`\nNon-zero video bytes: ${nonZero}`);
+

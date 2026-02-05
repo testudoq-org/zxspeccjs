@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Trace execution to understand where we get stuck
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';
@@ -66,3 +67,4 @@ const HL2 = (cpu2.H << 8) | cpu2.L;
 console.log(`A=0x${cpu2.A.toString(16).padStart(2,'0')} H=0x${cpu2.H.toString(16).padStart(2,'0')} HL=0x${HL2.toString(16).padStart(4,'0')}`);
 console.log('The fill loop should exit when H reaches 0x3F');
 console.log(`H starts at 0xFF, needs to count down to 0x3F = ${0xFF - 0x3F} decrements`);
+

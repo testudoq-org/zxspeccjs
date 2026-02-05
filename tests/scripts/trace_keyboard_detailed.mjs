@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Full instruction trace around keyboard routine
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
@@ -89,3 +90,4 @@ async function traceKeyboardDetailed() {
 }
 
 traceKeyboardDetailed().catch(console.error);
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 /**
  * Trace what's happening after interrupts are enabled
  */
@@ -136,3 +137,4 @@ console.log(`\nROM at current PC (0x${cpu.PC.toString(16)}):`);
 for (let i = 0; i < 10; i++) {
     console.log(`  0x${(cpu.PC + i).toString(16)}: ${memory.read(cpu.PC + i).toString(16)}`);
 }
+

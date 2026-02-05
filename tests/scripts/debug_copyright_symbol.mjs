@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 #!/usr/bin/env node
 
 /**
@@ -105,3 +106,4 @@ if (nonZeroRows === 0) {
 } else {
   console.log('   ✅ Character bitmap has data');
 }
+

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
 // Debug script to trace keyboard detection during interrupt
 // Simulates a key press and traces through KEY-SCAN
 
@@ -155,3 +156,4 @@ async function debugKeyboardFlow() {
 }
 
 debugKeyboardFlow().catch(console.error);
+
