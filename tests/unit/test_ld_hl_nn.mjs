@@ -21,15 +21,18 @@ memory[0x5C85] = 0x50;  // High byte - should give HL = 0x5000
 
 // Program: LD HL,(0x5C84)
 // Opcode: 2A 84 5C
-memory[0x0000] = 0x2A;  // LD HL,(nn)
-memory[0x0001] = 0x84;  // low byte of address
-memory[0x0002] = 0x5C;  // high byte of address
-memory[0x0003] = 0x76;  // HALT
+// Place the test program into writable RAM so writes/execution take effect
+memory[0x4000] = 0x2A;  // LD HL,(nn)
+memory[0x4001] = 0x84;  // low byte of address
+memory[0x4002] = 0x5C;  // high byte of address
+memory[0x4003] = 0x76;  // HALT
 
+// Start execution from RAM region
 const memoryInterface = {
   read: (addr) => memory[addr & 0xFFFF],
   write: (addr, val) => { memory[addr & 0xFFFF] = val; }
 };
+cpu.PC = 0x4000;
 
 const ioInterface = {
   read: () => 0xFF,
@@ -51,7 +54,7 @@ const tstates = cpu.step();
 
 console.log(`\nAfter execution:`);
 console.log(`  Tstates: ${tstates} (expected: 16)`);
-console.log(`  PC = 0x${cpu.PC.toString(16).padStart(4, '0')} (expected: 0x0003)`);
+console.log(`  PC = 0x${cpu.PC.toString(16).padStart(4, '0')} (expected: 0x4003)`);
 console.log(`  H = 0x${cpu.H.toString(16).padStart(2, '0')}`);
 console.log(`  L = 0x${cpu.L.toString(16).padStart(2, '0')}`);
 console.log(`  HL = 0x${((cpu.H << 8) | cpu.L).toString(16).padStart(4, '0')} (expected: 0x5000)`);
