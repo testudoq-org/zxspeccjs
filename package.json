@@ -12,6 +12,7 @@
     "test:e2e": "npx playwright test",
     "test:watch": "vitest --watch --dir test",
     "setup-and-dev": "npm install --legacy-peer-deps && npm run dev",
+    "debug:boot": "node tests/scripts/comprehensive_boot_sequence_test.mjs",
   "vitest": {
     "exclude": ["tests-e2e/**"]
   }
