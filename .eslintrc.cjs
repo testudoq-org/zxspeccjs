@@ -24,7 +24,10 @@ module.exports = {
         // make tests more permissive
         'no-empty': ['warn', { allowEmptyCatch: true }],
         'max-lines': ['warn', { max: 800 }],
-        complexity: ['warn', 18]
+        complexity: ['warn', 18],
+        'no-console': 'off',
+        'no-undef': 'off',
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
       }
     },
     {
