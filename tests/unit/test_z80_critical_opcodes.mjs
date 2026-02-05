@@ -28,12 +28,13 @@ function testCriticalEDOpcodes() {
   
   // Test 1: LD HL,(nn) - ED 2A
   console.log('\n1. Testing LD HL,(nn) - ED 2A');
-  memory.write(0x1000, 0x34); // LSB
-  memory.write(0x1001, 0x12); // MSB
+  // Place the data in RAM so reads/writes work as expected
+  memory.write(0x5000, 0x34); // LSB
+  memory.write(0x5001, 0x12); // MSB
   memory.write(0x2000, 0xED); // ED prefix
   memory.write(0x2001, 0x2A); // LD HL,(nn) opcode
-  memory.write(0x2002, 0x00); // Address LSB
-  memory.write(0x2003, 0x10); // Address MSB
+  memory.write(0x2002, 0x00); // Address LSB (0x5000)
+  memory.write(0x2003, 0x50); // Address MSB (0x50 -> 0x5000)
   
   cpu.PC = 0x2000;
   cpu._setHL(0x0000); // Clear HL
@@ -47,15 +48,15 @@ function testCriticalEDOpcodes() {
   console.log('\n2. Testing LD (nn),HL - ED 22');
   memory.write(0x3000, 0xED); // ED prefix
   memory.write(0x3001, 0x22); // LD (nn),HL opcode
-  memory.write(0x3002, 0x00); // Address LSB
-  memory.write(0x3003, 0x20); // Address MSB
+  memory.write(0x3002, 0x00); // Address LSB (0x6000)
+  memory.write(0x3003, 0x60); // Address MSB (0x60 -> 0x6000)
   
   cpu.PC = 0x3000;
   cpu._setHL(0xABCD); // Set HL to test value
   
   const tstates2 = cpu.step();
-  const storedValue = (memory.read(0x2001) << 8) | memory.read(0x2000);
-  console.log(`Stored at 0x2000 = 0x${storedValue.toString(16).padStart(4, '0')} (expected: 0xABCD)`);
+  const storedValue = (memory.read(0x6001) << 8) | memory.read(0x6000);
+  console.log(`Stored at 0x6000 = 0x${storedValue.toString(16).padStart(4, '0')} (expected: 0xABCD)`);
   console.log(`T-states: ${tstates2} (expected: 16)`);
   console.log(`Test 2: ${storedValue === 0xABCD ? 'PASS' : 'FAIL'}`);
   
