@@ -1,0 +1,1290 @@
+﻿[
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\actual_boot_display_check.mjs",
+        "name":  "actual_boot_display_check.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\analyze_after_ei.mjs",
+        "name":  "analyze_after_ei.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\analyze_print_routine.mjs",
+        "name":  "analyze_print_routine.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\analyze_stuck.mjs",
+        "name":  "analyze_stuck.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\analyze_vectors.mjs",
+        "name":  "analyze_vectors.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\boot_progression_test.mjs",
+        "name":  "boot_progression_test.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\boot_progression_test.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\boot_trace.mjs",
+        "name":  "boot_trace.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\boot_trace.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\boot_validation_test.mjs",
+        "name":  "boot_validation_test.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\boot_validation_test.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_attributes.mjs",
+        "name":  "check_attributes.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_attributes_detailed.mjs",
+        "name":  "check_attributes_detailed.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\check_attributes_detailed.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_attribute_grid.mjs",
+        "name":  "check_attribute_grid.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_display_memory.mjs",
+        "name":  "check_display_memory.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_io_channels.mjs",
+        "name":  "check_io_channels.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_key_lookup.mjs",
+        "name":  "check_key_lookup.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_lastk_rom.mjs",
+        "name":  "check_lastk_rom.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_memory_layout.mjs",
+        "name":  "check_memory_layout.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_post_call.mjs",
+        "name":  "check_post_call.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_rom_bytes.mjs",
+        "name":  "check_rom_bytes.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_rom_chars.mjs",
+        "name":  "check_rom_chars.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\check_sysvar_addresses.mjs",
+        "name":  "check_sysvar_addresses.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\complete_print_trace.mjs",
+        "name":  "complete_print_trace.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\complete_print_trace.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\complete_pr_all_trace.mjs",
+        "name":  "complete_pr_all_trace.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\complete_pr_all_trace.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\comprehensive_boot_debug.mjs",
+        "name":  "comprehensive_boot_debug.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\comprehensive_boot_debug.mjs",
+        "reason":  "comprehensive browser boot tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\comprehensive_browser_boot_test.mjs",
+        "name":  "comprehensive_browser_boot_test.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\comprehensive_browser_boot_test.mjs",
+        "reason":  "comprehensive browser boot tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\comprehensive_memory_debug.mjs",
+        "name":  "comprehensive_memory_debug.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\comprehensive_memory_debug.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\copyright_display_verification.mjs",
+        "name":  "copyright_display_verification.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\copyright_final_verification.mjs",
+        "name":  "copyright_final_verification.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\copyright_final_verification.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\corrected_rom_analysis.mjs",
+        "name":  "corrected_rom_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\corrected_rom_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\cpu_boot_test.mjs",
+        "name":  "cpu_boot_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_boot_sequence.mjs",
+        "name":  "debug_boot_sequence.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_boot_sequence.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_boot_sequence_detailed.mjs",
+        "name":  "debug_boot_sequence_detailed.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_boot_sequence_detailed.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_cb.mjs",
+        "name":  "debug_cb.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_cb.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_copyright_symbol.mjs",
+        "name":  "debug_copyright_symbol.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_copyright_symbol.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_cpu_test.mjs",
+        "name":  "debug_cpu_test.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_cpu_test.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_interrupt_flow.mjs",
+        "name":  "debug_interrupt_flow.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_interrupt_flow.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_keyboard_flow.mjs",
+        "name":  "debug_keyboard_flow.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_keyboard_flow.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_ret_z.mjs",
+        "name":  "debug_ret_z.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_ret_z.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_rom_load.mjs",
+        "name":  "debug_rom_load.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_rom_load.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\debug_rom_loading.mjs",
+        "name":  "debug_rom_loading.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\debug_rom_loading.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\deep_boot_trace.mjs",
+        "name":  "deep_boot_trace.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\deep_boot_trace.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\deep_copyright_analysis.mjs",
+        "name":  "deep_copyright_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\deep_copyright_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\deep_trace.mjs",
+        "name":  "deep_trace.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\deep_trace.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\deep_trace_attr.mjs",
+        "name":  "deep_trace_attr.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\deep_trace_attr.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\deep_trace_rst10.mjs",
+        "name":  "deep_trace_rst10.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\deep_trace_rst10.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\detailed_ei_trace.mjs",
+        "name":  "detailed_ei_trace.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\detailed_ei_trace.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\detailed_rom_analysis.mjs",
+        "name":  "detailed_rom_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\detailed_rom_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\diagnose_rom_loop.mjs",
+        "name":  "diagnose_rom_loop.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\direct_rom_boot_check.mjs",
+        "name":  "direct_rom_boot_check.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\disasm_keyboard.mjs",
+        "name":  "disasm_keyboard.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\disasm_keyscan.mjs",
+        "name":  "disasm_keyscan.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\disasm_pr_all.mjs",
+        "name":  "disasm_pr_all.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\display_diag2.mjs",
+        "name":  "display_diag2.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\display_diagnostic.mjs",
+        "name":  "display_diagnostic.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\display_diagnostic.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\examine_rom_routines.mjs",
+        "name":  "examine_rom_routines.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\examine_rom_routines.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\final_boot_diagnostic.mjs",
+        "name":  "final_boot_diagnostic.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\final_boot_diagnostic.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\final_boot_path_analysis.mjs",
+        "name":  "final_boot_path_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\final_boot_path_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\final_boot_verification.mjs",
+        "name":  "final_boot_verification.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\final_boot_verification.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\final_rom_report.mjs",
+        "name":  "final_rom_report.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\final_rom_report.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\final_verification_test.mjs",
+        "name":  "final_verification_test.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\final_verification_test.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\find_ei.mjs",
+        "name":  "find_ei.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\find_ei_in_rom.mjs",
+        "name":  "find_ei_in_rom.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\find_ei_long.mjs",
+        "name":  "find_ei_long.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\find_first_error.mjs",
+        "name":  "find_first_error.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\full_boot_test_memory.mjs",
+        "name":  "full_boot_test_memory.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\full_boot_test_post_fix.mjs",
+        "name":  "full_boot_test_post_fix.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\full_boot_test_simple.mjs",
+        "name":  "full_boot_test_simple.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\interrupt_setup_timing_analysis.mjs",
+        "name":  "interrupt_setup_timing_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\interrupt_setup_timing_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\memory_mapping_test.mjs",
+        "name":  "memory_mapping_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\minimal_boot_test.mjs",
+        "name":  "minimal_boot_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\opcode_failure_test.mjs",
+        "name":  "opcode_failure_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\pc_histogram.mjs",
+        "name":  "pc_histogram.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\playwright.config.mjs",
+        "name":  "playwright.config.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\red_lines_diagnostic.mjs",
+        "name":  "red_lines_diagnostic.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\red_lines_diagnostic.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\rom_analysis_detailed.mjs",
+        "name":  "rom_analysis_detailed.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\rom_analysis_detailed.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\rom_boot_analysis.mjs",
+        "name":  "rom_boot_analysis.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\rom_boot_analysis.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\rom_integrity_test.mjs",
+        "name":  "rom_integrity_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\run_boot_to_ei.mjs",
+        "name":  "run_boot_to_ei.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\run_boot_to_ei.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\run_boot_with_interrupts.mjs",
+        "name":  "run_boot_with_interrupts.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\run_boot_with_interrupts.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\run_full_boot.mjs",
+        "name":  "run_full_boot.mjs",
+        "destDir":  "tests/e2e",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\e2e\\run_full_boot.mjs",
+        "reason":  "boot-style end-to-end tests"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\screen_display_diagnostic.mjs",
+        "name":  "screen_display_diagnostic.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\screen_display_diagnostic.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\simple_boot_test.mjs",
+        "name":  "simple_boot_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\simple_debug_check.mjs",
+        "name":  "simple_debug_check.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\simple_debug_check.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\simple_z80_test.mjs",
+        "name":  "simple_z80_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\simplified_boot_test.mjs",
+        "name":  "simplified_boot_test.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\step_trace_rst10.mjs",
+        "name":  "step_trace_rst10.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\step_trace_rst10.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_03b5.mjs",
+        "name":  "test_03b5.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_03b5.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_16bit_immediate.mjs",
+        "name":  "test_16bit_immediate.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_16bit_immediate.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_3dc.mjs",
+        "name":  "test_3dc.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_3dc.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_3df.mjs",
+        "name":  "test_3df.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_3df.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_after_cls.mjs",
+        "name":  "test_after_cls.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_after_cls.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_after_key.mjs",
+        "name":  "test_after_key.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_after_key.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_after_key2.mjs",
+        "name":  "test_after_key2.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_after_key2.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_bit_instr.mjs",
+        "name":  "test_bit_instr.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_bit_instr.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_boot_progression.mjs",
+        "name":  "test_boot_progression.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_boot_progression.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_call_instruction.mjs",
+        "name":  "test_call_instruction.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_call_instruction.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_channels.mjs",
+        "name":  "test_channels.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_channels.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_complete_boot_implementation.mjs",
+        "name":  "test_complete_boot_implementation.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_complete_boot_implementation.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_comprehensive.mjs",
+        "name":  "test_comprehensive.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_comprehensive.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_copyright_display.mjs",
+        "name":  "test_copyright_display.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_copyright_display.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_correct_key.mjs",
+        "name":  "test_correct_key.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_correct_key.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_decb.mjs",
+        "name":  "test_decb.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_decb.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_detailed_trace.mjs",
+        "name":  "test_detailed_trace.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_detailed_trace.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_early_release.mjs",
+        "name":  "test_early_release.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_early_release.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_ed_loop.mjs",
+        "name":  "test_ed_loop.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_ed_loop.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_eline.mjs",
+        "name":  "test_eline.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_eline.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_flags_trace.mjs",
+        "name":  "test_flags_trace.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_flags_trace.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_flags_writes.mjs",
+        "name":  "test_flags_writes.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_flags_writes.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_full_boot.mjs",
+        "name":  "test_full_boot.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_full_boot.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_full_boot_with_interrupts.mjs",
+        "name":  "test_full_boot_with_interrupts.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_full_boot_with_interrupts.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_full_trace.mjs",
+        "name":  "test_full_trace.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_full_trace.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_h.mjs",
+        "name":  "test_h.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_h.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_ix.mjs",
+        "name":  "test_ix.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_ix.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_ix2.mjs",
+        "name":  "test_ix2.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_ix2.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_iy_opcode.mjs",
+        "name":  "test_iy_opcode.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_iy_opcode.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyboard_debounce.mjs",
+        "name":  "test_keyboard_debounce.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyboard_debounce.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyboard_flow.mjs",
+        "name":  "test_keyboard_flow.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyboard_flow.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyboard_full.mjs",
+        "name":  "test_keyboard_full.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyboard_full.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyboard_input.mjs",
+        "name":  "test_keyboard_input.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyboard_input.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyboard_routine.mjs",
+        "name":  "test_keyboard_routine.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyboard_routine.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_keyscan.mjs",
+        "name":  "test_keyscan.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_keyscan.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_key_release.mjs",
+        "name":  "test_key_release.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_key_release.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_lastk.mjs",
+        "name":  "test_lastk.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_lastk.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_lddr.mjs",
+        "name":  "test_lddr.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_lddr.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_ld_hl_nn.mjs",
+        "name":  "test_ld_hl_nn.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_ld_hl_nn.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_multiple_keys.mjs",
+        "name":  "test_multiple_keys.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_multiple_keys.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_port_io_diagnosis.mjs",
+        "name":  "test_port_io_diagnosis.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_port_io_diagnosis.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_port_io_operations.mjs",
+        "name":  "test_port_io_operations.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_port_io_operations.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_press_a.mjs",
+        "name":  "test_press_a.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_press_a.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_print_trace.mjs",
+        "name":  "test_print_trace.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_print_trace.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_proper_init.mjs",
+        "name":  "test_proper_init.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_proper_init.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_reliable_debug_hook.mjs",
+        "name":  "test_reliable_debug_hook.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_reliable_debug_hook.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_return.mjs",
+        "name":  "test_return.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_return.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_rlc_b.mjs",
+        "name":  "test_rlc_b.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_rlc_b.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_rom_boot.mjs",
+        "name":  "test_rom_boot.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_rom_boot.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_rst10.mjs",
+        "name":  "test_rst10.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_rst10.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_set_instruction.mjs",
+        "name":  "test_set_instruction.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_set_instruction.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_trace_030b.mjs",
+        "name":  "test_trace_030b.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_trace_030b.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_ula_fix_verification.mjs",
+        "name":  "test_ula_fix_verification.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_ula_fix_verification.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_z80_critical_opcodes.mjs",
+        "name":  "test_z80_critical_opcodes.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_z80_critical_opcodes.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_z80_phase2_operations.mjs",
+        "name":  "test_z80_phase2_operations.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_z80_phase2_operations.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\test_z80_simple.mjs",
+        "name":  "test_z80_simple.mjs",
+        "destDir":  "tests/unit",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\unit\\test_z80_simple.mjs",
+        "reason":  "unit tests (fast, named test_)"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\tmp_check_rom.mjs",
+        "name":  "tmp_check_rom.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\tmp_dump.mjs",
+        "name":  "tmp_dump.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\tmp_screen_check.mjs",
+        "name":  "tmp_screen_check.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\tmp_trace2.mjs",
+        "name":  "tmp_trace2.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\tmp_trace2.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\tmp_verify_ram.mjs",
+        "name":  "tmp_verify_ram.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_after_fill.mjs",
+        "name":  "trace_after_fill.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_after_fill.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_after_fix.mjs",
+        "name":  "trace_after_fix.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_after_fix.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_after_key.mjs",
+        "name":  "trace_after_key.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_after_key.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_attr_writes.mjs",
+        "name":  "trace_attr_writes.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_attr_writes.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_beeper_e0.mjs",
+        "name":  "trace_beeper_e0.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_beeper_e0.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_beeper_flow.mjs",
+        "name":  "trace_beeper_flow.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_beeper_flow.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_beeper_ret.mjs",
+        "name":  "trace_beeper_ret.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_beeper_ret.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_bit.mjs",
+        "name":  "trace_bit.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_bit.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_boot_routines.mjs",
+        "name":  "trace_boot_routines.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_boot_routines.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_character_plot.mjs",
+        "name":  "trace_character_plot.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_character_plot.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_cls_routine.mjs",
+        "name":  "trace_cls_routine.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_cls_routine.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_copyright_print.mjs",
+        "name":  "trace_copyright_print.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_copyright_print.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_duplicate_glyph.mjs",
+        "name":  "trace_duplicate_glyph.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_duplicate_glyph.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_early_boot.mjs",
+        "name":  "trace_early_boot.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_early_boot.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_ei_execution.mjs",
+        "name":  "trace_ei_execution.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_ei_execution.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_instruction.mjs",
+        "name":  "trace_instruction.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_instruction.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_interrupt_handler.mjs",
+        "name":  "trace_interrupt_handler.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_interrupt_handler.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_jp_hl.mjs",
+        "name":  "trace_jp_hl.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_jp_hl.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_kdecode.mjs",
+        "name":  "trace_kdecode.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_kdecode.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_keyboard_detailed.mjs",
+        "name":  "trace_keyboard_detailed.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_keyboard_detailed.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_keyboard_routine.mjs",
+        "name":  "trace_keyboard_routine.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_keyboard_routine.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_keyboard_scan.mjs",
+        "name":  "trace_keyboard_scan.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_keyboard_scan.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_keyscan.mjs",
+        "name":  "trace_keyscan.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_keyscan.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_lastk_writes.mjs",
+        "name":  "trace_lastk_writes.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_lastk_writes.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_post_ram_test.mjs",
+        "name":  "trace_post_ram_test.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_post_ram_test.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_po_scr.mjs",
+        "name":  "trace_po_scr.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_po_scr.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_pr_all.mjs",
+        "name":  "trace_pr_all.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_pr_all.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_pr_all_detail.mjs",
+        "name":  "trace_pr_all_detail.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_pr_all_detail.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_ram_detection.mjs",
+        "name":  "trace_ram_detection.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_ram_detection.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_rst10_detailed.mjs",
+        "name":  "trace_rst10_detailed.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_rst10_detailed.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_rst10_full.mjs",
+        "name":  "trace_rst10_full.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_rst10_full.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_stack.mjs",
+        "name":  "trace_stack.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_stack.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_stuck.mjs",
+        "name":  "trace_stuck.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_stuck.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\trace_with_memory.mjs",
+        "name":  "trace_with_memory.mjs",
+        "destDir":  "tests/scripts",
+        "destPath":  "D:\\Code\\GitHub\\zxspeccjs\\tests\\scripts\\trace_with_memory.mjs",
+        "reason":  "diagnostic / debug / analysis scripts"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\understand_interrupt.mjs",
+        "name":  "understand_interrupt.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\verify_ex_af_fix.mjs",
+        "name":  "verify_ex_af_fix.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\verify_jp_nz_fix.mjs",
+        "name":  "verify_jp_nz_fix.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    },
+    {
+        "source":  "D:\\Code\\GitHub\\zxspeccjs\\vitest.config.mjs",
+        "name":  "vitest.config.mjs",
+        "destDir":  "(manual review)",
+        "destPath":  "",
+        "reason":  "no pattern matched"
+    }
+]
