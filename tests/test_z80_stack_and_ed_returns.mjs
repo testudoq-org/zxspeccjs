@@ -2,10 +2,7 @@
 /* eslint-env node, browser */
 const console = globalThis.console;
 
-#!/usr/bin/env node
-
 import { Z80 } from '../src/z80.mjs';
-import { Memory } from '../src/memory.mjs';
 
 function runTests(){
   console.log('🧪 Testing stack and ED return semantics\n');
@@ -55,7 +52,8 @@ function runTests(){
   cpu.SP = 0xFFFE; cpu.pushWord(0x400);
   // Place ED 0x45 (RETN) at 0x200
   cpu.PC = 0x200; mem.write(0x200, 0xED); mem.write(0x201, 0x45);
-  const t1 = cpu.step(); // execute ED 45
+  const cycles = cpu.step(); // execute ED 45
+  if (typeof cycles === 'number') console.log('ED RETN cycles:', cycles);
   const edEvent = cpu.getMicroLog().find(e => e.type === 'ED RETN' || e.type === 'ED RETI');
   t('ED RETN emitted micro event', !!edEvent);
   t('ED RETN popped to 0x400', cpu.PC === 0x400);
@@ -64,7 +62,13 @@ function runTests(){
   console.log('\nTest Summary:', passed, 'passed,', failed, 'failed');
   if(failed === 0) console.log('🎉 All tests passed');
   else console.log('⚠️ Some tests failed');
+  return failed;
 }
 
-// Run tests unconditionally when invoked directly
-runTests();
+import { test, expect } from 'vitest';
+
+// Wrap the script-style runner in a proper Vitest test so it is discovered as a test suite
+test('stack and ED return semantics (script)', () => {
+  const failed = runTests();
+  expect(failed).toBe(0);
+});

@@ -1,17 +1,13 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
-const console = globalThis.console;
+import { test } from 'vitest';
 
-// Detailed trace of 0x10C5-0x111B area
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
-import fs from 'fs';
+// Long diagnostic moved to tests/scripts/test_flags_trace.mjs
+// Excluded from unit runs; run the script directly from `tests/scripts/test_flags_trace.mjs`.
 
-const romData = fs.readFileSync('./roms/spec48.rom');
-const memory = new Memory({ model: '48k', romBuffer: romData.buffer });
-memory._debugEnabled = false;
-const cpu = new Z80(memory);
-
+test.skip('test_flags_trace moved to tests/scripts (long diagnostic)', () => {
+  // intentionally empty placeholder
+});
 let keyMatrix = Array(8).fill(0xFF);
 
 cpu.io = {
@@ -69,4 +65,9 @@ console.log(`\nNow at PC=0x${cpu.PC.toString(16)}`);
 
 // Also release key at some point
 keyMatrix[1] = 0xFF;
+
+// Minimal Vitest wrapper to assert PC is defined after the trace
+test('flags trace smoke', () => {
+  expect(typeof cpu.PC).toBe('number');
+});
 

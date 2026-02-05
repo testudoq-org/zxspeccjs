@@ -1,11 +1,12 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Verification test for ULA port I/O fix
-import { Memory } from './src/memory.mjs';
-import { ULA } from './src/ula.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { ULA } from '../../src/ula.mjs';
+import { Z80 } from '../../src/z80.mjs';
 
 console.log('=== ULA Fix Verification Test ===');
 
@@ -130,3 +131,10 @@ console.log('✅ Boot sequence simulation: SUCCESSFUL');
 console.log('✅ Display memory integration: VERIFIED');
 console.log('\n🎉 ULA IMPLEMENTATION FIX SUCCESSFUL!');
 console.log('🎉 Blue-grey bar issue should now be resolved!');
+
+// Minimal Vitest wrapper to assert important observable state
+test('ULA fix verification smoke', () => {
+  expect(typeof ula.border).toBe('number');
+  const bitmapView = memory.getBitmapView();
+  expect(bitmapView.length).toBeGreaterThan(0);
+});

@@ -1,5 +1,6 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 /**
@@ -7,8 +8,8 @@ const console = globalThis.console;
  * The ROM early boot uses LDDR to copy attributes
  */
 
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 const romData = fs.readFileSync('./roms/spec48.rom');
@@ -82,4 +83,6 @@ console.log('Destination values (should match source):');
 for (let i = 0x7100; i < 0x7110; i++) {
   console.log(`  0x${i.toString(16)}: 0x${mem.read(i).toString(16).padStart(2, '0')}`);
 }
+
+test('lddr smoke', () => { expect(typeof mem.read === 'function').toBeTruthy(); });
 

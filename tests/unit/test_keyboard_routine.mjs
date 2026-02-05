@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Test full KEYBOARD routine (0x02BF) with L key pressed
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 async function testKeyboard() {
@@ -105,5 +106,5 @@ async function testKeyboard() {
   }
 }
 
-testKeyboard().catch(console.error);
+test('keyboard routine smoke', async () => { await testKeyboard(); });
 

@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test } from 'vitest';
 const console = globalThis.console;
 
 // Test with proper initial system variable values
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 async function testProperInit() {
@@ -102,5 +103,5 @@ async function testProperInit() {
   }
 }
 
-testProperInit().catch(console.error);
+test('proper init smoke', async () => { await testProperInit(); });
 

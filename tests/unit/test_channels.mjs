@@ -1,13 +1,13 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
-const console = globalThis.console;
+import { test } from 'vitest';
 
-// Check I/O channel setup
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
-import * as fs from 'fs';
+// Long diagnostic moved to tests/scripts/test_channels.mjs
+// Excluded from unit runs; run the script directly from `tests/scripts/test_channels.mjs`.
 
-const romData = fs.readFileSync('./roms/spec48.rom');
+test.skip('test_channels moved to tests/scripts (long diagnostic)', () => {
+  // intentionally empty placeholder
+});
 const memory = new Memory({ model: '48k', romBuffer: romData.buffer });
 const cpu = new Z80(memory);
 

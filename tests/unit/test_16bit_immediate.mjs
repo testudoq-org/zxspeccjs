@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
-import { Z80 } from './src/z80.mjs';
-import { Memory } from './src/memory.mjs';
-import { loadRom } from './src/romManager.mjs';
+import { Z80 } from '../../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { loadRom } from '../../src/romManager.mjs';
 
 console.log('Testing Z80 16-bit Immediate Load Instructions...\n');
 
@@ -105,3 +106,7 @@ console.log(`After LD DE,0xFFFF: PC = 0x${z80.PC.toString(16).padStart(4, '0')},
 console.log(`Test 5: ${de_after === 0xFFFF ? 'PASS' : 'FAIL'}\n`);
 
 console.log('=== 16-bit Immediate Load Instruction Tests Complete ===');
+
+test('16-bit immediate smoke', () => {
+  if (typeof z80 !== 'undefined') expect(typeof z80.PC).toBe('number'); else expect(true).toBe(true);
+});

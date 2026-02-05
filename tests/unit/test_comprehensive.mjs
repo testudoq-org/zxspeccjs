@@ -1,12 +1,13 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
-// More comprehensive trace of keyboard and print flow
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
-import * as fs from 'fs';
-const console = globalThis.console;
+import { test } from 'vitest';
 
-const romData = fs.readFileSync('./roms/spec48.rom');
+// Long diagnostic moved to tests/scripts/test_comprehensive.mjs
+// Excluded from unit runs; run the script directly from `tests/scripts/test_comprehensive.mjs`.
+
+test.skip('test_comprehensive moved to tests/scripts (long diagnostic)', () => {
+  // intentionally empty placeholder
+});
 const memory = new Memory({ model: '48k', romBuffer: romData.buffer });
 const cpu = new Z80(memory);
 

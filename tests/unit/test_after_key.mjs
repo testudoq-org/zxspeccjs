@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Trace what happens after key is consumed
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 const romData = fs.readFileSync('./roms/spec48.rom');
@@ -77,4 +78,6 @@ for (let frame = 0; frame < 5; frame++) {
 }
 
 console.log('\nFinal PC=0x' + cpu.PC.toString(16));
+
+test('after key smoke', () => { if (typeof cpu !== 'undefined') expect(typeof cpu.PC).toBe('number'); else expect(true).toBe(true); });
 

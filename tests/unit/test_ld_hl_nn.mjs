@@ -1,12 +1,13 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 /**
  * Test LD HL,(nn) instruction - does it work?
  */
 
-import { Z80 } from './src/z80.mjs';
+import { Z80 } from '../../src/z80.mjs';
 
 console.log('='.repeat(60));
 console.log('TEST LD HL,(nn) INSTRUCTION');
@@ -60,4 +61,6 @@ if ((cpu.H << 8 | cpu.L) === 0x5000) {
 } else {
   console.log('\n❌ LD HL,(nn) is BROKEN!');
 }
+
+test('ld hl nn smoke', () => { expect(((cpu.H<<8)|cpu.L) === 0x5000).toBeTruthy(); });
 

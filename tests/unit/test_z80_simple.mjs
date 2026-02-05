@@ -1,15 +1,14 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
-
-#!/usr/bin/env node
 
 /**
  * Simple test to verify Phase 2 Z80 operations implementation
  */
 
-import { Z80 } from './src/z80.mjs';
-import { Memory } from './src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
 
 function testZ80Operations() {
   console.log('🧪 Testing Z80 Phase 2 Operations\n');
@@ -217,6 +216,8 @@ Z80.prototype.getSign = function() {
 };
 
 // Run the test
-if (import.meta.url === `file://${process.argv[1]}`) {
-  testZ80Operations();
-}
+// Expose as a Vitest test so failures surface in the test runner
+test('z80 phase2 operations script', () => {
+  const ok = testZ80Operations();
+  expect(ok).toBeTruthy();
+});

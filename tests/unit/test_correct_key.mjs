@@ -1,13 +1,13 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
-const console = globalThis.console;
+import { test } from 'vitest';
 
-// Check what key value the ROM actually reads
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
-import fs from 'fs';
+// Long diagnostic moved to tests/scripts/test_correct_key.mjs
+// Excluded from unit runs; run the script directly from `tests/scripts/test_correct_key.mjs`.
 
-const romData = fs.readFileSync('./roms/spec48.rom');
+test.skip('test_correct_key moved to tests/scripts (long diagnostic)', () => {
+  // intentionally empty placeholder
+});
 const memory = new Memory({ model: '48k', romBuffer: romData.buffer });
 memory._debugEnabled = false;
 const cpu = new Z80(memory);

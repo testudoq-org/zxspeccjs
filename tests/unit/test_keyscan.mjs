@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Minimal KEY-SCAN test - just run KEY-SCAN directly and check result
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 async function testKeyScan() {
@@ -87,5 +88,5 @@ async function testKeyScan() {
   console.log('\n=== End Test ===');
 }
 
-testKeyScan().catch(console.error);
+test('keyscan smoke', async () => { await testKeyScan(); });
 

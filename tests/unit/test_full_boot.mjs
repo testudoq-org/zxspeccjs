@@ -1,11 +1,12 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Test full boot sequence with interrupts
-import { Z80 } from './src/z80.mjs';
-import { Memory } from './src/memory.mjs';
-import rom from './src/roms/spec48.js';
+import { Z80 } from '../../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import rom from '../../src/roms/spec48.js';
 
 const memory = new Memory();
 const cpu = new Z80(memory);
@@ -99,4 +100,11 @@ for (let i = 0; i < 30; i++) {
   if (c & 0x80) break;
 }
 console.log(`ROM copyright at 0x1539: "${copyrightText}"`);
+
+// Minimal Vitest wrapper to make this a proper test and assert ROM contains expected text
+test('full boot script smoke', () => {
+  expect(typeof copyrightText).toBe('string');
+  expect(copyrightText.length).toBeGreaterThan(0);
+  expect(/Sinclair|©|1982/.test(copyrightText)).toBeTruthy();
+});
 

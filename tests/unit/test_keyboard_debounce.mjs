@@ -1,10 +1,11 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Run multiple keyboard interrupts to test debounce
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
 import * as fs from 'fs';
 
 async function testKeyboardDebounce() {
@@ -77,5 +78,5 @@ async function testKeyboardDebounce() {
   console.log(`FLAGS bit 5: ${(flags & 0x20) ? 'SET - key ready!' : 'CLEAR - no key'}`);
 }
 
-testKeyboardDebounce().catch(console.error);
+test('keyboard debounce smoke', async () => { await testKeyboardDebounce(); });
 

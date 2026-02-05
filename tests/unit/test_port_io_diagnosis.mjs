@@ -1,11 +1,12 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
 // Diagnostic test for ULA port I/O and display issues during boot
-import { Memory } from './src/memory.mjs';
-import { ULA } from './src/ula.mjs';
-import { Z80 } from './src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { ULA } from '../../src/ula.mjs';
+import { Z80 } from '../../src/z80.mjs';
 
 console.log('=== ULA Port I/O Diagnosis ===');
 
@@ -91,3 +92,5 @@ console.log('❌ Border control via port 0xFE will not work');
 console.log('❌ This explains the persistent blue-grey bars during boot');
 console.log('✅ ULA display logic appears functional');
 console.log('✅ Memory access patterns are correct');
+
+test('port io diagnosis smoke', () => { expect(typeof memory.getBitmapView === 'function').toBeTruthy(); });

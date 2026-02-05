@@ -5,10 +5,10 @@ const console = globalThis.console;
 // Comprehensive test for ZX Spectrum 48K boot implementation
 // Tests all critical fixes: I register, 50Hz interrupts, frame counter, I/O channels
 
-import spec48 from './src/roms/spec48.js';
-import { Z80 } from './src/z80.mjs';
-import { Memory } from './src/memory.mjs';
-import { ULA } from './src/ula.mjs';
+import spec48 from '../../src/roms/spec48.js';
+import { Z80 } from '../../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
+import { ULA } from '../../src/ula.mjs';
 
 console.log('=== ZX Spectrum 48K Boot Implementation Test ===\n');
 
@@ -260,53 +260,30 @@ function testCopyrightDisplay() {
   return copyrightFound;
 }
 
-// Run all tests
-const tests = [
-  testCPUReset,
-  testFrameCounter,
-  testInterruptGeneration,
-  testIOSystem,
-  testBootSequence,
-  testCopyrightDisplay
-];
+import { test, expect } from 'vitest';
 
-let passedTests = 0;
-let totalTests = tests.length;
+// Run all tests under a Vitest test so failures are reported as test failures
+test('complete boot implementation tests', () => {
+  const tests = [
+    testCPUReset,
+    testFrameCounter,
+    testInterruptGeneration,
+    testIOSystem,
+    testBootSequence,
+    testCopyrightDisplay
+  ];
 
-console.log('Running comprehensive boot implementation tests...\n');
+  let passedTests = 0;
+  let totalTests = tests.length;
 
-for (const test of tests) {
-  try {
-    const result = test();
+  for (const t of tests) {
+    const result = t();
     if (result) passedTests++;
-  } catch (error) {
-    console.error(`✗ Test failed with error: ${error.message}`);
   }
-}
 
-console.log('=== TEST RESULTS ===');
-console.log(`Passed: ${passedTests}/${totalTests}`);
-console.log(`Success Rate: ${Math.round((passedTests / totalTests) * 100)}%`);
+  console.log('=== TEST RESULTS ===');
+  console.log(`Passed: ${passedTests}/${totalTests}`);
+  console.log(`Success Rate: ${Math.round((passedTests / totalTests) * 100)}%`);
 
-if (passedTests === totalTests) {
-  console.log('\n🎉 ALL TESTS PASSED! ZX Spectrum 48K boot implementation is complete.');
-  console.log('✓ I register properly set to 0x3F');
-  console.log('✓ 50Hz interrupt generation working');
-  console.log('✓ Frame counter implemented');
-  console.log('✓ I/O channel system functional');
-  console.log('✓ Boot sequence should now display copyright message');
-} else {
-  console.log('\n⚠️ Some tests failed. Implementation needs review.');
-}
-
-console.log('\n=== IMPLEMENTATION SUMMARY ===');
-console.log('The following critical fixes have been implemented:');
-console.log('1. ✓ I register set to 0x3F during CPU reset for proper 48K operation');
-console.log('2. ✓ 50Hz vertical sync interrupt generation in ULA');
-console.log('3. ✓ Frame counter (FRAMES) register at memory location 0x5C5C');
-console.log('4. ✓ Interrupt generation connected to CPU interrupt request mechanism');
-console.log('5. ✓ CHANS and CURCHL system variables implemented');
-console.log('6. ✓ Channel information table with "K", "S", "P" channels');
-console.log('7. ✓ RST 0x10 integrated with proper channel routing');
-console.log('8. ✓ Screen output functionality for "S" channel');
-console.log('\nThe ZX Spectrum 48K emulator should now boot correctly and display the copyright message.');
+  expect(passedTests).toBe(totalTests);
+});

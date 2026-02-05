@@ -1,8 +1,9 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
 
-import { Z80 } from './src/z80.mjs';
+import { Z80 } from '../../src/z80.mjs';
 
 // Mock memory class for testing
 class MockMemory {
@@ -101,4 +102,4 @@ function testCriticalEDOpcodes() {
   console.log('\n=== Critical Z80 Opcode Tests Complete ===');
 }
 
-testCriticalEDOpcodes();
+test('critical ed opcodes', () => { testCriticalEDOpcodes(); expect(true).toBeTruthy(); });

@@ -9,9 +9,10 @@ const console = globalThis.console;
  * - IFF1 must be true
  * - Frame is 69888 tstates for 48K
  */
-import { Memory } from './src/memory.mjs';
-import { Z80 } from './src/z80.mjs';
-import spec48 from './src/roms/spec48.js';
+import { test, expect } from 'vitest';
+import { Memory } from '../../src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
+import spec48 from '../../src/roms/spec48.js';
 
 const FRAME_TSTATES = 69888; // ZX Spectrum 48K frame length
 const INTERRUPT_WINDOW = 36; // Interrupts trigger within first 36 tstates
@@ -186,4 +187,10 @@ for (let attrY = 21; attrY < 24; attrY++) {
   }
   console.log(`  Row ${attrY}: ${nonDefault} non-default attributes`);
 }
+
+// Minimal Vitest wrapper: ensure EI is reached or interrupts were triggered
+test('full boot with interrupts smoke', () => {
+  expect(typeof eiReached).toBe('boolean');
+  expect(eiReached || interruptCount > 0).toBeTruthy();
+});
 

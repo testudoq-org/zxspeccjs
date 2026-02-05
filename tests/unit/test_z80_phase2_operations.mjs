@@ -1,17 +1,15 @@
 /* eslint-disable no-console, no-undef, no-unused-vars */
 /* eslint-env node, browser */
+import { test, expect } from 'vitest';
 const console = globalThis.console;
-
-#!/usr/bin/env node
-/* global console, process */
 
 /**
  * Comprehensive test suite for Phase 2 Z80 operations
  * Tests all newly implemented Z80 opcodes and operations
  */
 
-import { Z80 } from './src/z80.mjs';
-import { Memory } from './src/memory.mjs';
+import { Z80 } from '../../src/z80.mjs';
+import { Memory } from '../../src/memory.mjs';
 
 class Z80Phase2Test {
   constructor() {
@@ -444,11 +442,11 @@ class Z80Phase2Test {
   }
 }
 
-// Run the test suite
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run the test suite under Vitest
+test('z80 phase2 operations suite', () => {
   const tester = new Z80Phase2Test();
   const success = tester.runAllTests();
-  process.exit(success ? 0 : 1);
-}
+  expect(success).toBeTruthy();
+});
 
 export { Z80Phase2Test };
