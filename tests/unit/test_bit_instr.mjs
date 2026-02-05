@@ -15,12 +15,12 @@ async function testBit() {
   // Test BIT 7,r with value 0xFF (bit 7 is SET)
   // Expected: Z=0 (bit is not zero)
   
-  // Set up test at address 0x1000
-  memory.write(0x1000, 0xCB);  // CB prefix
-  memory.write(0x1001, 0x7F);  // BIT 7,A
-  memory.write(0x1002, 0x00);  // NOP
+  // Set up test at address 0x4000 (RAM)
+  memory.write(0x4000, 0xCB);  // CB prefix
+  memory.write(0x4001, 0x7F);  // BIT 7,A
+  memory.write(0x4002, 0x00);  // NOP
   
-  cpu.PC = 0x1000;
+  cpu.PC = 0x4000;
   cpu.A = 0xFF;  // All bits set, including bit 7
   cpu.F = 0x00;
   
@@ -48,13 +48,13 @@ async function testBit() {
   console.log('');
   
   // Test BIT 7,(HL) with value 0xFF
-  memory.write(0x2000, 0xCB);  // CB prefix
-  memory.write(0x2001, 0x7E);  // BIT 7,(HL)
-  memory.write(0x2002, 0x00);  // NOP
-  memory.write(0x3000, 0xFF);  // Value at (HL)
+  memory.write(0x4100, 0xCB);  // CB prefix
+  memory.write(0x4101, 0x7E);  // BIT 7,(HL)
+  memory.write(0x4102, 0x00);  // NOP
+  memory.write(0x5000, 0xFF);  // Value at (HL)
   
-  cpu.PC = 0x2000;
-  cpu.H = 0x30;
+  cpu.PC = 0x4100;
+  cpu.H = 0x50;
   cpu.L = 0x00;
   cpu.F = 0x00;
   
