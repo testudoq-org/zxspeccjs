@@ -211,7 +211,11 @@ tools/
 # Checks folder
 .checks/
 
-# Vitest config (if not needed in repo)
-vitest.config.mjs
+
 # Playwright snapshots
 *-snapshots/
+
+# Re-include migrated tests and their contents
+!tests/
+!tests/**
+!tests/**/*.mjs

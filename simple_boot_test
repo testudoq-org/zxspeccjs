@@ -1,8 +1,8 @@
-#!/usr/bin/env node
-import { readFileSync } from 'fs';
-
-console.log('🔍 ZX Spectrum ROM Boot Sequence Debug Tool');
-console.log('===========================================\n');
+/* eslint-disable no-console */
+/* simple_boot_test — archived */
+// This script was moved to `archive/legacy-scripts/simple_boot_test.mjs` on 2026-02-05.
+console.log('simple_boot_test has been archived. See archive/legacy-scripts/simple_boot_test.mjs');
+process.exit(0);
 
 try {
   // Load ROM data

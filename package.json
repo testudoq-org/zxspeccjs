@@ -1,32 +1,36 @@
 {
-  "name": "zxspeccjs",
-  "version": "0.1.0",
-  "description": "ZX Spectrum emulator in browser (ES modules + Canvas + WebAudio)",
-  "type": "module",
-  "scripts": {
-    "dev": "http-server -c-1 -p 8080",
-    "build": "rollup -c",
-    "start": "npm run dev",
-    "test": "vitest run",
-    "test:unit": "vitest run --dir test",
-    "test:e2e": "npx playwright test",
-    "test:watch": "vitest --watch --dir test",
-    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev",
-  "vitest": {
-    "exclude": ["tests-e2e/**"]
-  }
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.57.0",
-    "@rollup/plugin-commonjs": "^24.0.1",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-terser": "^0.4.4",
-    "http-server": "^14.1.1",
-    "jsdom": "^28.0.0",
-    "rollup": "^3.26.3",
-    "vitest": "^1.3.0"
-  },
-  "dependencies": {
-    "pngjs": "^7.0.0"
-  }
+    "name":  "zxspeccjs",
+    "version":  "0.1.0",
+    "description":  "ZX Spectrum emulator in browser (ES modules + Canvas + WebAudio)",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "http-server -c-1 -p 8080",
+                    "build":  "rollup -c",
+                    "start":  "npm run dev",
+                    "test":  "vitest run",
+                    "test:unit":  "vitest run",
+                    "test:integration": "vitest run --dir tests/integration",
+                    "test:e2e":  "npx playwright test tests/e2e",
+                    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+                    "test:watch":  "vitest --watch --dir tests/unit",
+                    "setup-and-dev":  "npm install --legacy-peer-deps \u0026\u0026 npm run dev",
+                    "debug:boot":  "node tests/scripts/comprehensive_boot_sequence_test.mjs"
+                },
+    "vitest": {
+        "exclude": ["tests/e2e/**"]
+    },
+    "devDependencies":  {
+                            "@playwright/test":  "^1.57.0",
+                            "@rollup/plugin-commonjs":  "^24.0.1",
+                            "@rollup/plugin-node-resolve":  "^15.0.1",
+                            "@rollup/plugin-terser":  "^0.4.4",
+                            "http-server":  "^14.1.1",
+                            "jsdom":  "^28.0.0",
+                            "rollup":  "^3.26.3",
+                            "vitest":  "^4.0.18",
+                            "@vitest/coverage-v8": "^4.0.18"
+                        },
+    "dependencies":  {
+                         "pngjs":  "^7.0.0"
+                     }
 }

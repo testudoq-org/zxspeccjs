@@ -1,0 +1,141 @@
+/*
+  Archived from project root: simple
+  Date: 2026-02-05
+  Notes:
+    - Kept for historical/manual debugging use.
+    - Key checks: interrupt setup, boot sequence, timing analysis
+*/
+
+#!/usr/bin/env node
+
+/**
+ * Simple demonstration of interrupt setup and timing issues
+ */
+
+import { Z80 } from './src/z80.mjs';
+import { Memory } from './src/memory.mjs';
+import spec48 from './src/roms/spec48.js';
+
+console.log('🔧 INTERRUPT SETUP AND TIMING ANALYSIS');
+console.log('=======================================');
+
+try {
+  // Initialize CPU and Memory
+  const memory = new Memory(spec48.bytes);
+  const cpu = new Z80(memory);
+  
+  console.log('\n1. INTERRUPT MODE CONFIGURATION');
+  console.log('================================');
+  console.log(`Current IM mode: ${cpu.IM} (should be 1 for 48K)`);
+  console.log(`I register: 0x${cpu.I.toString(16).padStart(2, '0')} (should be 0x3F)`);
+  console.log(`IFF1: ${cpu.IFF1}, IFF2: ${cpu.IFF2} (correctly disabled after reset)`);
+  
+  console.log('\n2. BOOT SEQUENCE ANALYSIS');
+  console.log('==========================');
+  cpu.reset();
+  
+  console.log('Executing first few boot instructions:');
+  for (let i = 0; i < 8; i++) {
+    const pcBefore = cpu.PC;
+    const opcode = memory.read(pcBefore);
+    const tstates = cpu.step();
+    
+    let instruction = 'DB 0x' + opcode.toString(16);
+    switch (opcode) {
+      case 0xF3: instruction = 'DI'; break;
+      case 0xAF: instruction = 'XOR A'; break;
+      case 0x11: instruction = 'LD DE,nn'; break;
+      case 0xC3: instruction = 'JP nn'; break;
+    }
+    
+    console.log(`  ${i+1}. PC:0x${pcBefore.toString(16).padStart(4,'0')} ${instruction.padEnd(12)} T:${tstates} -> 0x${cpu.PC.toString(16).padStart(4,'0')}`);
+    
+    if (cpu.PC === 0x0038) {
+      console.log('  ⚠️  BOOT SEQUENCE REACHED INTERRUPT HANDLER at 0x0038!');
+      break;
+    }
+  }
+  
+  console.log('\n3. INTERRUPT HANDLER ANALYSIS');
+  console.log('==============================');
+  console.log('Interrupt handler content (0x0038):');
+  for (let addr = 0x0038; addr < 0x0048; addr++) {
+    const opcode = memory.read(addr);
+    let instruction = 'DB 0x' + opcode.toString(16).padStart(2, '0');
+    switch (opcode) {
+      case 0xF5: instruction = 'PUSH AF'; break;
+      case 0xE5: instruction = 'PUSH HL'; break;
+      case 0xC9: instruction = 'RET'; break;
+    }
+    console.log(`  0x${addr.toString(16).padStart(4, '0')}: 0x${opcode.toString(16).padStart(2, '0')} ${instruction}`);
+  }
+  
+  // Check for RET instruction
+  let hasRet = false;
+  for (let addr = 0x0038; addr < 0x0080; addr++) {
+    if (memory.read(addr) === 0xC9) {
+      console.log(`  ✅ Found RET instruction at 0x${addr.toString(16)}`);
+      hasRet = true;
+      break;
+    }
+  }
+  if (!hasRet) {
+    console.log('  ❌ No RET instruction found - execution will get stuck!');
+  }
+  
+  console.log('\n4. INTERRUPT REQUEST TESTING');
+  console.log('=============================');
+  
+  // Test interrupt handling
+  console.log('Testing interrupt request mechanism:');
+  cpu.IFF1 = false;
+  cpu.intRequested = false;
+  console.log(`  Initial: IFF1=${cpu.IFF1}, intRequested=${cpu.intRequested}`);
+  
+  cpu.requestInterrupt();
+  console.log(`  After requestInterrupt(): intRequested=${cpu.intRequested}`);
+  console.log(`  CPU should ignore because IFF1=${cpu.IFF1}`);
+  
+  // Enable interrupts and test
+  cpu.IFF1 = true;
+  cpu.IFF2 = true;
+  cpu.intRequested = true;
+  const pcBefore = cpu.PC;
+  
+  console.log('\nTesting interrupt handling with IFF1=true:');
+  const tstates = cpu.step();
+  console.log(`  PC before: 0x${pcBefore.toString(16)}`);
+  console.log(`  PC after: 0x${cpu.PC.toString(16)} (should be 0x0038)`);
+  console.log(`  T-states: ${tstates} (should be 13)`);
+  console.log(`  IFF1 after: ${cpu.IFF1}, IFF2 after: ${cpu.IFF2} (should be false)`);
+  
+  console.log('\n5. TIMING AND CONTENTION ISSUES');
+  console.log('================================');
+  console.log('❌ Missing components:');
+  console.log('  - No 50Hz vertical sync interrupt generation');
+  console.log('  - No frame counter (FRAMES) register');
+  console.log('  - No memory contention timing');
+  console.log('  - No ULA interrupt generation');
+  
+  console.log('\n🎯 ROOT CAUSE ANALYSIS');
+  console.log('=======================');
+  console.log('CPU stops at 0x0038 because:');
+  console.log('1. Boot sequence jumps directly to interrupt handler');
+  console.log('2. No interrupts are generated during boot');
+  console.log('3. Missing 50Hz frame-based interrupt generation');
+  console.log('4. ULA does not generate vertical sync interrupts');
+  
+  console.log('\n📋 RECOMMENDATIONS');
+  console.log('==================');
+  console.log('HIGH PRIORITY:');
+  console.log('  - Implement 50Hz interrupt generation in ULA');
+  console.log('  - Add frame counter (FRAMES) register');
+  console.log('  - Verify interrupt handler RET instruction');
+  console.log('MEDIUM PRIORITY:');
+  console.log('  - Add memory contention timing');
+  console.log('  - Implement proper interrupt timing');
+  
+} catch (error) {
+  console.error('Error:', error.message);
+  console.error(error.stack);
+}

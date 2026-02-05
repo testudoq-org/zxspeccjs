@@ -243,7 +243,7 @@ Files to review further
 
 - src/main.mjs — verify there are no duplicate canvas forwarding listeners and that auto-focus logic is compatible with the hidden input.
 - src/ula.mjs — ensure _applyInputToULA reception is performant under microtask scheduling.
-- tests-e2e/* — consider adding mobile device emulation scenarios.
+- tests/e2e/* — consider adding mobile device emulation scenarios.
 
 Sequence diagrams
 
