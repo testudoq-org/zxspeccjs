@@ -1,3 +1,12 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/*
+  Archived from project root: cpu_boot_test.mjs
+  Date: 2026-02-05
+  Notes:
+    - Kept for historical/manual debugging use.
+    - Automated checks converted to Vitest: `tests/unit/test_cpu_boot.mjs` and `tests/unit/full-boot.test.mjs`.
+*/
+
 #!/usr/bin/env node
 import { readFileSync } from 'fs';
 

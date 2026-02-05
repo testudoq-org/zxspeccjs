@@ -1,8 +1,16 @@
-/* eslint-disable no-console */
-/* simple — archived */
-// Moved to `archive/legacy-scripts/simple` on 2026-02-05.
-console.log('This script has been archived to archive/legacy-scripts/simple');
-process.exit(0);
+/*
+  Archived from project root: simple
+  Date: 2026-02-05
+  Notes:
+    - Kept for historical/manual debugging use.
+    - Key checks: interrupt setup, boot sequence, timing analysis
+*/
+
+#!/usr/bin/env node
+
+/**
+ * Simple demonstration of interrupt setup and timing issues
+ */
 
 import { Z80 } from './src/z80.mjs';
 import { Memory } from './src/memory.mjs';

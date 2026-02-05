@@ -34,7 +34,7 @@ async function testBit() {
   console.log('');
   
   // Test BIT 7,A with value 0x00 (bit 7 is CLEAR)
-  cpu.PC = 0x1000;
+  cpu.PC = 0x4000;
   cpu.A = 0x00;  // All bits clear
   cpu.F = 0x00;
   
@@ -58,7 +58,7 @@ async function testBit() {
   cpu.L = 0x00;
   cpu.F = 0x00;
   
-  console.log(`Before BIT 7,(HL): (HL)=0x${memory.read(0x3000).toString(16)}, F=0x${cpu.F.toString(16)}`);
+  console.log(`Before BIT 7,(HL): (HL)=0x${memory.read(0x5000).toString(16)}, F=0x${cpu.F.toString(16)}`);
   cpu.step();
   console.log(`After BIT 7,(HL):  F=0x${cpu.F.toString(16)}`);
   console.log(`  Z flag: ${(cpu.F & 0x40) ? 'SET' : 'CLEAR'}`);

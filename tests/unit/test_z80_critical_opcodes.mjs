@@ -31,27 +31,29 @@ function testCriticalEDOpcodes() {
   // Place the data in RAM so reads/writes work as expected
   memory.write(0x5000, 0x34); // LSB
   memory.write(0x5001, 0x12); // MSB
-  memory.write(0x2000, 0xED); // ED prefix
-  memory.write(0x2001, 0x2A); // LD HL,(nn) opcode
-  memory.write(0x2002, 0x00); // Address LSB (0x5000)
-  memory.write(0x2003, 0x50); // Address MSB (0x50 -> 0x5000)
+  // Put the instruction bytes into RAM (0x4000+) so writes are effective
+  memory.write(0x4000, 0xED); // ED prefix
+  memory.write(0x4001, 0x2A); // LD HL,(nn) opcode
+  memory.write(0x4002, 0x00); // Address LSB (0x5000)
+  memory.write(0x4003, 0x50); // Address MSB (0x50 -> 0x5000)
   
-  cpu.PC = 0x2000;
+  cpu.PC = 0x4000;
   cpu._setHL(0x0000); // Clear HL
   
   const tstates1 = cpu.step();
-  console.log(`LD HL,(0x1000) = 0x${cpu._getHL().toString(16).padStart(4, '0')} (expected: 0x1234)`);
+  console.log(`LD HL,(0x5000) = 0x${cpu._getHL().toString(16).padStart(4, '0')} (expected: 0x1234)`);
   console.log(`T-states: ${tstates1} (expected: 16)`);
   console.log(`Test 1: ${cpu._getHL() === 0x1234 ? 'PASS' : 'FAIL'}`);
   
   // Test 2: LD (nn),HL - ED 22
   console.log('\n2. Testing LD (nn),HL - ED 22');
-  memory.write(0x3000, 0xED); // ED prefix
-  memory.write(0x3001, 0x22); // LD (nn),HL opcode
-  memory.write(0x3002, 0x00); // Address LSB (0x6000)
-  memory.write(0x3003, 0x60); // Address MSB (0x60 -> 0x6000)
+  // Put this instruction into RAM region so the instruction bytes can be written
+  memory.write(0x4004, 0xED); // ED prefix
+  memory.write(0x4005, 0x22); // LD (nn),HL opcode
+  memory.write(0x4006, 0x00); // Address LSB (0x6000)
+  memory.write(0x4007, 0x60); // Address MSB (0x60 -> 0x6000)
   
-  cpu.PC = 0x3000;
+  cpu.PC = 0x4004;
   cpu._setHL(0xABCD); // Set HL to test value
   
   const tstates2 = cpu.step();
