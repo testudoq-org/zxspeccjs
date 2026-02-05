@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-env node */
+/* global process */
 // Playwright config with visual testing support
 import { defineConfig } from '@playwright/test';
 
