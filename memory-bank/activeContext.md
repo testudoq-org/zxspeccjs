@@ -70,4 +70,14 @@ The CB-prefix instruction decoder now correctly separates opcode ranges:
 - **Keyboard input**: Keyboard wiring and matrix implementation reviewed; next task is to enable canvas/HTML keyboard integration to feed `src/input.mjs` and ULA port reads.
 
 ---
+
+## 2026-02-06 — Test consolidation and stability
+
+- Consolidated E2E tests under `tests/e2e` and updated test configs (`playwright.config.mjs`, `vitest.config.mjs`) to reflect canonical paths and exclude E2E from unit runs.
+- Hardened glyph/visual tests to prefer debug-API pattern-matching (`snapshotGlyph`/`compareColumnPixels`) with a canvas pixel-sampling fallback where necessary.
+- Fixed the `glyph-regression.spec.mjs` test (replaced fragile memory scan checks with debug-API + canvas fallback) and removed a duplicate rogue test.
+- Strengthened `keyboard-screenshot.spec.mjs` to actively assert visible pixels using debug helpers and canvas sampling instead of relying only on screenshot file size.
+- Performed 4 sequential headed+trace Playwright runs; all runs passed with no glyph-related flakes. Artifacts and traces are stored in `tests/e2e/_artifacts` for future triage if needed.
+
+---
 2026-02-02 - Snapshot of renderer/backfill/diagnostics work

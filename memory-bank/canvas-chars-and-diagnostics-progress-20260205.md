@@ -52,6 +52,15 @@ Next actions (priority)
 4. Add a Playwright test that reproduces the missing-7F case and asserts the auto-reveal + restore flow (regression protection).
 5. If stripe persists after diagnostics, add a conservative render-time copy of missing glyphs when frame generation sees all-zero rows for printable chars prior to boot completion.
 
+## 2026-02-06 — Test hardening & stability
+
+- Consolidated E2E tests under `tests/e2e/` and updated Playwright config to discover tests in the canonical location.
+- Tests now prefer the **debug-API** (`snapshotGlyph`, `compareColumnPixels`, `peekBottomLines`) for deterministic glyph detection; canvas pixel-sampling serves as a robust fallback in environments without the debug hooks.
+- `glyph-regression.spec.mjs` was hardened to use `snapshotGlyph` with a pixel-sampling fallback; `keyboard-screenshot.spec.mjs` was strengthened to verify visible pixels (debug API preferred, canvas sample fallback) instead of file-size-only checks.
+- Performed four sequential headed+trace E2E runs to stress-test for flakiness; all runs passed locally (no glyph regressions observed). Traces and artifacts saved to `tests/e2e/_artifacts/` for triage if needed.
+
+**Recommendation:** Treat `window.__ZX_DEBUG__` helpers as a testing contract and continue to prefer debug-API-based assertions for visual checks; add Playwright tests that explicitly exercise the backfill/auto-reveal behavior.
+
 Acceptance / Merge notes
 
 - Branch: feature-improve-interaction-with-canvas-emulation

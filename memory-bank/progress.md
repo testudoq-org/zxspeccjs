@@ -320,3 +320,26 @@ npx vitest run test/ --pool=forks --poolOptions.forks.singleFork
 - ✅ Virtual keyboard UI functional
 - ✅ Debug API available for testing
 - 🔄 Integration testing with BASIC interpreter ready
+
+### [2026-02-06] - TEST CONSOLIDATION & GLYPH HARDENING (e2e / playwright)
+
+**Summary:**
+- Consolidated end-to-end tests under `tests/e2e/` and removed legacy `tests-e2e/` duplicates; updated `playwright.config.mjs`, `vitest.config.mjs` and `package.json` to canonicalize discovery and separate unit vs e2e runs.
+- Moved and re-classified tests (unit → `tests/unit/`, e2e → `tests/e2e/`, scripts/diagnostics → `tests/scripts/`), fixing import paths for moved unit tests (notably Z80 tests).
+- Hardened visual/glyph tests to prefer debug-API checks (`snapshotGlyph`, `compareColumnPixels`) with a canvas pixel-sampling fallback for environments without debug hooks.
+- Fixed a brittle glyph-regression test that depended on the wrong memory region; replaced with debug-API pattern matching + pixel fallback and removed a duplicate rogue test.
+- Strengthened `keyboard-screenshot.spec.mjs` to assert visible pixels (debug API preferred) instead of relying only on screenshot file size.
+- Performed 4 sequential headed+trace Playwright runs (55±s each) to stress-test glyph flakiness; all runs passed locally with traces/artifacts stored in `tests/e2e/_artifacts/`.
+
+**Files of Note:**
+- `playwright.config.mjs`, `vitest.config.mjs`, `package.json`
+- `tests/e2e/*` (moved/cleaned, snapshots consolidated)
+- `tests/unit/z80/*` (moved and import fixes)
+- `tests/_helpers/bootHelpers.mjs` (exposed/consumed `snapshotGlyph`, `compareColumnPixels` helpers)
+- `tests/e2e/glyph-regression.spec.mjs`, `tests/e2e/keyboard-screenshot.spec.mjs` (hardened)
+
+**Impact & Next Steps:**
+1. CI: validate Playwright runs on CI infra (start dev server + wait for emulator readiness before Playwright job).
+2. Proactively apply debug-API + pixel-sampling pattern to any remaining brittle visual tests if CI shows flakes; prefer debug API where available.
+3. Document `window.__ZX_DEBUG__` testing contract in developer docs and create follow-up issues for any unresolved flakiness.
+
