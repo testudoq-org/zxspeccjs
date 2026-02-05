@@ -1,4 +1,4 @@
-/* eslint-disable no-console, no-unused-vars */
+/* eslint-disable no-console, no-unused-vars, no-undef */
 /* eslint-env browser, node, es2021 */
 
 // @e2e @ui
@@ -45,7 +45,7 @@ test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {
 
   expect(pixel).not.toBeNull();
   // Expect non-background (not black) because attr was set to white ink on black paper
-  const [r, g, b, _a] = pixel;
+  const [r, g, b] = pixel;
   const isBlack = (r === 0 && g === 0 && b === 0);
   expect(isBlack).toBe(false);
 });
