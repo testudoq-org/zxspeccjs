@@ -64,3 +64,30 @@ Troubleshooting
 Legal notice
 
 - The emulator does not distribute commercial ROMs. Users must supply ROMs they legally own. See [`docs/ROM_ADDITION.md`](docs/ROM_ADDITION.md:1) for legal considerations and sourcing guidance.
+
+---
+
+## Developer: Enforce instruction blocks (Husky + script)
+
+- **Setup (one-time):**
+  - Run: `npm install`
+  - Run: `npm run prepare` (installs Husky hooks)
+
+- **Check & append instruction blocks:**
+  - Run: `npm run ensure-instruction-blocks`
+  - The script will append the required instructional blocks to `.github/copilot-instructions.md` and `.roocode/memory-bank.md` **only if missing**.
+  - If the script modifies files it will stage them and exit non-zero; review the changes, commit them, and re-run your command.
+
+- **Pre-commit behavior:**
+  - A Husky pre-commit hook runs the script automatically and will block commits when it makes changes so you can review and commit the modifications manually.
+
+- **Codacy & local analysis:**
+  - The script attempts a best-effort `npx codacy-analysis-cli analyze <file>` for any modified files; install the Codacy CLI locally to enable this behavior.
+
+- **Important reminders:**
+  - Mandatory pre-commit reminder: "Before committing, run: npm run test:unit && npx playwright test tests/e2e --grep @smoke && codacy-analysis-cli analyze --upload"
+  - Verify locally with: `npm run test:unit && npx playwright test tests/e2e --grep @smoke`
+
+---
+
+
