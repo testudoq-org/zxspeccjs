@@ -250,7 +250,7 @@ export class Emulator {
     try { this._bindRomSelector(); } catch { /* ignore */ }
     try { this._bindKeyboardToggle(); } catch { /* ignore */ }
     try { this._bindCanvasFocus(); } catch { /* ignore */ }
-    try { this._bindDiagnosticButtons(); } catch { /* ignore */ }
+    // Note: _bindDiagnosticButtons() is called after debug panel is created (line ~1294)
   }
 
   _bindButtons() {
@@ -347,8 +347,12 @@ export class Emulator {
   }
 
   _bindDiagnosticButtons() {
-    const output = document.getElementById('diagOutput');
-    const log = (msg) => { if (output) output.textContent = msg; console.log('[Diag]', msg); };
+    // Find diagOutput at call time, not bind time (it may be created later in debug panel)
+    const log = (msg) => {
+      const output = document.getElementById('diagOutput');
+      if (output) output.textContent = msg;
+      console.log('[Diag]', msg);
+    };
 
     // Emu Status button
     const statusBtn = document.getElementById('diagStatusBtn');
@@ -1263,7 +1267,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     dbgPanel.innerHTML = `
       <div id="__emu_diag_header" style="cursor:move; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <div style="font-weight:bold;">Emu Diagnostics</div>
-        <button id="__emu_diag_close" style="background:#222;color:#fff;border:0;padding:2px 6px;cursor:pointer">×</button>
+        <button id="__emu_diag_close" style="background:#222;color:#fff;border:0;padding:2px 6px;cursor:pointer" aria-label="Close diagnostics panel">×</button>
       </div>
       <div id="__emu_diag_out" style="white-space:pre-wrap; color:#ddd; margin-bottom:8px; min-height:40px;">Ready</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -1274,8 +1278,20 @@ window.addEventListener('DOMContentLoaded', async () => {
         <button id="__emu_btn_clearcache" style="padding:6px">Clear cache & reload</button>
         <button id="__emu_btn_input_status" style="padding:6px">Input status</button>
       </div>
-      <div id="__emu_input_status" style="display:none;margin-top:8px;padding:6px;background:#0b0b0b;border:1px solid #222;color:#bfb; font-size:11px;">Last key: <span id="__emu_input_last">(none)</span><br>Hidden input focused: <span id="__emu_input_focused">false</span></div>`;
+      <div id="__emu_input_status" style="display:none;margin-top:8px;padding:6px;background:#0b0b0b;border:1px solid #222;color:#bfb; font-size:11px;">Last key: <span id="__emu_input_last">(none)</span><br>Hidden input focused: <span id="__emu_input_focused">false</span></div>
+      <hr style="border-color:#444; margin:8px 0">
+      <label style="font-size:12px; display:block; margin-bottom:4px;">Quick Diagnostics</label>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+        <button id="diagStatusBtn" style="font-size:11px;padding:4px 8px">Emu Status</button>
+        <button id="diagDisplayBtn" style="font-size:11px;padding:4px 8px">Display Check</button>
+        <button id="diagForceRenderBtn" style="font-size:11px;padding:4px 8px">Force Render</button>
+        <button id="diagKeyTestBtn" style="font-size:11px;padding:4px 8px" aria-label="Key Test - Press L key">Key Test (L)</button>
+      </div>
+      <pre id="diagOutput" style="font-size:10px; color:#0ff; background:#000; padding:8px; max-height:200px; overflow:auto; white-space:pre-wrap; margin:0;"></pre>`;
     document.body.appendChild(dbgPanel);
+
+    // Bind Quick Diagnostics buttons now that they exist in DOM
+    try { emu._bindDiagnosticButtons(); } catch { /* ignore */ }
 
     // Add a persistent toggle control into the UI controls area
     try {
