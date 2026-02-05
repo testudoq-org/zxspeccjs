@@ -15,7 +15,7 @@
                     "test:watch":  "vitest --watch --dir tests/unit",
                     "setup-and-dev":  "npm install --legacy-peer-deps \u0026\u0026 npm run dev",
                     "debug:boot":  "node tests/scripts/comprehensive_boot_sequence_test.mjs",
-                    "ensure-instruction-blocks": "node tools/ensure-instruction-blocks.js",
+                    "ensure-instruction-blocks": "node scripts/ensure-instruction-blocks.mjs",
                     "prepare": "husky install"
                 },
     "vitest": {
