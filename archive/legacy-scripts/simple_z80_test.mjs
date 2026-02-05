@@ -17,8 +17,8 @@ try {
   console.log('✅ Z80 CPU created successfully');
   
   // Test basic memory operations
-  memory.write(0x1000, 0x42);
-  const value = memory.read(0x1000);
+  memory.write(0x4000, 0x42);
+  const value = memory.read(0x4000);
   console.log(`✅ Memory write/read test: wrote 0x42, read 0x${value.toString(16)}`);
   
   // Test CPU reset
@@ -37,28 +37,28 @@ try {
   console.log(`📝 Test data at 0x2000: 0x${memory.readWord(0x2000).toString(16)}`);
   
   // Set up instruction: ED 2A 00 20 (LD HL,(0x2000))
-  memory.write(0x1000, 0xED);  // ED prefix
-  memory.write(0x1001, 0x2A);  // LD HL,(nn)
-  memory.write(0x1002, 0x00);  // Low byte of address
-  memory.write(0x1003, 0x20);  // High byte of address
+  memory.write(0x4000, 0xED);  // ED prefix
+  memory.write(0x4001, 0x2A);  // LD HL,(nn)
+  memory.write(0x4002, 0x00);  // Low byte of address
+  memory.write(0x4003, 0x20);  // High byte of address
   
   // Set PC to instruction
-  cpu.PC = 0x1000;
+  cpu.PC = 0x4000;
   console.log(`🔍 Before ED instruction:`);
   console.log(`   PC: 0x${cpu.PC.toString(16)}`);
   console.log(`   HL: 0x${cpu._getHL().toString(16)}`);
-  console.log(`   Memory[0x1000]: 0x${memory.read(0x1000).toString(16)}`);
-  console.log(`   Memory[0x1001]: 0x${memory.read(0x1001).toString(16)}`);
+  console.log(`   Memory[0x4000]: 0x${memory.read(0x4000).toString(16)}`);
+  console.log(`   Memory[0x4001]: 0x${memory.read(0x4001).toString(16)}`);
   console.log(`   Memory[0x2000]: 0x${memory.readWord(0x2000).toString(16)}`);
   
   // Execute the ED instruction
   const edTstates = cpu.step();
   console.log(`🔍 After ED LD HL,(0x2000):`);
-  console.log(`   PC: 0x${cpu.PC.toString(16)} (should be 0x1004)`);
+  console.log(`   PC: 0x${cpu.PC.toString(16)} (should be 0x4004)`);
   console.log(`   HL: 0x${cpu._getHL().toString(16)} (should be 0xABCD)`);
   console.log(`   T-states: ${edTstates} (should be 16)`);
   
-  const success = (cpu._getHL() === 0xABCD) && (cpu.PC === 0x1004) && (edTstates === 16);
+  const success = (cpu._getHL() === 0xABCD) && (cpu.PC === 0x4004) && (edTstates === 16);
   console.log(success ? '✅ ED prefix test PASSED' : '❌ ED prefix test FAILED');
   
   if (!success) {

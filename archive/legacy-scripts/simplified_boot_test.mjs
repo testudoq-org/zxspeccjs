@@ -167,7 +167,8 @@ class SimplifiedBootTest {
       let testPassed = true;
       
       // Test NOP (0x00)
-      memory.write(0x0000, 0x00); // NOP
+      memory.write(0x4000, 0x00); // NOP
+      cpu.PC = 0x4000;
       const pcBefore = cpu.PC;
       cpu.step();
       if (cpu.PC !== pcBefore + 1) {
@@ -176,9 +177,9 @@ class SimplifiedBootTest {
       }
       
       // Test LD A,n (0x3E nn)
-      memory.write(0x0000, 0x3E); // LD A,n
-      memory.write(0x0001, 0x42); // value 0x42
-      cpu.PC = 0x0000;
+      memory.write(0x4000, 0x3E); // LD A,n
+      memory.write(0x4001, 0x42); // value 0x42
+      cpu.PC = 0x4000;
       cpu.step();
       if (cpu.A !== 0x42) {
         console.log('❌ LD A,n opcode failed');

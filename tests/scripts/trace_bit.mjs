@@ -19,10 +19,10 @@ async function traceExactBit() {
   };
   
   // Test BIT 7,A with A=0xFF
-  memory.write(0x1000, 0xCB);  // CB prefix
-  memory.write(0x1001, 0x7F);  // BIT 7,A
+  memory.write(0x4000, 0xCB);  // CB prefix
+  memory.write(0x4001, 0x7F);  // BIT 7,A
   
-  cpu.PC = 0x1000;
+  cpu.PC = 0x4000;
   cpu.A = 0xFF;
   cpu.F = 0x00;
   
@@ -35,7 +35,7 @@ async function traceExactBit() {
   console.log('');
   
   // Test with A=0x00
-  cpu.PC = 0x1000;
+  cpu.PC = 0x4000;
   cpu.A = 0x00;
   cpu.F = 0x00;
   
