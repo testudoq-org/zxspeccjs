@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-env node */
 // Playwright config with visual testing support
 import { defineConfig } from '@playwright/test';
