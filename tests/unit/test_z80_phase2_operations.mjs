@@ -401,8 +401,8 @@ class Z80Phase2Test {
     // Test CPL (0x2F)
     this.resetCPU();
     this.cpu.A = 0xAB;
-    this.cpu.PC = 0x1000;
-    this.memory.write(0x1000, 0x2F);
+    this.cpu.PC = 0x4000; // run from RAM
+    this.memory.write(0x4000, 0x2F);
     
     this.cpu.step();
     this.assert(this.cpu.A === 0x54, 'CPL: A = 0xAB → 0x54 (bitwise NOT)');
