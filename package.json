@@ -17,7 +17,7 @@
                     "debug:boot":  "node tests/scripts/comprehensive_boot_sequence_test.mjs"
                 },
     "vitest": {
-        "exclude": ["tests-e2e/**"]
+        "exclude": ["tests/e2e/**"]
     },
     "devDependencies":  {
                             "@playwright/test":  "^1.57.0",
