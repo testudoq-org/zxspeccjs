@@ -1,6 +1,5 @@
 /* eslint-disable no-console, no-unused-vars */
 /* eslint-env browser, node, es2021 */
-/* global window document console */
 
 // @e2e @ui
 import { test, expect } from '@playwright/test';
@@ -35,7 +34,7 @@ test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {
     try {
       if (window.emulator && window.emulator.ula && typeof window.emulator.ula.render === 'function') {
         window.emulator.ula.render();
-        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => window.requestAnimationFrame(r));
       }
       const canvas = document.getElementById('screen');
       const ctx = canvas.getContext('2d');
@@ -46,7 +45,7 @@ test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {
 
   expect(pixel).not.toBeNull();
   // Expect non-background (not black) because attr was set to white ink on black paper
-  const [r, g, b, a] = pixel;
+  const [r, g, b, _a] = pixel;
   const isBlack = (r === 0 && g === 0 && b === 0);
   expect(isBlack).toBe(false);
 });
