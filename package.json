@@ -1,4 +1,4 @@
-﻿{
+{
     "name":  "zxspeccjs",
     "version":  "0.1.0",
     "description":  "ZX Spectrum emulator in browser (ES modules + Canvas + WebAudio)",
@@ -8,7 +8,7 @@
                     "build":  "rollup -c",
                     "start":  "npm run dev",
                     "test":  "vitest run",
-                    "test:unit":  "vitest run --dir tests/unit",
+                    "test:unit":  "vitest run",
                     "test:integration": "vitest run --dir tests/integration",
                     "test:e2e":  "npx playwright test tests/e2e",
                     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
@@ -18,8 +18,7 @@
                 },
     "vitest": {
         "exclude": ["tests-e2e/**"]
-    }
-                },
+    },
     "devDependencies":  {
                             "@playwright/test":  "^1.57.0",
                             "@rollup/plugin-commonjs":  "^24.0.1",
