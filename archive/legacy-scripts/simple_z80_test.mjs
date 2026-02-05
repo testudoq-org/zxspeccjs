@@ -33,14 +33,14 @@ try {
   console.log('\n=== Testing ED LD HL,(nn) ===');
   
   // Set up test data
-  memory.writeWord(0x2000, 0xABCD);
-  console.log(`📝 Test data at 0x2000: 0x${memory.readWord(0x2000).toString(16)}`);
+  memory.writeWord(0x5000, 0xABCD);
+  console.log(`📝 Test data at 0x5000: 0x${memory.readWord(0x5000).toString(16)}`);
   
-  // Set up instruction: ED 2A 00 20 (LD HL,(0x2000))
+  // Set up instruction: ED 2A 00 50 (LD HL,(0x5000))
   memory.write(0x4000, 0xED);  // ED prefix
   memory.write(0x4001, 0x2A);  // LD HL,(nn)
   memory.write(0x4002, 0x00);  // Low byte of address
-  memory.write(0x4003, 0x20);  // High byte of address
+  memory.write(0x4003, 0x50);  // High byte of address
   
   // Set PC to instruction
   cpu.PC = 0x4000;
@@ -49,11 +49,11 @@ try {
   console.log(`   HL: 0x${cpu._getHL().toString(16)}`);
   console.log(`   Memory[0x4000]: 0x${memory.read(0x4000).toString(16)}`);
   console.log(`   Memory[0x4001]: 0x${memory.read(0x4001).toString(16)}`);
-  console.log(`   Memory[0x2000]: 0x${memory.readWord(0x2000).toString(16)}`);
+  console.log(`   Memory[0x5000]: 0x${memory.readWord(0x5000).toString(16)}`);
   
   // Execute the ED instruction
   const edTstates = cpu.step();
-  console.log(`🔍 After ED LD HL,(0x2000):`);
+  console.log(`🔍 After ED LD HL,(0x5000):`);
   console.log(`   PC: 0x${cpu.PC.toString(16)} (should be 0x4004)`);
   console.log(`   HL: 0x${cpu._getHL().toString(16)} (should be 0xABCD)`);
   console.log(`   T-states: ${edTstates} (should be 16)`);
