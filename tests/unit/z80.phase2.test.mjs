@@ -179,3 +179,20 @@ test('ADC A,B and SBC A,C arithmetic', () => {
   cpu.step();
   expect(cpu.A).toBe(0x0A);
 });
+
+// Helper methods for easier testing (restored)
+Z80.prototype.setCarry = function(carry) {
+  if (carry) this.F |= 0x01; else this.F &= ~0x01;
+};
+
+Z80.prototype.getCarry = function() {
+  return (this.F & 0x01) !== 0;
+};
+
+Z80.prototype.getZero = function() {
+  return (this.F & 0x40) !== 0;
+};
+
+Z80.prototype.getSign = function() {
+  return (this.F & 0x80) !== 0;
+};
