@@ -215,3 +215,8 @@ tools/
 vitest.config.mjs
 # Playwright snapshots
 *-snapshots/
+
+# Re-include migrated tests and their contents
+!tests/
+!tests/**
+!tests/**/*.mjs
