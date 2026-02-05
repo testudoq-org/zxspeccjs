@@ -20,7 +20,7 @@ class MockCanvas {
     this.style = {};
   }
   
-  getContext(type) {
+  getContext() {
     return {
       createImageData: () => ({ data: new Uint8ClampedArray(256 * 192 * 4) }),
       putImageData: () => {},
@@ -157,6 +157,8 @@ function testIOSystem() {
   console.log(`✓ CHAN_OPEN test: ${success ? 'PASSED' : 'FAILED'}`);
   console.log(`✓ CURCHL after CHAN_OPEN: 0x${newCurchl.toString(16).padStart(4, '0')} (expected: 0x${expectedCurchl.toString(16).padStart(4, '0')})\n`);
   
+  // Restore A register to its original value
+  cpu.A = originalA;
   return success;
 }
 

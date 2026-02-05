@@ -20,6 +20,7 @@ module.exports = {
     {
       files: ['tests/**/*.mjs'],
       env: { browser: true, node: true, es2021: true },
+      globals: { console: 'readonly', window: 'readonly', document: 'readonly' },
       rules: {
         // make tests more permissive
         'no-empty': ['warn', { allowEmptyCatch: true }],
@@ -29,7 +30,7 @@ module.exports = {
         'no-undef': 'off',
         'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
       }
-    },
+    }, 
     {
       files: ['tests/scripts/**/*.mjs'],
       env: { node: true, browser: true, es2021: true },

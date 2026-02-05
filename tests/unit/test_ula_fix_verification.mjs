@@ -28,7 +28,7 @@ const cpu = new Z80(memory);
 
 // Create IO adapter (the fix)
 cpu.io = {
-  write: (port, value, tstates) => {
+  write: (port, value) => {
     // Route port 0xFE to ULA for border control
     if ((port & 0xFF) === 0xFE) {
       ula.writePort(port, value);
@@ -68,7 +68,7 @@ for (const test of testColors) {
   const port = 0xFE;
   
   // This should now work via the connected io
-  cpu.io.write(port, cpu.A & 0xff, cpu.tstates);
+  cpu.io.write(port, cpu.A & 0xff);
   
   console.log(`✅ OUT 0xFE, ${test.name} (0x${test.value.toString(16).padStart(2, '0')}): border=${ula.border}`);
 }
@@ -86,7 +86,7 @@ const bootSequence = [
 
 for (const step of bootSequence) {
   cpu.A = step.value;
-  cpu.io.write(0xFE, cpu.A & 0xff, cpu.tstates);
+  cpu.io.write(0xFE, cpu.A & 0xff);
   console.log(`✅ Boot step: ${step.desc} -> border=${ula.border}`);
 }
 

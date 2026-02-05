@@ -61,7 +61,7 @@ for (let step = 0; step < 500000 && !found; step++) {
 if (!found) {
     console.log('Never hit 0x10BC - checking FLAGS...');
     console.log('FLAGS (0x5C3B) = 0x' + memory.read(0x5C3B).toString(16));
-    process.exit(1);
+    throw new Error('Never hit 0x10BC - check FLAGS');
 }
 
 // Now release the key immediately after it's been consumed

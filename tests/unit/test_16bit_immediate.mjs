@@ -34,7 +34,7 @@ z80.reset();
 z80.PC = 0x1000; // Point to test data
 memory.write(0x1000, 0x34); // Low byte
 memory.write(0x1001, 0x12); // High byte
-const tstates1 = z80.step();
+z80.step();
 const bc = (z80.B << 8) | z80.C;
 console.log(`Loaded BC = 0x${bc.toString(16).padStart(4, '0')} (expected: 0x1234)`);
 console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x1002)`);
@@ -47,7 +47,7 @@ z80.reset();
 z80.PC = 0x2000; // Point to test data
 memory.write(0x2000, 0x56); // Low byte
 memory.write(0x2001, 0x78); // High byte
-const tstates2 = z80.step();
+z80.step();
 const de = (z80.D << 8) | z80.E;
 console.log(`Loaded DE = 0x${de.toString(16).padStart(4, '0')} (expected: 0x7856)`);
 console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x2002)`);
@@ -60,7 +60,7 @@ z80.reset();
 z80.PC = 0x3000; // Point to test data
 memory.write(0x3000, 0xAB); // Low byte
 memory.write(0x3001, 0xCD); // High byte
-const tstates3 = z80.step();
+z80.step();
 const hl = (z80.H << 8) | z80.L;
 console.log(`Loaded HL = 0x${hl.toString(16).padStart(4, '0')} (expected: 0xCDAB)`);
 console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x3002)`);
@@ -73,7 +73,7 @@ z80.reset();
 z80.PC = 0x4000; // Point to test data
 memory.write(0x4000, 0xFE); // Low byte
 memory.write(0x4001, 0xCA); // High byte
-const tstates4 = z80.step();
+z80.step();
 console.log(`Loaded SP = 0x${z80.SP.toString(16).padStart(4, '0')} (expected: 0xCAFE)`);
 console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4002)`);
 console.log(`T-states: ${z80.tstates} (expected: 10)`);
@@ -87,19 +87,19 @@ z80.PC = 0x0000;
 // First instruction: DI (0xF3)
 let instruction = z80.readByte(z80.PC);
 console.log(`Instruction 1 at PC 0x0000: 0x${instruction.toString(16).padStart(2, '0')} (expected: 0xF3 - DI)`);
-const t1 = z80.step();
+z80.step();
 console.log(`After DI: PC = 0x${z80.PC.toString(16).padStart(4, '0')}, T-states = ${z80.tstates}`);
 
 // Second instruction: XOR A (0xAF)
 instruction = z80.readByte(z80.PC);
 console.log(`Instruction 2 at PC 0x0001: 0x${instruction.toString(16).padStart(2, '0')} (expected: 0xAF - XOR A)`);
-const t2 = z80.step();
+z80.step();
 console.log(`After XOR A: PC = 0x${z80.PC.toString(16).padStart(4, '0')}, T-states = ${z80.tstates}`);
 
 // Third instruction: LD DE,0xFFFF (0x11)
 instruction = z80.readByte(z80.PC);
 console.log(`Instruction 3 at PC 0x0002: 0x${instruction.toString(16).padStart(2, '0')} (expected: 0x11 - LD DE,nn)`);
-const t3 = z80.step();
+z80.step();
 const de_after = (z80.D << 8) | z80.E;
 console.log(`After LD DE,0xFFFF: PC = 0x${z80.PC.toString(16).padStart(4, '0')}, DE = 0x${de_after.toString(16).padStart(4, '0')}, T-states = ${z80.tstates}`);
 console.log(`Test 5: ${de_after === 0xFFFF ? 'PASS' : 'FAIL'}\n`);

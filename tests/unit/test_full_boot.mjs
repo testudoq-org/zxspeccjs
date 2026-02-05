@@ -51,7 +51,7 @@ for (let frame = 0; frame < MAX_FRAMES; frame++) {
   
   // Progress report every 50 frames
   if (frame % 50 === 0) {
-    const HL = (cpu.H << 8) | cpu.L;
+    const HL = (cpu.H << 8) | cpu.L; console.log(`  HL=0x${HL.toString(16).padStart(4,'0')}`);
     console.log(`Frame ${frame}: PC=0x${cpu.PC.toString(16).padStart(4,'0')}, IFF1=${cpu.IFF1}, ints=${interruptsServiced}`);
   }
 }

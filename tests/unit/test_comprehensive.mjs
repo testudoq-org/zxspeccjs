@@ -1,14 +1,16 @@
+/* eslint-disable no-console, no-undef, no-unused-vars */
+/* eslint-env node, browser */
 // More comprehensive trace of keyboard and print flow
 import { Memory } from './src/memory.mjs';
 import { Z80 } from './src/z80.mjs';
 import * as fs from 'fs';
+const console = globalThis.console;
 
 const romData = fs.readFileSync('./roms/spec48.rom');
 const memory = new Memory({ model: '48k', romBuffer: romData.buffer });
 const cpu = new Z80(memory);
 
 let keyMatrix = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
-let lastPC = 0;
 
 cpu.io = {
   read: (port) => {

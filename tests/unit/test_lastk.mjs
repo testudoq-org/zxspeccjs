@@ -15,7 +15,6 @@ const cpu = new Z80(memory);
 let keyMatrix = Array(8).fill(0xFF);
 
 const LASTK_ADDR = 0x5C08;
-const FLAGS_ADDR = 0x5C3B;
 
 let lastLastk = 0;
 let lastkWrites = [];
@@ -80,7 +79,6 @@ console.log(`Final LASTK = 0x${memory.read(LASTK_ADDR).toString(16)}`);
 console.log('\n--- Port read test ---');
 // Reset and test direct port reading
 const testPort = (highByte) => {
-    const port = (highByte << 8) | 0xFE;
     let result = 0xFF;
     for (let row = 0; row < 8; row++) {
         if ((highByte & (1 << row)) === 0) {

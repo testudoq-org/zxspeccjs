@@ -31,8 +31,8 @@ const memoryInterface = {
 };
 
 const ioInterface = {
-  read: (port) => 0xFF,
-  write: (port, val) => {}
+  read: () => 0xFF,
+  write: () => {}
 };
 
 const cpu = new Z80(memoryInterface, ioInterface);
