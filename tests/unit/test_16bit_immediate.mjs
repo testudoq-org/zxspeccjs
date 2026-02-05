@@ -23,60 +23,69 @@ memory.loadROM(romData.rom);
 memory.configureBanks('48k');
 console.log('ROM loaded into memory.\n');
 
-// Set up some test data
-memory.write(0x1000, 0x34);
-memory.write(0x1001, 0x12);
-memory.write(0x2000, 0x56);
-memory.write(0x2001, 0x78);
+// Set up some test data in RAM so writes are effective
+// Test data areas: instructions at 0x4000, data blocks at 0x5000/0x6000
+memory.write(0x5000, 0x34);
+memory.write(0x5001, 0x12);
+memory.write(0x6000, 0x56);
+memory.write(0x6001, 0x78);
 
 // Test 1: LD BC,nn (0x01)
 console.log('Test 1: LD BC,nn (opcode 0x01)');
 z80.reset();
-z80.PC = 0x1000; // Point to test data
-memory.write(0x1000, 0x34); // Low byte
-memory.write(0x1001, 0x12); // High byte
+// Place instruction+operands in RAM at 0x4000 so writes are effective
+z80.PC = 0x4000; // Point to test instruction
+memory.write(0x4000, 0x01); // LD BC,nn opcode
+memory.write(0x4001, 0x34); // Low byte
+memory.write(0x4002, 0x12); // High byte
 z80.step();
 const bc = (z80.B << 8) | z80.C;
 console.log(`Loaded BC = 0x${bc.toString(16).padStart(4, '0')} (expected: 0x1234)`);
-console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x1002)`);
+console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4003)`);
 console.log(`T-states: ${z80.tstates} (expected: 10)`);
 console.log(`Test 1: ${bc === 0x1234 ? 'PASS' : 'FAIL'}\n`);
 
 // Test 2: LD DE,nn (0x11)
 console.log('Test 2: LD DE,nn (opcode 0x11)');
 z80.reset();
-z80.PC = 0x2000; // Point to test data
-memory.write(0x2000, 0x56); // Low byte
-memory.write(0x2001, 0x78); // High byte
+// Place instruction+operands in RAM at 0x4000
+z80.PC = 0x4000; // Point to test instruction
+memory.write(0x4000, 0x11); // LD DE,nn opcode
+memory.write(0x4001, 0x56); // Low byte
+memory.write(0x4002, 0x78); // High byte
 z80.step();
 const de = (z80.D << 8) | z80.E;
 console.log(`Loaded DE = 0x${de.toString(16).padStart(4, '0')} (expected: 0x7856)`);
-console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x2002)`);
+console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4003)`);
 console.log(`T-states: ${z80.tstates} (expected: 10)`);
 console.log(`Test 2: ${de === 0x7856 ? 'PASS' : 'FAIL'}\n`);
 
 // Test 3: LD HL,nn (0x21)
 console.log('Test 3: LD HL,nn (opcode 0x21)');
 z80.reset();
-z80.PC = 0x3000; // Point to test data
-memory.write(0x3000, 0xAB); // Low byte
-memory.write(0x3001, 0xCD); // High byte
+// Place instruction+operands in RAM at 0x4000
+z80.PC = 0x4000; // Point to test instruction
+memory.write(0x4000, 0x21); // LD HL,nn opcode
+memory.write(0x4001, 0xAB); // Low byte
+memory.write(0x4002, 0xCD); // High byte
 z80.step();
 const hl = (z80.H << 8) | z80.L;
 console.log(`Loaded HL = 0x${hl.toString(16).padStart(4, '0')} (expected: 0xCDAB)`);
-console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x3002)`);
+console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4003)`);
 console.log(`T-states: ${z80.tstates} (expected: 10)`);
 console.log(`Test 3: ${hl === 0xCDAB ? 'PASS' : 'FAIL'}\n`);
 
 // Test 4: LD SP,nn (0x31)
 console.log('Test 4: LD SP,nn (opcode 0x31)');
 z80.reset();
-z80.PC = 0x4000; // Point to test data
-memory.write(0x4000, 0xFE); // Low byte
-memory.write(0x4001, 0xCA); // High byte
+// Place instruction+operands in RAM at 0x4000
+z80.PC = 0x4000; // Point to test instruction
+memory.write(0x4000, 0x31); // LD SP,nn opcode
+memory.write(0x4001, 0xFE); // Low byte
+memory.write(0x4002, 0xCA); // High byte
 z80.step();
 console.log(`Loaded SP = 0x${z80.SP.toString(16).padStart(4, '0')} (expected: 0xCAFE)`);
-console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4002)`);
+console.log(`PC = 0x${z80.PC.toString(16).padStart(4, '0')} (expected: 0x4003)`);
 console.log(`T-states: ${z80.tstates} (expected: 10)`);
 console.log(`Test 4: ${z80.SP === 0xCAFE ? 'PASS' : 'FAIL'}\n`);
 
