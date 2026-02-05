@@ -76,7 +76,8 @@ foreach ($entry in $plan) {
 }
 
 # Commit the move
-& git commit -m "chore(tests): migrate top-level diagnostic/test files per migration plan" || Write-Host 'No changes to commit.'
+$res = & git commit -m "chore(tests): migrate top-level diagnostic/test files per migration plan"
+if ($LASTEXITCODE -ne 0) { Write-Host 'No changes to commit.' }
 
 # Optionally update package.json scripts and ESLint override
 if ($ApplyEdits) {
@@ -115,7 +116,8 @@ if ($ApplyEdits) {
         & git add $eslintrcPath
     }
 
-    & git commit -m "chore(lint): add ESLint override for tests/scripts and update test scripts" || Write-Host 'No changes to commit.'
+    $res = & git commit -m "chore(lint): add ESLint override for tests/scripts and update test scripts"
+if ($LASTEXITCODE -ne 0) { Write-Host 'No changes to commit.' }
 }
 
 Write-Host "Migration complete. Review move-plan.json and the commit(s)."
