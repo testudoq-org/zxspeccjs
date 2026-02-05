@@ -3,7 +3,7 @@
 /* global window document console */
 
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 test.describe('Glyph regression: ensure © (0x7F) is visible on canvas', () => {
   test('© glyph should appear via auto-backfill when ROM/CHARS present', async ({ page }) => {

@@ -18,7 +18,7 @@ const KEY_OPCODE_BYTES = {
 
 // removed unused helper readDebug; prefer in-page helpers below
 
-import { getRegsFromPage, pollPCSequence } from '../tests/_helpers/emulatorDebug.mjs';
+import { getRegsFromPage, pollPCSequence } from '../_helpers/emulatorDebug.mjs';
 
 
 

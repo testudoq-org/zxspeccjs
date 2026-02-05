@@ -3,7 +3,7 @@
 /* global window document console */
 
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 test('Dump CHARS pointer and glyph bytes for 0x7F from ROM/CHARS', async ({ page }) => {
   await setupDiagnostics(page);

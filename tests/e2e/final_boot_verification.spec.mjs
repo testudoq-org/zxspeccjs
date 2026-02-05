@@ -6,7 +6,7 @@
 // Tests the actual emulator in a browser environment
 
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, checkSpec48, ensureStarted, waitForBootComplete, collectSystemVars, verifyBootGlyph } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, checkSpec48, ensureStarted, waitForBootComplete, collectSystemVars, verifyBootGlyph } from '../_helpers/bootHelpers.mjs';
 
 test.describe('ZX Spectrum 48K Boot Implementation', () => {
   test('should boot correctly and show copyright message', async ({ page }) => {

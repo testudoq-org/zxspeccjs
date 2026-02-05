@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 // Press 'L' programmatically and assert ULA/IO port reads show the L key (bit 1 cleared)
 test('keyboard port reads detect L key @ui', async ({ page }) => {

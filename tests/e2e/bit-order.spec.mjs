@@ -3,7 +3,7 @@
 
 // @e2e @ui
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 // This test verifies MSB-first mapping: writing 0x80 into bitmap should light left-most pixel of the byte
 test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {

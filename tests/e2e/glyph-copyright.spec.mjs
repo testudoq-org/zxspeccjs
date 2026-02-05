@@ -3,7 +3,7 @@
 /* global window document console */
 
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted, waitForBootComplete } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted, waitForBootComplete } from '../_helpers/bootHelpers.mjs';
 
 test('Should display © before "1982" via auto-fix heuristic', async ({ page }) => {
   await setupDiagnostics(page);

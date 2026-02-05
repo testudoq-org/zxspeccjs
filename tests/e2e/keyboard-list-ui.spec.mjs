@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../tests/_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 // This test confirms the debug UI shows "LIST" when 'L' is pressed
 test('keyboard UI shows LIST on L keypress @ui', async ({ page }) => {
