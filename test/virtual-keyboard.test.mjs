@@ -1,5 +1,8 @@
 // @unit
 // @vitest-environment jsdom
+/* eslint-env jsdom, node */
+/* global document, global, Event */
+/* eslint-disable no-unused-vars, no-undef */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Input from '../src/input.mjs';
 
@@ -23,8 +26,8 @@ describe('Virtual keyboard integration (unit) @unit', () => {
             _listeners: {},
             setSelectionRange() {},
             setAttribute(k,v){ this[k]=v; },
-            addEventListener(type, fn){ this._listeners[type] = this._listeners[type] || []; this._listeners[type].push(fn); },
-            removeEventListener(type, fn){ /* noop */ },
+                        addEventListener(){ const type = arguments[0]; const fn = arguments[1]; this._listeners[type] = this._listeners[type] || []; this._listeners[type].push(fn); },
+            removeEventListener(){ /* noop */ },
             dispatchEvent(e){ (this._listeners[e.type]||[]).forEach(fn=>fn.call(this,e)); },
             focus(){ global.document.activeElement = this; },
             blur(){ if (global.document.activeElement === this) global.document.activeElement = null; }
@@ -92,8 +95,8 @@ describe('Virtual keyboard integration (unit) @unit', () => {
     // immediately pressed
     expect(input.isKeyPressed('a')).toBe(true);
 
-    // advance timers to allow auto-release
-    vi.advanceTimersByTime(100);
+    // advance timers to allow auto-release (input auto-releases after 200ms)
+    vi.advanceTimersByTime(250);
     expect(input.isKeyPressed('a')).toBe(false);
 
     vi.useRealTimers();

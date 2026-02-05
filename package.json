@@ -11,7 +11,10 @@
     "test:unit": "vitest run --dir test",
     "test:e2e": "npx playwright test",
     "test:watch": "vitest --watch --dir test",
-    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev"
+    "setup-and-dev": "npm install --legacy-peer-deps && npm run dev",
+  "vitest": {
+    "exclude": ["tests-e2e/**"]
+  }
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
