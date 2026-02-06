@@ -82,7 +82,9 @@ Legal notice
   - A Husky pre-commit hook runs the script automatically and will block commits when it makes changes so you can review and commit the modifications manually.
 
 - **Codacy & local analysis:**
-  - The script attempts a best-effort `npx codacy-analysis-cli analyze <file>` for any modified files; install the Codacy CLI locally to enable this behavior.
+  - The script attempts a best-effort `npx codacy-analysis-cli analyze <file>` for any modified files when the Codacy CLI is available.
+  - I attempted to install the Codacy CLI via the repository MCP installer in this environment and the installer failed; as a fail-safe the repo includes `scripts/run-codacy-if-available.mjs` and `verify:local` will skip Codacy analysis when the CLI is not present (no local failure).
+  - To enable full local Codacy analysis, follow the official Codacy CLI docs: https://docs.codacy.com/analysis/codacy-analysis-cli/ and then run `npx codacy-analysis-cli analyze --upload` locally. If you want, I can help troubleshoot the MCP installer failure or coordinate org-level setup.
 
 - **Important reminders:**
   - Mandatory pre-commit reminder: "Before committing, run: npm run test:unit && npx playwright test tests/e2e --grep @smoke && codacy-analysis-cli analyze --upload"
