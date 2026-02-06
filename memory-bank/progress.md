@@ -1,5 +1,67 @@
 # Progress Report - ZX Spectrum 48K Emulator Test Fixes
 
+---
+
+## [2026-02-07] — TAPE LIBRARY E2E TESTS & Z80 SNAPSHOT SUPPORT
+
+### Summary
+Added Z80/SNA snapshot support to Archive.org integration and created comprehensive Playwright E2E tests for the Tape Library feature.
+
+### Completed Tasks
+
+#### 1. Z80 Snapshot Support (src/archiveClient.mjs)
+- Added `isSnapshot` flag for `.z80`/`.sna` extensions in `normalizeFileEntry()`
+- Added `isLoadable` flag: `isTape || isSnapshot`
+- New exported functions:
+  - `getSnapshotFiles(files)`: Filter for Z80/SNA snapshots only
+  - `getLoadableFiles(files)`: Combined tapes + snapshots
+- Snapshots load directly into emulator memory (instant startup)
+
+#### 2. Tape UI Updates (src/tapeUi.mjs)
+- Changed import to use `getLoadableFiles` instead of `getTapeFiles`
+- `updateDetailPanel()` now prioritizes snapshots:
+  - Shows snapshot files first with "Load snapshot" button
+  - Shows tape files after with "Load tape" button
+- **Bug Fix**: `togglePanel()` visibility logic
+  - **Problem**: `style.display` is empty string on first load, not 'none'
+  - **Old code**: `style.display !== 'none'` → true → hid panel
+  - **New code**: `style.display === 'block'` → false → shows panel
+
+#### 3. E2E Test Suite (tests/e2e/tape-library.spec.mjs)
+- ~550 lines of comprehensive test coverage
+- **Test Cases**:
+  1. Smoke test: Search → results → detail panel → load file
+  2. Empty search shows error message
+  3. Keyboard focus returns to search input after close
+  4. Panel closes via close button
+- **Mock Infrastructure**:
+  - `MOCK_SEARCH_RESPONSE`: Fake Archive.org search results
+  - `MOCK_METADATA_RESPONSE`: Fake game metadata with Z80 files
+  - `generateMinimalZ80Payload()`: Creates valid 48K Z80 v1 file
+  - `setupNetworkStubs(page)`: Intercepts all Archive.org endpoints
+- **Helper Functions**: `openTapeLibrary`, `performSearch`, `verifySearchResults`, `openDetailPanel`, `loadTapeFromDetail`
+- **Click Workaround**: Uses `loadButton.evaluate((btn) => btn.click())` to bypass diagnostics panel and keyboard overlay
+
+### Test Results
+- ✅ Unit tests: 106 passed (29 test files)
+- ✅ E2E tests: 4 passed (tape-library.spec.mjs)
+- ✅ Codacy analysis: Clean on all modified files
+
+### Files Modified
+| File | Changes |
+|------|------|
+| `src/archiveClient.mjs` | isSnapshot, isLoadable flags; getSnapshotFiles, getLoadableFiles functions |
+| `src/tapeUi.mjs` | Snapshot priority display; togglePanel fix |
+| `tests/e2e/tape-library.spec.mjs` | New comprehensive E2E test suite |
+
+### Verification Commands
+```bash
+npm run test:unit
+npx playwright test tests/e2e/tape-library.spec.mjs
+```
+
+---
+
 ## [2025-12-25 03:08:00] - **MAJOR BREAKTHROUGH: Core ROM Loading Issue Resolved**
 
 ### **Critical Issue Identified and Fixed:**

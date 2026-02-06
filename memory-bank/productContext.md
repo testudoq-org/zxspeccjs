@@ -2,6 +2,34 @@
 
 This file provides a high-level overview of the ZX Spectrum emulator project for the web, based on [`memory-bank/idea-for-project.md`](memory-bank/idea-for-project.md:1).
 
+---
+
+## 2026-02-07 — Archive.org Tape Library Feature
+
+### New Feature: Tape Library with Archive.org Integration
+- **Purpose**: Browse and load ZX Spectrum games directly from Archive.org's software library
+- **Supported Formats**: TAP, TZX (tapes), Z80, SNA (snapshots)
+- **Architecture**:
+  - `src/archiveClient.mjs`: Archive.org API client with caching (24h search, 7d metadata)
+  - `src/tapeUi.mjs`: Search UI panel with keyboard support
+- **User Flow**:
+  1. Click "Tape Library" button
+  2. Search for games (e.g., "Jet Set Willy")
+  3. View search results with game metadata
+  4. Click game to see available files
+  5. Load snapshot (instant) or tape (streaming)
+
+### Archive.org API Endpoints Used
+- Search: `https://archive.org/advancedsearch.php?q=collection:softwarelibrary_zx_spectrum title:"query"`
+- Metadata: `https://archive.org/metadata/{identifier}`
+- Download: `https://archive.org/download/{identifier}/{filename}`
+
+### File Format Priority
+- Z80/SNA snapshots shown first (direct memory load, instant startup)
+- TAP/TZX tapes shown after (stream-based loading)
+
+---
+
 ## Project Goal
 
 Build a ZX Spectrum emulator that runs entirely in the browser using ES6 JavaScript modules, emulating the Z80 CPU, memory, graphics, keyboard, and sound, with a simple UI and file loading support.

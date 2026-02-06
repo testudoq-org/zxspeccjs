@@ -51,6 +51,7 @@ export function normalizeFileEntry(identifier, file) {
   const ext = name.split('.').pop().toLowerCase();
   const format = ext.toUpperCase();
   const isTape = ['tap', 'tzx'].includes(ext);
+  const isSnapshot = ['z80', 'sna'].includes(ext);
   const isZip = ext === 'zip';
   const isImage = ['scr', 'png', 'jpg', 'gif'].includes(ext);
 
@@ -61,6 +62,8 @@ export function normalizeFileEntry(identifier, file) {
     url: DOWNLOAD_URL(identifier, name),
     compressed: isZip,
     isTape,
+    isSnapshot,
+    isLoadable: isTape || isSnapshot, // Can be directly loaded into emulator
     isImage,
     md5: file.md5 || null,
     source: file.source || null
@@ -250,6 +253,28 @@ export function getTapeFiles(files) {
 }
 
 /**
+ * Get snapshot files (Z80/SNA) from an item's file list.
+ * Snapshots load directly into memory - faster than tapes.
+ * @param {Array} files - Array of normalized file entries
+ * @returns {Array} Only snapshot files
+ */
+export function getSnapshotFiles(files) {
+  return files.filter((f) => f.isSnapshot);
+}
+
+/**
+ * Get all loadable files (tapes + snapshots) from an item's file list.
+ * Prioritizes snapshots over tapes for faster loading.
+ * @param {Array} files - Array of normalized file entries
+ * @returns {Array} Loadable files, snapshots first
+ */
+export function getLoadableFiles(files) {
+  const snapshots = files.filter((f) => f.isSnapshot);
+  const tapes = files.filter((f) => f.isTape);
+  return [...snapshots, ...tapes];
+}
+
+/**
  * Get ZIP files that may contain tapes.
  * @param {Array} files - Array of normalized file entries
  * @returns {Array} Only ZIP files
@@ -283,6 +308,8 @@ export default {
   normalizeSearchResult,
   normalizeFileEntry,
   getTapeFiles,
+  getSnapshotFiles,
+  getLoadableFiles,
   getZipFiles,
   clearCache
 };

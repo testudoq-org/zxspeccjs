@@ -1,0 +1,336 @@
+/**
+ * Tape Search UI Styles
+ */
+
+.tape-ui {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  max-width: 600px;
+  margin: 1rem auto;
+  padding: 1rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+  color: #e0e0e0;
+}
+
+/* Search */
+.tape-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tape-search-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.tape-search-input:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+.tape-search-btn {
+  padding: 0.5rem 1rem;
+  background: #4a9eff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.tape-search-btn:hover:not(:disabled) {
+  background: #3a8eef;
+}
+
+.tape-search-btn:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+/* Error */
+.tape-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #4a1a1a;
+  border: 1px solid #ff4a4a;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.tape-error-text {
+  flex: 1;
+  color: #ff6b6b;
+}
+
+.tape-retry-btn {
+  padding: 0.25rem 0.75rem;
+  background: #ff4a4a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Results */
+.tape-results {
+  margin-bottom: 1rem;
+}
+
+.tape-results-header {
+  padding: 0.5rem 0;
+  font-size: 12px;
+  color: #888;
+}
+
+.tape-results-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.tape-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tape-result-item:last-child {
+  border-bottom: none;
+}
+
+.tape-result-item:hover {
+  background: #252540;
+}
+
+.tape-result-title {
+  flex: 1;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tape-result-creator {
+  font-size: 12px;
+  color: #888;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tape-result-source {
+  font-size: 10px;
+  padding: 0.2rem 0.5rem;
+  background: #333;
+  border-radius: 3px;
+  color: #4a9eff;
+}
+
+.tape-result-details-btn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  color: #4a9eff;
+  border: 1px solid #4a9eff;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+
+.tape-result-details-btn:hover {
+  background: #4a9eff22;
+}
+
+/* Detail Panel */
+.tape-detail {
+  background: #0f0f1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.tape-detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tape-detail-title {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.tape-detail-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.tape-detail-close:hover {
+  color: #fff;
+}
+
+.tape-detail-meta {
+  margin-bottom: 1rem;
+}
+
+.tape-detail-meta p {
+  margin: 0.25rem 0;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.tape-detail-description {
+  font-style: italic;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.tape-detail-files h4 {
+  margin: 0 0 0.5rem;
+  font-size: 14px;
+  color: #888;
+}
+
+.tape-files-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tape-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #252540;
+}
+
+.tape-file-item:last-child {
+  border-bottom: none;
+}
+
+.tape-file-name {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.tape-file-format {
+  font-size: 11px;
+  color: #888;
+}
+
+.tape-file-size {
+  font-size: 11px;
+  color: #666;
+}
+
+.tape-load-btn {
+  padding: 0.25rem 0.5rem;
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+
+.tape-load-btn:hover {
+  background: #27ae60;
+}
+
+/* Progress */
+.tape-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #1a2a3a;
+  border-radius: 4px;
+}
+
+.tape-progress-bar-container {
+  flex: 1;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tape-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9eff, #2ecc71);
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.2s ease-out;
+}
+
+.tape-progress-text {
+  font-size: 12px;
+  color: #aaa;
+  min-width: 80px;
+}
+
+.tape-cancel-btn {
+  padding: 0.25rem 0.5rem;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.tape-cancel-btn:hover {
+  background: #c0392b;
+}
+
+/* Scrollbar */
+.tape-results-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tape-results-list::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+.tape-results-list::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.tape-results-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

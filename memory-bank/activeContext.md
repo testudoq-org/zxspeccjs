@@ -2,6 +2,48 @@
 
 Tracks current status, recent changes, and open questions for the ZX Spectrum emulator project.
 
+---
+
+## 2026-02-07 — Tape Library E2E Tests & Z80 Snapshot Support
+
+### Current Focus
+- **TAPE LIBRARY FEATURE ENHANCED**: Z80/SNA snapshot support added to Archive.org integration
+- **E2E TESTS COMPLETE**: Comprehensive Playwright test suite for Tape Library (4 tests passing)
+- **BUG FIX**: togglePanel() visibility logic corrected for first-load behavior
+
+### Changes Made
+
+#### Z80 Snapshot Support (src/archiveClient.mjs)
+- Added `isSnapshot` flag for `.z80`/`.sna` files in `normalizeFileEntry()`
+- Added `isLoadable` flag combining tapes (TAP/TZX) and snapshots
+- New functions: `getSnapshotFiles()`, `getLoadableFiles()`
+- Snapshots load directly into memory vs tapes which stream
+
+#### Tape UI Improvements (src/tapeUi.mjs)
+- Changed import to use `getLoadableFiles` instead of `getTapeFiles`
+- `updateDetailPanel()` now shows snapshots first (prioritized), then tapes
+- Button labels dynamically show "Load snapshot" vs "Load tape"
+- **Bug Fix**: `togglePanel()` fixed to check `currentDisplay === 'block'` instead of `!== 'none'` (empty string on first load caused panel to hide instead of show)
+
+#### E2E Test Suite (tests/e2e/tape-library.spec.mjs)
+- New ~550 line test file with comprehensive coverage
+- 4 test cases: smoke flow, empty search error, keyboard focus, close panel
+- Mock data for Archive.org endpoints (search, metadata, download)
+- `generateMinimalZ80Payload()` creates valid Z80 v1 file for testing
+- Uses `loadButton.evaluate((btn) => btn.click())` to bypass overlay blocking
+
+### Test Results
+- ✅ All 106 unit tests passing
+- ✅ All 4 Tape Library E2E tests passing
+- ✅ Codacy analysis clean on all modified files
+
+### Files Modified
+- `src/archiveClient.mjs`: Z80 snapshot support
+- `src/tapeUi.mjs`: Loadable files display + togglePanel fix
+- `tests/e2e/tape-library.spec.mjs`: New comprehensive E2E test
+
+---
+
 ## Current Focus
 
 - **BOOT SEQUENCE WORKING**: Character rendering bug fixed, copyright message displays correctly

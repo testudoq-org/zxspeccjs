@@ -2,6 +2,67 @@
 
 Documents coding, architectural, and testing patterns for the ZX Spectrum emulator project.
 
+---
+
+## 2026-02-07 — Archive.org Integration Patterns
+
+### API Client Pattern (archiveClient.mjs)
+- **Caching Strategy**: Memory + localStorage with TTLs
+  - Search results: 24 hours
+  - Metadata: 7 days
+- **File Classification Flags**:
+  - `isTape`: TAP, TZX files (stream-loaded)
+  - `isSnapshot`: Z80, SNA files (direct memory load)
+  - `isLoadable`: Combined flag for UI filtering
+- **Accessor Functions**:
+  - `getTapeFiles(files)`: Filter for tapes only
+  - `getSnapshotFiles(files)`: Filter for snapshots only
+  - `getLoadableFiles(files)`: Combined tapes + snapshots
+
+### UI Toggle Pattern (tapeUi.mjs)
+- **Visibility Check**: Always compare against expected "shown" state, not "hidden"
+- **Correct Pattern**:
+  ```javascript
+  const isCurrentlyShown = style.display === 'block';
+  style.display = isCurrentlyShown ? 'none' : 'block';
+  ```
+- **Anti-Pattern** (causes first-load bug):
+  ```javascript
+  // WRONG: Empty string !== 'none' evaluates to true
+  const isCurrentlyShown = style.display !== 'none';
+  ```
+
+### E2E Testing Patterns (Playwright)
+
+#### Mock Network Responses
+```javascript
+await page.route('**/archive.org/advancedsearch.php**', route => {
+  route.fulfill({ contentType: 'application/json', body: JSON.stringify(mockData) });
+});
+```
+
+#### Bypass Overlay Blocking
+When elements are blocked by overlays (diagnostics panel, keyboard overlay):
+```javascript
+// Use JavaScript click instead of Playwright's native click
+await button.evaluate((btn) => btn.click());
+```
+
+#### Generate Valid Test Payloads
+For Z80 snapshot testing:
+```javascript
+function generateMinimalZ80Payload() {
+  const header = new Uint8Array(30);
+  header[6] = 0;    // PC low byte
+  header[7] = 0x40; // PC high byte (0x4000)
+  header[12] = 0;   // Border color
+  const ram = new Uint8Array(48 * 1024);
+  return new Uint8Array([...header, ...ram]);
+}
+```
+
+---
+
 ## Coding Patterns
 
 - Use ES6 modules (.mjs) for all source files

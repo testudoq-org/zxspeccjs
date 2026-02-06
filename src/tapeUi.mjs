@@ -7,7 +7,7 @@
  * and tape loading controls with progress/error display.
  */
 
-import { searchArchive, fetchMetadata, getTapeFiles, getZipFiles } from './archiveClient.mjs';
+import { searchArchive, fetchMetadata, getLoadableFiles, getZipFiles } from './archiveClient.mjs';
 
 // UI state
 const state = {
@@ -344,23 +344,28 @@ function updateDetailUI() {
     return;
   }
 
-  const tapeFiles = getTapeFiles(item.files || []);
+  // Get loadable files (snapshots prioritized over tapes) plus ZIPs
+  const loadableFiles = getLoadableFiles(item.files || []);
   const zipFiles = getZipFiles(item.files || []);
-  const allFiles = [...tapeFiles, ...zipFiles];
+  const allFiles = [...loadableFiles, ...zipFiles];
 
   if (allFiles.length === 0) {
-    elements.filesList.innerHTML = '<li>No tape files available</li>';
+    elements.filesList.innerHTML = '<li>No loadable files available</li>';
     return;
   }
 
-  elements.filesList.innerHTML = allFiles.map((file) => `
+  elements.filesList.innerHTML = allFiles.map((file) => {
+    // Use appropriate button text based on file type
+    const buttonText = file.isSnapshot ? 'Load snapshot' : (file.isTape ? 'Load tape' : 'Load');
+    return `
     <li class="tape-file-item" data-url="${escapeHtml(file.url)}" data-name="${escapeHtml(file.name)}">
       <span class="tape-file-name">${escapeHtml(file.name)}</span>
       <span class="tape-file-format">(${escapeHtml(file.format)})</span>
       ${file.size ? `<span class="tape-file-size">${formatSize(file.size)}</span>` : ''}
-      <button class="tape-load-btn" type="button">Load tape</button>
+      <button class="tape-load-btn" type="button">${buttonText}</button>
     </li>
-  `).join('');
+  `;
+  }).join('');
 
   // Bind load buttons
   elements.filesList.querySelectorAll('.tape-load-btn').forEach((btn) => {
@@ -519,8 +524,11 @@ export function hidePanel() {
  */
 export function togglePanel() {
   if (elements.container) {
-    const isVisible = elements.container.style.display !== 'none';
-    elements.container.style.display = isVisible ? 'none' : 'block';
+    // On first toggle, style.display is '' (empty) - treat as hidden and show panel
+    // After that, it's either 'block' (visible) or 'none' (hidden)
+    const currentDisplay = elements.container.style.display;
+    const isCurrentlyShown = currentDisplay === 'block';
+    elements.container.style.display = isCurrentlyShown ? 'none' : 'block';
   }
 }
 
