@@ -12,6 +12,8 @@
                     "test:integration": "vitest run --dir tests/integration",
                     "test:e2e":  "npx playwright test tests/e2e",
                     "test:e2e:smoke": "npx playwright test tests/e2e --grep \"@smoke\"",
+                    "sonar:local": "sonar-scanner",
+                    "sonar:cloud:local": "sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${SONAR_TOKEN}",
                     "verify:local": "npm run test:unit && npm run test:e2e:smoke && node scripts/run-codacy-if-available.mjs",
                     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
                     "test:watch":  "vitest --watch --dir tests/unit",

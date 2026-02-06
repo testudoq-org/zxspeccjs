@@ -27,3 +27,12 @@ jobs:
         run: npm run build
         env:
           CI: true
+
+      - name: SonarCloud Scan (conditional)
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        uses: sonarsource/sonarcloud-github-action@v2
+        with:
+          organization: 'testudoq'
+          projectKey: 'zxspeccjs'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

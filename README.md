@@ -86,6 +86,12 @@ Legal notice
   - I attempted to install the Codacy CLI via the repository MCP installer in this environment and the installer failed; as a fail-safe the repo includes `scripts/run-codacy-if-available.mjs` and `verify:local` will skip Codacy analysis when the CLI is not present (no local failure).
   - To enable full local Codacy analysis, follow the official Codacy CLI docs: https://docs.codacy.com/analysis/codacy-analysis-cli/ and then run `npx codacy-analysis-cli analyze --upload` locally. If you want, I can help troubleshoot the MCP installer failure or coordinate org-level setup.
 
+- **Sonar (SonarLint / SonarCloud) — local & CI:**
+  - We added `sonar-project.properties` (minimal config) and npm scripts: `npm run sonar:local` (requires SonarScanner CLI installed) and `npm run sonar:cloud:local` which passes the `SONAR_TOKEN` env var for SonarCloud.
+  - CI integration: the GitHub Actions workflow will run a SonarCloud scan when the `SONAR_TOKEN` secret is configured for the repository (it is conditional on `secrets.SONAR_TOKEN`).
+  - Local step: install SonarScanner CLI (https://docs.sonarsource.com/sonarqube/sonarqube-installation/ or https://sonarcloud.io/documentation), then run `npm run sonar:local` to execute a local scan against `sonar-project.properties`.
+  - Recommendation: use the SonarLint VS Code extension for instant local feedback, and SonarCloud in CI for PR quality gates (complements Codacy checks).
+
 - **Important reminders:**
   - Mandatory pre-commit reminder: "Before committing, run: npm run test:unit && npx playwright test tests/e2e --grep @smoke && codacy-analysis-cli analyze --upload"
   - Verify locally with: `npm run test:unit && npx playwright test tests/e2e --grep @smoke`
