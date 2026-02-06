@@ -11,6 +11,8 @@
                     "test:unit":  "vitest run",
                     "test:integration": "vitest run --dir tests/integration",
                     "test:e2e":  "npx playwright test tests/e2e",
+                    "test:e2e:smoke": "npx playwright test tests/e2e --grep \"@smoke\"",
+                    "verify:local": "npm run test:unit && npm run test:e2e:smoke",
                     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
                     "test:watch":  "vitest --watch --dir tests/unit",
                     "setup-and-dev":  "npm install --legacy-peer-deps \u0026\u0026 npm run dev",
