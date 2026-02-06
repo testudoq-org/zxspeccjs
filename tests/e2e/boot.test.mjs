@@ -1,4 +1,5 @@
 // @e2e @ui
+/* eslint-env browser */
 import { test, expect } from '@playwright/test';
 
 test.describe('ZX Spectrum Emulator Boot Tests', () => {
