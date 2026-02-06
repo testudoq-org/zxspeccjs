@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 import { setupDiagnostics, checkSpec48, ensureStarted, waitForBootComplete, collectSystemVars, verifyBootGlyph } from '../_helpers/bootHelpers.mjs';
 
 test.describe('ZX Spectrum 48K Boot Implementation', () => {
-  test('should boot correctly and show copyright message', async ({ page }) => {
+  test('@smoke should boot correctly and show copyright message', async ({ page }) => {
     console.log('=== ZX Spectrum 48K Boot Verification Test ===\n');
     
     // Setup diagnostics and console capture
