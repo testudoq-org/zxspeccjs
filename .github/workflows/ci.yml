@@ -33,9 +33,10 @@ jobs:
 
       - name: SonarCloud Scan (conditional)
         if: ${{ env.SONAR_TOKEN != '' }}
-        uses: sonarsource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
         with:
-          organization: 'testudoq'
-          projectKey: 'zxspeccjs'
+          projectBaseDir: .
+          args: >-
+            -Dsonar.organization=testudoq-org -Dsonar.projectKey=testudoq-org_zxspeccjs
         env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}}
