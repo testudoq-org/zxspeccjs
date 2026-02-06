@@ -1,0 +1,483 @@
+﻿2026-02-06T02:17:02.5643409Z ##[group]Run npm run test:e2e
+2026-02-06T02:17:02.5643703Z [36;1mnpm run test:e2e[0m
+2026-02-06T02:17:02.5675309Z shell: /usr/bin/bash -e {0}
+2026-02-06T02:17:02.5675543Z env:
+2026-02-06T02:17:02.5675864Z   SONAR_TOKEN: ***
+2026-02-06T02:17:02.5676051Z ##[endgroup]
+2026-02-06T02:17:02.6766773Z 
+2026-02-06T02:17:02.6767080Z > zxspeccjs@0.1.0 test:e2e
+2026-02-06T02:17:02.6767611Z > npx playwright test tests/e2e
+2026-02-06T02:17:02.6768072Z 
+2026-02-06T02:17:04.9048726Z [WebServer] (node:6145) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+2026-02-06T02:17:04.9049599Z [WebServer] (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-06T02:17:05.2876602Z 
+2026-02-06T02:17:05.2877409Z Running 23 tests using 4 workers
+2026-02-06T02:17:05.2878084Z 
+2026-02-06T02:17:06.8066831Z PAGE: scripts []
+2026-02-06T02:17:07.3111377Z DEBUG_STATE_DUMP_START
+2026-02-06T02:17:07.3112163Z {
+2026-02-06T02:17:07.3112657Z   "zx_debug_exists": true,
+2026-02-06T02:17:07.3113335Z   "zx_debug_keys": [
+2026-02-06T02:17:07.3113842Z     "getRegisters",
+2026-02-06T02:17:07.3114342Z     "getPC",
+2026-02-06T02:17:07.3114911Z     "getCurrentPC",
+2026-02-06T02:17:07.3115402Z     "getAF",
+2026-02-06T02:17:07.3115833Z     "getBC",
+2026-02-06T02:17:07.3116252Z     "getDE",
+2026-02-06T02:17:07.3148530Z     "getHL",
+2026-02-06T02:17:07.3149112Z     "peekMemory",
+2026-02-06T02:17:07.3149624Z     "readROM",
+2026-02-06T02:17:07.3150096Z     "readRAM",
+2026-02-06T02:17:07.3150576Z     "getPortWrites",
+2026-02-06T02:17:07.3151097Z     "getLastPortWrite",
+2026-02-06T02:17:07.3152015Z     "portWrites",
+2026-02-06T02:17:07.3152509Z     "executedOpcodes",
+2026-02-06T02:17:07.3153021Z     "bootComplete",
+2026-02-06T02:17:07.3153522Z     "isTestMode",
+2026-02-06T02:17:07.3154001Z     "timing",
+2026-02-06T02:17:07.3154475Z     "getLastPC",
+2026-02-06T02:17:07.3155006Z     "getPCHistory",
+2026-02-06T02:17:07.3155520Z     "getBootProgress",
+2026-02-06T02:17:07.3166575Z     "getKeyboardState",
+2026-02-06T02:17:07.3167192Z     "pressKey",
+2026-02-06T02:17:07.3167877Z     "releaseKey",
+2026-02-06T02:17:07.3168437Z     "setKeyboardDebug",
+2026-02-06T02:17:07.3168980Z     "resetKeyboard",
+2026-02-06T02:17:07.3169543Z     "typeKey",
+2026-02-06T02:17:07.3170055Z     "pressAndHold",
+2026-02-06T02:17:07.3170610Z     "inspectBottomGlyphs",
+2026-02-06T02:17:07.3171204Z     "snapshotGlyph",
+2026-02-06T02:17:07.3171760Z     "compareColumnPixels",
+2026-02-06T02:17:07.3172321Z     "peekBottomLines",
+2026-02-06T02:17:07.3172832Z     "getTimeline"
+2026-02-06T02:17:07.3173328Z   ],
+2026-02-06T02:17:07.3173786Z   "last_pc": 4577,
+2026-02-06T02:17:07.3174353Z   "pc_watcher_exists": true,
+2026-02-06T02:17:07.3174954Z   "pc_watcher_len": 10000,
+2026-02-06T02:17:07.3175538Z   "emu_exists": true,
+2026-02-06T02:17:07.3176076Z   "emu_has_cpu": true
+2026-02-06T02:17:07.3176574Z }
+2026-02-06T02:17:07.3177055Z DEBUG_STATE_DUMP_END
+2026-02-06T02:17:07.7102277Z   ✓   1 [chromium] › tests/e2e/debug_state_dump.spec.mjs:4:1 › dump debug state (1.0s)
+2026-02-06T02:17:07.8373083Z === ZX Spectrum 48K Boot Verification Test ===
+2026-02-06T02:17:07.8377484Z 
+2026-02-06T02:17:07.9409647Z PAGE: document size/snippet {
+2026-02-06T02:17:07.9412773Z   htmlLen: [33m16676[39m,
+2026-02-06T02:17:07.9413369Z   headSnippet: [32m'\n'[39m +
+2026-02-06T02:17:07.9413981Z     [32m'  <meta charset="utf-8">\n'[39m +
+2026-02-06T02:17:07.9414949Z     [32m'  <meta name="viewport" content="width=device-width,initial-scale=1">\n'[39m +
+2026-02-06T02:17:07.9415916Z     [32m'  <title>zxspeccjs</title>\n'[39m +
+2026-02-06T02:17:07.9416536Z     [32m'  <style>\n'[39m +
+2026-02-06T02:17:07.9417960Z     [32m'    body { font-family: system-ui, Arial, sans-serif; display:flex; gap:16px; padding:16px; background:#222 }\n'[39m +
+2026-02-06T02:17:07.9419481Z     [32m'    /* Canvas: 320x240 native, scaled 2x to 640x480 for display with borders */\n'[39m +
+2026-02-06T02:17:07.9420780Z     [32m'    #screen { image-rendering: pixelated; border:1px solid #333; width:640px;'[39m,
+2026-02-06T02:17:07.9422184Z   bodySnippet: [32m'\n'[39m +
+2026-02-06T02:17:07.9423691Z     [32m'  <canvas id="screen" tabindex="0" width="320" height="240" aria-label="ZX Spectrum screen" style="background-color: rgb(192, 192, 192);"></canvas>\n'[39m +
+2026-02-06T02:17:07.9425003Z     [32m'  <div class="controls">\n'[39m +
+2026-02-06T02:17:07.9425773Z     [32m'    <label for="rom-select">Select ROM</label>\n'[39m +
+2026-02-06T02:17:07.9427880Z     [32m'    <select id="rom-select" aria-label="ROM selection"><optgroup label="spectrum16-48"><option value="spec48">48k — Sinclair Spectrum 48K (bundled spec48 module)</option></optgrou'[39m
+2026-02-06T02:17:07.9429375Z }
+2026-02-06T02:17:07.9559535Z PAGE: navigation status { ok: [33mtrue[39m, status: [33m200[39m }
+2026-02-06T02:17:07.9680876Z PAGE: frameBuffer._notifyFrameGenerated {
+2026-02-06T02:17:07.9682155Z   has: [33mtrue[39m,
+2026-02-06T02:17:07.9682940Z   ownProps: [
+2026-02-06T02:17:07.9683591Z     [32m'buffer'[39m,
+2026-02-06T02:17:07.9684350Z     [32m'borderColour'[39m,
+2026-02-06T02:17:07.9685045Z     [32m'writePtr'[39m,
+2026-02-06T02:17:07.9685810Z     [32m'lastUpdateTstate'[39m,
+2026-02-06T02:17:07.9686501Z     [32m'mem'[39m,
+2026-02-06T02:17:07.9687142Z     [32m'flashPhase'[39m,
+2026-02-06T02:17:07.9688132Z     [32m'_debugCount'[39m
+2026-02-06T02:17:07.9689489Z   ],
+2026-02-06T02:17:07.9690163Z   protoHas: [32m'undefined'[39m,
+2026-02-06T02:17:07.9690903Z   ownValue: [90mundefined[39m,
+2026-02-06T02:17:07.9692087Z   protoNames: [
+2026-02-06T02:17:07.9692711Z     [32m'constructor'[39m,
+2026-02-06T02:17:07.9693793Z     [32m'attach'[39m,
+2026-02-06T02:17:07.9710300Z     [32m'isDisplayReady'[39m,
+2026-02-06T02:17:07.9711014Z     [32m'startFrame'[39m,
+2026-02-06T02:17:07.9711703Z     [32m'updateToTstate'[39m,
+2026-02-06T02:17:07.9712348Z     [32m'setBorder'[39m,
+2026-02-06T02:17:07.9713099Z     [32m'endFrame'[39m,
+2026-02-06T02:17:07.9713767Z     [32m'_fillBufferToTstate'[39m,
+2026-02-06T02:17:07.9714504Z     [32m'generateFromMemory'[39m,
+2026-02-06T02:17:07.9715263Z     [32m'_debugBitmapSample'[39m,
+2026-02-06T02:17:07.9715966Z     [32m'_fillTopBorder'[39m,
+2026-02-06T02:17:07.9716637Z     [32m'_fillBottomBorder'[39m,
+2026-02-06T02:17:07.9717308Z     [32m'_fillMainScreen'[39m,
+2026-02-06T02:17:07.9718208Z     [32m'getBuffer'[39m,
+2026-02-06T02:17:07.9718936Z     [32m'getFlashPhase'[39m
+2026-02-06T02:17:07.9757515Z   ]
+2026-02-06T02:17:07.9760332Z }
+2026-02-06T02:17:08.0001584Z PAGE: /src/frameBuffer.mjs { status: [33m200[39m, len: [33m14227[39m, hasNotify: [33mtrue[39m }
+2026-02-06T02:17:08.0003380Z PAGE: presence { canvas: [33mtrue[39m, romSelect: [33mtrue[39m, emulatorExposed: [33mtrue[39m, zxDebug: [33mtrue[39m }
+2026-02-06T02:17:08.0004308Z PAGE LOGS: [
+2026-02-06T02:17:08.0004627Z   {
+2026-02-06T02:17:08.0004926Z     "type": "log",
+2026-02-06T02:17:08.0005667Z     "text": "[Emulator] constructor: canvas JSHandle@node statusEl JSHandle@node romInput JSHandle@node"
+2026-02-06T02:17:08.0006438Z   },
+2026-02-06T02:17:08.0006691Z   {
+2026-02-06T02:17:08.0006946Z     "type": "log",
+2026-02-06T02:17:08.0007427Z     "text": "[Emulator] Auto-loading spec48 ROM: 16384 bytes"
+2026-02-06T02:17:08.0015625Z   },
+2026-02-06T02:17:08.0015938Z   {
+2026-02-06T02:17:08.0016244Z     "type": "log",
+2026-02-06T02:17:08.0017078Z     "text": "[Emulator] spec48 first 10 bytes: [243, 175, 17, 255, 255, 195, 203, 17, 42, 93]"
+2026-02-06T02:17:08.0017977Z   },
+2026-02-06T02:17:08.0018267Z   {
+2026-02-06T02:17:08.0018564Z     "type": "log",
+2026-02-06T02:17:08.0019052Z     "text": "[Emulator] Creating core and loading ROM"
+2026-02-06T02:17:08.0019558Z   },
+2026-02-06T02:17:08.0019838Z   {
+2026-02-06T02:17:08.0020121Z     "type": "log",
+2026-02-06T02:17:08.0020659Z     "text": "[Emulator] _createCore: romBuffer Uint8Array(16384)"
+2026-02-06T02:17:08.0048184Z   },
+2026-02-06T02:17:08.0048474Z   {
+2026-02-06T02:17:08.0048744Z     "type": "log",
+2026-02-06T02:17:08.0049296Z     "text": "[Memory] Mapped ROM bank 0 to pages[0], first byte: 0xff"
+2026-02-06T02:17:08.0050147Z   },
+2026-02-06T02:17:08.0050394Z   {
+2026-02-06T02:17:08.0050661Z     "type": "log",
+2026-02-06T02:17:08.0051191Z     "text": "[Memory] Constructor: Loading ROM buffer, size: 16384"
+2026-02-06T02:17:08.0051708Z   },
+2026-02-06T02:17:08.0051977Z   {
+2026-02-06T02:17:08.0052266Z     "type": "log",
+2026-02-06T02:17:08.0052897Z     "text": "[Memory] loadROM called with buffer type: Uint8Array, length: 16384"
+2026-02-06T02:17:08.0053537Z   },
+2026-02-06T02:17:08.0053869Z   {
+2026-02-06T02:17:08.0054167Z     "type": "log",
+2026-02-06T02:17:08.0054960Z     "text": "[Memory] Using existing Uint8Array, first 10 bytes: [243, 175, 17, 255, 255, 195, 203, 17, 42, 93]"
+2026-02-06T02:17:08.0055747Z   },
+2026-02-06T02:17:08.0056020Z   {
+2026-02-06T02:17:08.0056293Z     "type": "log",
+2026-02-06T02:17:08.0056801Z     "text": "[Memory] Copying 16384 bytes from src to ROM array"
+2026-02-06T02:17:08.0057330Z   },
+2026-02-06T02:17:08.0057590Z   {
+2026-02-06T02:17:08.0086218Z     "type": "log",
+2026-02-06T02:17:08.0087029Z     "text": "[Memory] After copy, ROM first 10 bytes: [243, 175, 17, 255, 255, 195, 203, 17, 42, 93]"
+2026-02-06T02:17:08.0087896Z   },
+2026-02-06T02:17:08.0088180Z   {
+2026-02-06T02:17:08.0088475Z     "type": "log",
+2026-02-06T02:17:08.0089034Z     "text": "[Memory] Mapped ROM bank 0 to pages[0], first byte: 0xf3"
+2026-02-06T02:17:08.0089591Z   },
+2026-02-06T02:17:08.0089863Z   {
+2026-02-06T02:17:08.0090147Z     "type": "log",
+2026-02-06T02:17:08.0090758Z     "text": "[Memory] Copied ROM to scratch page for shadow RAM functionality"
+2026-02-06T02:17:08.0091673Z   },
+2026-02-06T02:17:08.0091943Z   {
+2026-02-06T02:17:08.0092227Z     "type": "log",
+2026-02-06T02:17:08.0092857Z     "text": "[Memory] Loaded ROM into bank 0, mapped to pages[0], first byte: 0xf3"
+2026-02-06T02:17:08.0093485Z   },
+2026-02-06T02:17:08.0093754Z   {
+2026-02-06T02:17:08.0094039Z     "type": "log",
+2026-02-06T02:17:08.0094487Z     "text": "[Memory] Verification: pages[0][0] = 243"
+2026-02-06T02:17:08.0094973Z   },
+2026-02-06T02:17:08.0095240Z   {
+2026-02-06T02:17:08.0095514Z     "type": "log",
+2026-02-06T02:17:08.0096246Z     "text": "[Memory] ROM bytes 0x0E90-0x0EA0: [eb, 61, 68, 29, 29, 29, 29, 29, 44, 4d, c9, 3e, 18, 90, 57, 0f]"
+2026-02-06T02:17:08.0096968Z   },
+2026-02-06T02:17:08.0097237Z   {
+2026-02-06T02:17:08.0097528Z     "type": "log",
+2026-02-06T02:17:08.0099038Z     "text": "[Memory] ROM bytes 0x1530-0x1550: [67, 20, 65, 72, 72, 6f, f2, 2c, a0, 7f, 20, 31, 39, 38, 32, 20, 53, 69, 6e, 63, 6c, 61, 69, 72, 20, 52, 65, 73, 65, 61, 72, 63]"
+2026-02-06T02:17:08.0099997Z   },
+2026-02-06T02:17:08.0100265Z   {
+2026-02-06T02:17:08.0100530Z     "type": "log",
+2026-02-06T02:17:08.0101216Z     "text": "[ULA] constructor: memory Memory canvas JSHandle@node ctx CanvasRenderingContext2D"
+2026-02-06T02:17:08.0101950Z   },
+2026-02-06T02:17:08.0102184Z   {
+2026-02-06T02:17:08.0102462Z     "type": "log",
+2026-02-06T02:17:08.0103018Z     "text": "[ULA] Deferred rendering enabled (320x240 with borders)"
+2026-02-06T02:17:08.0103592Z   },
+2026-02-06T02:17:08.0103861Z   {
+2026-02-06T02:17:08.0104143Z     "type": "warning",
+2026-02-06T02:17:08.0105452Z     "text": "The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio"
+2026-02-06T02:17:08.0106642Z   },
+2026-02-06T02:17:08.0106909Z   {
+2026-02-06T02:17:08.0107184Z     "type": "log",
+2026-02-06T02:17:08.0108079Z     "text": "[Emulator] _createCore: connected CPU io adapter for port 0xFE border control"
+2026-02-06T02:17:08.0108801Z   },
+2026-02-06T02:17:08.0109060Z   {
+2026-02-06T02:17:08.0109345Z     "type": "log",
+2026-02-06T02:17:08.0109942Z     "text": "[Emulator] _createCore: enabled mem write watch for 0x4000-0x5AFF"
+2026-02-06T02:17:08.0110551Z   },
+2026-02-06T02:17:08.0110826Z   {
+2026-02-06T02:17:08.0111108Z     "type": "log",
+2026-02-06T02:17:08.0111628Z     "text": "[Emulator] _createCore: memory Memory cpu Z80 ula ULA"
+2026-02-06T02:17:08.0112474Z   },
+2026-02-06T02:17:08.0112728Z   {
+2026-02-06T02:17:08.0113006Z     "type": "log",
+2026-02-06T02:17:08.0113721Z     "text": "[Emulator] Initial render deferred until emulator loop or CHARS population"
+2026-02-06T02:17:08.0114403Z   },
+2026-02-06T02:17:08.0114664Z   {
+2026-02-06T02:17:08.0114988Z     "type": "warning",
+2026-02-06T02:17:08.0116262Z     "text": "The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio"
+2026-02-06T02:17:08.0117448Z   },
+2026-02-06T02:17:08.0124826Z   {
+2026-02-06T02:17:08.0125225Z     "type": "log",
+2026-02-06T02:17:08.0125731Z     "text": "[Emulator] ROM load completed, CPU PC: 0"
+2026-02-06T02:17:08.0126225Z   },
+2026-02-06T02:17:08.0126506Z   {
+2026-02-06T02:17:08.0126797Z     "type": "log",
+2026-02-06T02:17:08.0127242Z     "text": "[Emulator] Auto-starting emulator..."
+2026-02-06T02:17:08.0127895Z   },
+2026-02-06T02:17:08.0128493Z   {
+2026-02-06T02:17:08.0129727Z     "type": "log",
+2026-02-06T02:17:08.0130252Z     "text": "[Emulator] start: canvas focused for keyboard input"
+2026-02-06T02:17:08.0130755Z   },
+2026-02-06T02:17:08.0131021Z   {
+2026-02-06T02:17:08.0131284Z     "type": "log",
+2026-02-06T02:17:08.0131737Z     "text": "[Emulator] Exposed spec48 to window.spec48"
+2026-02-06T02:17:08.0132581Z   },
+2026-02-06T02:17:08.0132863Z   {
+2026-02-06T02:17:08.0133142Z     "type": "log",
+2026-02-06T02:17:08.0133767Z     "text": "[Emulator] initialized and attached to window.emu and window.__ZX_DEBUG__"
+2026-02-06T02:17:08.0134761Z   },
+2026-02-06T02:17:08.0135027Z   {
+2026-02-06T02:17:08.0135369Z     "type": "warning",
+2026-02-06T02:17:08.0136669Z     "text": "The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio"
+2026-02-06T02:17:08.0138119Z   },
+2026-02-06T02:17:08.0138407Z   {
+2026-02-06T02:17:08.0138706Z     "type": "log",
+2026-02-06T02:17:08.0139313Z     "text": "[ULA] CHARS pointer: 0x0202 glyphs: {127: Array(8), 128: Array(8)}"
+2026-02-06T02:17:08.0139930Z   },
+2026-02-06T02:17:08.0140209Z   {
+2026-02-06T02:17:08.0140479Z     "type": "log",
+2026-02-06T02:17:08.0140964Z     "text": "[FrameBuffer] Frame 1: Bitmap non-zero: 0/6144"
+2026-02-06T02:17:08.0141478Z   },
+2026-02-06T02:17:08.0141765Z   {
+2026-02-06T02:17:08.0142064Z     "type": "log",
+2026-02-06T02:17:08.0142561Z     "text": "[FrameBuffer] Frame 2: Bitmap non-zero: 0/6144"
+2026-02-06T02:17:08.0143082Z   },
+2026-02-06T02:17:08.0143364Z   {
+2026-02-06T02:17:08.0143644Z     "type": "log",
+2026-02-06T02:17:08.0144141Z     "text": "[FrameBuffer] Frame 3: Bitmap non-zero: 2036/6144"
+2026-02-06T02:17:08.0144647Z   },
+2026-02-06T02:17:08.0144906Z   {
+2026-02-06T02:17:08.0145190Z     "type": "log",
+2026-02-06T02:17:08.0146405Z     "text": "[FrameBuffer] First 64 bitmap bytes: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+2026-02-06T02:17:08.0147900Z   }
+2026-02-06T02:17:08.0148175Z ]
+2026-02-06T02:17:08.1563424Z   ✓   3 [chromium] › tests/e2e/debug-page.spec.mjs:4:1 › debug page load - capture console errors (1.5s)
+2026-02-06T02:17:08.2849700Z   ✓   2 [chromium] › tests/e2e/bit-order.spec.mjs:10:1 › ULA bit-order: 0x80 renders as left-most pixel (1.6s)
+2026-02-06T02:17:08.8081932Z ✓ Emulator loaded
+2026-02-06T02:17:08.9971097Z Emulator start observed: [33mtrue[39m
+2026-02-06T02:17:08.9989842Z Current PC: 0x11e6, Boot complete: false
+2026-02-06T02:17:09.0754162Z ✓ Screenshot taken
+2026-02-06T02:17:09.0758488Z 
+2026-02-06T02:17:09.0759104Z === BOOT VERIFICATION RESULTS ===
+2026-02-06T02:17:09.0759873Z Boot completion time: 4ms
+2026-02-06T02:17:09.0760379Z Boot sequence complete: YES
+2026-02-06T02:17:09.0760859Z Final PC reached: 0x11e6
+2026-02-06T02:17:09.2007469Z   ✓   5 [chromium] › tests/e2e/final_boot_verification.spec.mjs:12:3 › ZX Spectrum 48K Boot Implementation › @smoke should boot correctly and show copyright message (1.4s)
+2026-02-06T02:17:09.6051858Z Current PC: 0x11ed, Boot complete: false
+2026-02-06T02:17:09.7164104Z   ✓   6 [chromium] › tests/e2e/glyph-7f.spec.mjs:8:1 › Render © (0x7F) by injecting text buffer and forcing auto-backfill (1.5s)
+2026-02-06T02:17:09.8594500Z   ✓   7 [chromium] › tests/e2e/glyph-copyright.spec.mjs:8:1 › Should display © before "1982" via auto-fix heuristic (1.5s)
+2026-02-06T02:17:10.4889277Z Deterministic boot glyph check result: {
+2026-02-06T02:17:10.4890158Z   found: [33mtrue[39m,
+2026-02-06T02:17:10.4890648Z   col: [33m0[39m,
+2026-02-06T02:17:10.4891057Z   rom: [33m16376[39m,
+2026-02-06T02:17:10.4891420Z   s: {
+2026-02-06T02:17:10.4891760Z     col: [33m0[39m,
+2026-02-06T02:17:10.4892196Z     topRow: [33m184[39m,
+2026-02-06T02:17:10.4892589Z     bitmapAddrs: [
+2026-02-06T02:17:10.4893081Z       [33m20704[39m, [33m20960[39m,
+2026-02-06T02:17:10.4893654Z       [33m21216[39m, [33m21472[39m,
+2026-02-06T02:17:10.4894255Z       [33m21728[39m, [33m21984[39m,
+2026-02-06T02:17:10.4894834Z       [33m22240[39m, [33m22496[39m
+2026-02-06T02:17:10.4895252Z     ],
+2026-02-06T02:17:10.4895566Z     bitmapBytes: [
+2026-02-06T02:17:10.4896197Z        [33m60[39m,  [33m66[39m, [33m153[39m, [33m161[39m,
+2026-02-06T02:17:10.4897009Z       [33m161[39m, [33m153[39m,  [33m66[39m,  [33m60[39m
+2026-02-06T02:17:10.4897552Z     ],
+2026-02-06T02:17:10.4898240Z     attrAddr: [33m23264[39m,
+2026-02-06T02:17:10.4898743Z     attrByte: [33m56[39m,
+2026-02-06T02:17:10.4899496Z     fbBytes: [
+2026-02-06T02:17:10.4900135Z        [33m60[39m,  [33m66[39m, [33m153[39m, [33m161[39m,
+2026-02-06T02:17:10.4900953Z       [33m161[39m, [33m153[39m,  [33m66[39m,  [33m60[39m
+2026-02-06T02:17:10.4901474Z     ],
+2026-02-06T02:17:10.4901934Z     romMatchAddr: [33m16376[39m,
+2026-02-06T02:17:10.4902475Z     matchToRom: [33mtrue[39m,
+2026-02-06T02:17:10.4902963Z     lastPC: [33m4273[39m
+2026-02-06T02:17:10.4903341Z   }
+2026-02-06T02:17:10.4903634Z }
+2026-02-06T02:17:10.6332208Z   ✓   4 [chromium] › tests/e2e/boot.test.mjs:5:3 › ZX Spectrum Emulator Boot Tests › @smoke boot screen displays © symbol correctly (3.9s)
+2026-02-06T02:17:10.9623788Z   ✓  10 [chromium] › tests/e2e/keyboard-list-ui.spec.mjs:5:1 › keyboard UI shows LIST on L keypress @ui (1.1s)
+2026-02-06T02:17:11.5420257Z   ✓   8 [chromium] › tests/e2e/glyph-regression.spec.mjs:83:3 › Glyph regression: ensure © (0x7F) is visible on canvas › CHARS pointer and ROM contain glyph (2.3s)
+2026-02-06T02:17:11.9523398Z helpersPresent: {
+2026-02-06T02:17:11.9528093Z   zx_debug_pressKey: [33mtrue[39m,
+2026-02-06T02:17:11.9532361Z   zx_debug_enable: [33mfalse[39m,
+2026-02-06T02:17:11.9553938Z   emu_input_press: [33mtrue[39m,
+2026-02-06T02:17:11.9556525Z   emulator_input_press: [33mtrue[39m,
+2026-02-06T02:17:11.9558575Z   input_matrix: [
+2026-02-06T02:17:11.9560544Z     [33m31[39m, [33m31[39m, [33m31[39m, [33m31[39m,
+2026-02-06T02:17:11.9562636Z     [33m31[39m, [33m31[39m, [33m31[39m, [33m31[39m
+2026-02-06T02:17:11.9564501Z   ]
+2026-02-06T02:17:11.9566090Z }
+2026-02-06T02:17:11.9568651Z emulator presence: { hasEmu: [33mtrue[39m, hasUla: [33mtrue[39m, hasApply: [33mtrue[39m }
+2026-02-06T02:17:12.1147072Z mid press snapshot: {
+2026-02-06T02:17:12.1147551Z   input: [
+2026-02-06T02:17:12.1148595Z     [33m31[39m, [33m31[39m, [33m31[39m, [33m31[39m,
+2026-02-06T02:17:12.1149314Z     [33m31[39m, [33m31[39m, [33m29[39m, [33m31[39m
+2026-02-06T02:17:12.1155834Z   ],
+2026-02-06T02:17:12.1156200Z   lastApplied: [
+2026-02-06T02:17:12.1156822Z     [33m255[39m, [33m255[39m, [33m255[39m,
+2026-02-06T02:17:12.1157449Z     [33m255[39m, [33m255[39m, [33m255[39m,
+2026-02-06T02:17:12.1158183Z     [33m253[39m, [33m255[39m
+2026-02-06T02:17:12.1158551Z   ]
+2026-02-06T02:17:12.1158820Z }
+2026-02-06T02:17:12.1159552Z [test] L key observed in input.matrix; polling ULA.readPort for immediate verification
+2026-02-06T02:17:12.1188742Z [test] directDuringPress: [33m253[39m
+2026-02-06T02:17:12.1190149Z [test] Detected L via immediate direct ULA.readPort during press - PASS
+2026-02-06T02:17:12.2035060Z   ✓  12 [chromium] › tests/e2e/keyboard-port-read.spec.mjs:5:1 › keyboard port reads detect L key @ui (1.2s)
+2026-02-06T02:17:12.8862475Z debugInfo: {
+2026-02-06T02:17:12.8863232Z   hasZxDebug: [33mtrue[39m,
+2026-02-06T02:17:12.8864529Z   zxDebugKeys: [
+2026-02-06T02:17:12.8865374Z     [32m'getRegisters'[39m,     [32m'getPC'[39m,
+2026-02-06T02:17:12.8868963Z     [32m'getCurrentPC'[39m,     [32m'getAF'[39m,
+2026-02-06T02:17:12.8869711Z     [32m'getBC'[39m,            [32m'getDE'[39m,
+2026-02-06T02:17:12.8870463Z     [32m'getHL'[39m,            [32m'peekMemory'[39m,
+2026-02-06T02:17:12.8871227Z     [32m'readROM'[39m,          [32m'readRAM'[39m,
+2026-02-06T02:17:12.8872023Z     [32m'getPortWrites'[39m,    [32m'getLastPortWrite'[39m,
+2026-02-06T02:17:12.8872890Z     [32m'portWrites'[39m,       [32m'executedOpcodes'[39m,
+2026-02-06T02:17:12.8873717Z     [32m'bootComplete'[39m,     [32m'isTestMode'[39m,
+2026-02-06T02:17:12.8874472Z     [32m'timing'[39m,           [32m'getLastPC'[39m,
+2026-02-06T02:17:12.8875266Z     [32m'getPCHistory'[39m,     [32m'getBootProgress'[39m,
+2026-02-06T02:17:12.8876064Z     [32m'getKeyboardState'[39m, [32m'pressKey'[39m,
+2026-02-06T02:17:12.8876860Z     [32m'releaseKey'[39m,       [32m'setKeyboardDebug'[39m,
+2026-02-06T02:17:12.8877644Z     [32m'resetKeyboard'[39m,    [32m'typeKey'[39m,
+2026-02-06T02:17:12.8878683Z     [32m'pressAndHold'[39m,     [32m'inspectBottomGlyphs'[39m,
+2026-02-06T02:17:12.8880083Z     [32m'snapshotGlyph'[39m,    [32m'compareColumnPixels'[39m,
+2026-02-06T02:17:12.8880951Z     [32m'peekBottomLines'[39m,  [32m'getTimeline'[39m,
+2026-02-06T02:17:12.8881590Z     [32m'memWrites'[39m
+2026-02-06T02:17:12.8881966Z   ],
+2026-02-06T02:17:12.8882430Z   hasPressAndHold: [33mtrue[39m,
+2026-02-06T02:17:12.8882992Z   hasPressKey: [33mtrue[39m,
+2026-02-06T02:17:12.8883501Z   hasTypeKey: [33mtrue[39m
+2026-02-06T02:17:12.8883908Z }
+2026-02-06T02:17:12.8884498Z pressAndHold helper available: [33mtrue[39m
+2026-02-06T02:17:13.6167024Z pressAndHold diagnostics: {
+2026-02-06T02:17:13.6172557Z   key: [32m'l'[39m,
+2026-02-06T02:17:13.6172998Z   holdMs: [33m700[39m,
+2026-02-06T02:17:13.6173528Z   keyDetectedDuringHold: [33mtrue[39m,
+2026-02-06T02:17:13.6174097Z   portReadCount: [33m30[39m,
+2026-02-06T02:17:13.6174499Z   sampleReads: [
+2026-02-06T02:17:13.6175341Z     { t: [33m1[39m, port: [33m49150[39m, result: [33m253[39m, keyBitCleared: [33mtrue[39m },
+2026-02-06T02:17:13.6176543Z     { t: [33m28[39m, port: [33m49150[39m, result: [33m253[39m, keyBitCleared: [33mtrue[39m },
+2026-02-06T02:17:13.6177848Z     { t: [33m65[39m, port: [33m49150[39m, result: [33m253[39m, keyBitCleared: [33mtrue[39m },
+2026-02-06T02:17:13.6179000Z     { t: [33m87[39m, port: [33m49150[39m, result: [33m253[39m, keyBitCleared: [33mtrue[39m },
+2026-02-06T02:17:13.6180150Z     { t: [33m178[39m, port: [33m49150[39m, result: [33m253[39m, keyBitCleared: [33mtrue[39m }
+2026-02-06T02:17:13.6180814Z   ]
+2026-02-06T02:17:13.6181081Z }
+2026-02-06T02:17:13.6181459Z Detected L key in 30 of 30 port reads
+2026-02-06T02:17:13.6212082Z Final ULA matrix: [
+2026-02-06T02:17:13.6212681Z   [32m'0xff'[39m, [32m'0xff'[39m,
+2026-02-06T02:17:13.6213249Z   [32m'0xff'[39m, [32m'0xff'[39m,
+2026-02-06T02:17:13.6213797Z   [32m'0xff'[39m, [32m'0xff'[39m,
+2026-02-06T02:17:13.6214325Z   [32m'0xfd'[39m, [32m'0xff'[39m
+2026-02-06T02:17:13.6214740Z ]
+2026-02-06T02:17:13.7050969Z   ✓  14 [chromium] › tests/e2e/keyboard-port-read.spec.mjs:129:1 › keyboard pressAndHold detects L key reliably @ui (1.5s)
+2026-02-06T02:17:14.6912497Z Focus info: {
+2026-02-06T02:17:14.6913619Z   canvasFocusedOnStart: [33mtrue[39m,
+2026-02-06T02:17:14.6914561Z   activeElementId: [32m'startBtn'[39m,
+2026-02-06T02:17:14.6915515Z   activeElementTag: [32m'BUTTON'[39m
+2026-02-06T02:17:14.6916688Z }
+2026-02-06T02:17:14.8608078Z   ✓  15 [chromium] › tests/e2e/keyboard-port-read.spec.mjs:193:1 › canvas receives auto-focus on emulator start @ui (1.1s)
+2026-02-06T02:17:14.8843461Z   ✓   9 [chromium] › tests/e2e/keyboard-e2e.spec.mjs:6:3 › Keyboard to canvas end-to-end @ui @smoke › physical keyboard typing displays text on canvas (PRINT "HI") @ui (5.1s)
+2026-02-06T02:17:17.2323170Z Saved keyboard screenshot to /home/runner/work/zxspeccjs/zxspeccjs/tests/e2e/_artifacts/keyboard-list-1770344237230.png size [33m3355[39m
+2026-02-06T02:17:17.3633163Z   ✓  16 [chromium] › tests/e2e/keyboard-screenshot.spec.mjs:10:1 › keyboard screenshot test (LIST) @ui @smoke (2.5s)
+2026-02-06T02:17:17.6109939Z Deterministic glyph check result: {
+2026-02-06T02:17:17.6110792Z   found: [33mtrue[39m,
+2026-02-06T02:17:17.6111246Z   col: [33m0[39m,
+2026-02-06T02:17:17.6111642Z   rom: [33m16000[39m,
+2026-02-06T02:17:17.6111955Z   s: {
+2026-02-06T02:17:17.6112285Z     col: [33m0[39m,
+2026-02-06T02:17:17.6112680Z     topRow: [33m184[39m,
+2026-02-06T02:17:17.6113116Z     bitmapAddrs: [
+2026-02-06T02:17:17.6113632Z       [33m20704[39m, [33m20960[39m,
+2026-02-06T02:17:17.6114203Z       [33m21216[39m, [33m21472[39m,
+2026-02-06T02:17:17.6114734Z       [33m21728[39m, [33m21984[39m,
+2026-02-06T02:17:17.6115277Z       [33m22240[39m, [33m22496[39m
+2026-02-06T02:17:17.6115698Z     ],
+2026-02-06T02:17:17.6116008Z     bitmapBytes: [
+2026-02-06T02:17:17.6116607Z         [33m0[39m, [33m124[39m, [33m66[39m, [33m66[39m,
+2026-02-06T02:17:17.6117396Z       [33m124[39m,  [33m64[39m, [33m64[39m,  [33m0[39m
+2026-02-06T02:17:17.6118574Z     ],
+2026-02-06T02:17:17.6119060Z     attrAddr: [33m23264[39m,
+2026-02-06T02:17:17.6119562Z     attrByte: [33m56[39m,
+2026-02-06T02:17:17.6119959Z     fbBytes: [
+2026-02-06T02:17:17.6120561Z         [33m0[39m, [33m124[39m, [33m66[39m, [33m66[39m,
+2026-02-06T02:17:17.6121335Z       [33m124[39m,  [33m64[39m, [33m64[39m,  [33m0[39m
+2026-02-06T02:17:17.6121858Z     ],
+2026-02-06T02:17:17.6122345Z     romMatchAddr: [33m16000[39m,
+2026-02-06T02:17:17.6122921Z     matchToRom: [33mtrue[39m,
+2026-02-06T02:17:17.6123423Z     lastPC: [33m5624[39m
+2026-02-06T02:17:17.6123808Z   }
+2026-02-06T02:17:17.6124100Z }
+2026-02-06T02:17:17.6795260Z   ✓  11 [chromium] › tests/e2e/boot.test.mjs:37:3 › ZX Spectrum Emulator Boot Tests › @smoke keyboard interaction works in BASIC prompt (7.0s)
+2026-02-06T02:17:18.7760994Z   ✓  18 [chromium] › tests/e2e/reliable_debug_hook.spec.mjs:6:3 › Reliable Debug Hook Implementation › PC watcher should track every instruction execution (1.4s)
+2026-02-06T02:17:18.8512311Z   ✓  17 [chromium] › tests/e2e/keyboard-e2e.spec.mjs:35:3 › Keyboard to canvas end-to-end @ui @smoke › canvas receives physical keydown/keyup events when focused @ui (3.9s)
+2026-02-06T02:17:19.7379060Z   ✓  20 [chromium] › tests/e2e/rom-chars-dump.spec.mjs:8:1 › Dump CHARS pointer and glyph bytes for 0x7F from ROM/CHARS (933ms)
+2026-02-06T02:17:20.3758897Z   ✘  13 [chromium] › tests/e2e/glyph-regression.spec.mjs:88:3 › Glyph regression: ensure © (0x7F) is visible on canvas › © glyph should appear via auto-backfill when ROM/CHARS present (8.8s)
+2026-02-06T02:17:20.4663846Z   ✓  22 [chromium] › tests/e2e/virtual-keyboard.spec.mjs:5:3 › Virtual keyboard IME / mobile interaction @ui › pointerdown focuses hidden input and pointerup blurs (mobile/softkeyboard behavior) @ui (690ms)
+2026-02-06T02:17:20.9672647Z   ✓  23 [chromium] › tests/e2e/virtual-keyboard.spec.mjs:48:3 › Virtual keyboard IME / mobile interaction @ui › hidden input input/composition events map to key presses (IME) @ui (465ms)
+2026-02-06T02:17:22.3621346Z   ✓  19 [chromium] › tests/e2e/reset-reloads.spec.mjs:5:3 › Reset button reload behavior @ui › Reset triggers cache clear + reload (same as Clear cache & reload) @ui (4.6s)
+2026-02-06T02:17:23.7189268Z   ✓  21 [chromium] › tests/e2e/keyboard-e2e.spec.mjs:62:3 › Keyboard to canvas end-to-end @ui @smoke › virtual keyboard typing displays text on canvas (PRINT "HI") @ui (4.8s)
+2026-02-06T02:17:32.8016336Z   ✘  24 [chromium] › tests/e2e/glyph-regression.spec.mjs:88:3 › Glyph regression: ensure © (0x7F) is visible on canvas › © glyph should appear via auto-backfill when ROM/CHARS present (retry #1) (10.8s)
+2026-02-06T02:17:34.4000759Z   ✓  25 [chromium] › tests/e2e/glyph-regression.spec.mjs:88:3 › Glyph regression: ensure © (0x7F) is visible on canvas › © glyph should appear via auto-backfill when ROM/CHARS present (retry #2) (933ms)
+2026-02-06T02:17:34.4483345Z 
+2026-02-06T02:17:34.4490836Z 
+2026-02-06T02:17:34.4501757Z   1) [chromium] › tests/e2e/glyph-regression.spec.mjs:88:3 › Glyph regression: ensure © (0x7F) is visible on canvas › © glyph should appear via auto-backfill when ROM/CHARS present 
+2026-02-06T02:17:34.4503038Z 
+2026-02-06T02:17:34.4503919Z     Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+2026-02-06T02:17:34.4504626Z 
+2026-02-06T02:17:34.4504853Z     Expected: [32mtrue[39m
+2026-02-06T02:17:34.4505340Z     Received: [31mfalse[39m
+2026-02-06T02:17:34.4505598Z 
+2026-02-06T02:17:34.4505726Z       92 |
+2026-02-06T02:17:34.4506128Z       93 |     const hasGlyph = await waitForGlyph(page);
+2026-02-06T02:17:34.4506640Z     > 94 |     expect(hasGlyph).toBe(true);
+2026-02-06T02:17:34.4507111Z          |                      ^
+2026-02-06T02:17:34.4507540Z       95 |   });
+2026-02-06T02:17:34.4508041Z       96 | });
+2026-02-06T02:17:34.4508427Z       97 |
+2026-02-06T02:17:34.4509086Z         at /home/runner/work/zxspeccjs/zxspeccjs/tests/e2e/glyph-regression.spec.mjs:94:22
+2026-02-06T02:17:34.4510088Z 
+2026-02-06T02:17:34.4510804Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4511587Z     test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium/test-failed-1.png
+2026-02-06T02:17:34.4512656Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4513162Z 
+2026-02-06T02:17:34.4514013Z     Error Context: test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium/error-context.md
+2026-02-06T02:17:34.4514883Z 
+2026-02-06T02:17:34.4515589Z     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4516107Z 
+2026-02-06T02:17:34.4516961Z     Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+2026-02-06T02:17:34.4527488Z 
+2026-02-06T02:17:34.4528015Z     Expected: [32mtrue[39m
+2026-02-06T02:17:34.4528581Z     Received: [31mfalse[39m
+2026-02-06T02:17:34.4528863Z 
+2026-02-06T02:17:34.4528999Z       92 |
+2026-02-06T02:17:34.4529543Z       93 |     const hasGlyph = await waitForGlyph(page);
+2026-02-06T02:17:34.4530168Z     > 94 |     expect(hasGlyph).toBe(true);
+2026-02-06T02:17:34.4530670Z          |                      ^
+2026-02-06T02:17:34.4531076Z       95 |   });
+2026-02-06T02:17:34.4531403Z       96 | });
+2026-02-06T02:17:34.4531727Z       97 |
+2026-02-06T02:17:34.4532425Z         at /home/runner/work/zxspeccjs/zxspeccjs/tests/e2e/glyph-regression.spec.mjs:94:22
+2026-02-06T02:17:34.4533055Z 
+2026-02-06T02:17:34.4533824Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4535268Z     test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium-retry1/test-failed-1.png
+2026-02-06T02:17:34.4536831Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4537370Z 
+2026-02-06T02:17:34.4538494Z     Error Context: test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium-retry1/error-context.md
+2026-02-06T02:17:34.4539480Z 
+2026-02-06T02:17:34.4540271Z     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4541639Z     test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium-retry1/trace.zip
+2026-02-06T02:17:34.4542853Z     Usage:
+2026-02-06T02:17:34.4543040Z 
+2026-02-06T02:17:34.4544001Z         npx playwright show-trace test-results/glyph-regression-Glyph-reg-60b89-fill-when-ROM-CHARS-present-chromium-retry1/trace.zip
+2026-02-06T02:17:34.4545013Z 
+2026-02-06T02:17:34.4545727Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-02-06T02:17:34.4546242Z 
+2026-02-06T02:17:34.4546396Z   1 flaky
+2026-02-06T02:17:34.4548170Z     [chromium] › tests/e2e/glyph-regression.spec.mjs:88:3 › Glyph regression: ensure © (0x7F) is visible on canvas › © glyph should appear via auto-backfill when ROM/CHARS present 
+2026-02-06T02:17:34.4549747Z   22 passed (30.6s)

@@ -1,0 +1,20 @@
+﻿2026-02-06T02:17:34.5843615Z ##[group]Run npm run build
+2026-02-06T02:17:34.5843891Z [36;1mnpm run build[0m
+2026-02-06T02:17:34.5874805Z shell: /usr/bin/bash -e {0}
+2026-02-06T02:17:34.5875037Z env:
+2026-02-06T02:17:34.5875332Z   SONAR_TOKEN: ***
+2026-02-06T02:17:34.5875512Z   CI: true
+2026-02-06T02:17:34.5875676Z ##[endgroup]
+2026-02-06T02:17:34.6962058Z 
+2026-02-06T02:17:34.6962579Z > zxspeccjs@0.1.0 build
+2026-02-06T02:17:34.6963042Z > rollup -c
+2026-02-06T02:17:34.6963245Z 
+2026-02-06T02:17:34.8502098Z [36m
+2026-02-06T02:17:34.8502746Z [1msrc/main.mjs[22m → [1mdist/bundle.min.js[22m...[39m
+2026-02-06T02:17:36.9220752Z [1m[33m(!) Mixing named and default exports[39m[22m
+2026-02-06T02:17:36.9221485Z [90mhttps://rollupjs.org/configuration-options/#output-exports[39m
+2026-02-06T02:17:36.9222199Z [1mThe following entry modules are using named and default exports together:[22m
+2026-02-06T02:17:36.9222597Z src/main.mjs
+2026-02-06T02:17:36.9222715Z 
+2026-02-06T02:17:36.9223402Z Consumers of your bundle will have to use chunk.default to access their default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+2026-02-06T02:17:36.9224916Z [32mcreated [1mdist/bundle.min.js[22m in [1m2s[22m[39m

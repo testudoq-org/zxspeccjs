@@ -1,0 +1,25 @@
+﻿2026-02-06T02:16:01.6168721Z ##[group]Run npm ci
+2026-02-06T02:16:01.6169066Z [36;1mnpm ci[0m
+2026-02-06T02:16:01.6211512Z shell: /usr/bin/bash -e {0}
+2026-02-06T02:16:01.6211827Z env:
+2026-02-06T02:16:01.6212362Z   SONAR_TOKEN: ***
+2026-02-06T02:16:01.6212614Z ##[endgroup]
+2026-02-06T02:16:04.4564289Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-02-06T02:16:04.5730501Z npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+2026-02-06T02:16:05.6034679Z 
+2026-02-06T02:16:05.6035398Z > zxspeccjs@0.1.0 prepare
+2026-02-06T02:16:05.6035736Z > husky install
+2026-02-06T02:16:05.6036115Z 
+2026-02-06T02:16:05.6366979Z husky - Git hooks installed
+2026-02-06T02:16:05.6439963Z 
+2026-02-06T02:16:05.6440501Z added 191 packages, and audited 192 packages in 4s
+2026-02-06T02:16:05.6443268Z 
+2026-02-06T02:16:05.6443593Z 44 packages are looking for funding
+2026-02-06T02:16:05.6444214Z   run `npm fund` for details
+2026-02-06T02:16:05.6472882Z 
+2026-02-06T02:16:05.6473557Z 1 high severity vulnerability
+2026-02-06T02:16:05.6475551Z 
+2026-02-06T02:16:05.6478587Z To address all issues, run:
+2026-02-06T02:16:05.6479356Z   npm audit fix
+2026-02-06T02:16:05.6479761Z 
+2026-02-06T02:16:05.6480047Z Run `npm audit` for details.
