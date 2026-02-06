@@ -1,4 +1,4 @@
-// @e2e @ui
+// @e2e @ui @smoke
 /* eslint-env browser, node, es2021 */
 /* global window document console setTimeout process Buffer */
 import { test, expect } from '@playwright/test';
@@ -7,7 +7,7 @@ import path from 'path';
 import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
 
 // This test presses 'L' via in-page helper and saves a screenshot PNG
-test('keyboard screenshot test (LIST) @ui', async ({ page }) => {
+test('keyboard screenshot test (LIST) @ui @smoke', async ({ page }) => {
   await setupDiagnostics(page);
   await page.goto('http://localhost:8080/');
   await page.waitForSelector('#screen', { timeout: 15000 });
