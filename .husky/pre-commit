@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Ensure instruction blocks are present; script exits non-zero and prevents commit if it made changes
+npm run ensure-instruction-blocks

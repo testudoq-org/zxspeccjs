@@ -35,3 +35,9 @@ Records architectural and implementation decisions for the ZX Spectrum emulator 
 
 ---
 2025-12-23 23:44:26 - Initial decisions logged from idea-for-project.md
+
+## 2026-02-06 — Housekeeping & enforcement
+
+- Standardized instruction-block enforcement across Copilot and RooCode (see PR #6).
+- Added a local, free enforcement mechanism (`scripts/ensure-instruction-blocks.mjs` + Husky pre-commit hook) to append the blocks automatically and surface changes for review (PR #7).
+- Archived optional memory-bank artifacts to `archive/memory-bank/` to reduce noise; core files retained and updated with this progress note.

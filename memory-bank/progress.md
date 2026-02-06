@@ -343,3 +343,10 @@ npx vitest run test/ --pool=forks --poolOptions.forks.singleFork
 2. Proactively apply debug-API + pixel-sampling pattern to any remaining brittle visual tests if CI shows flakes; prefer debug API where available.
 3. Document `window.__ZX_DEBUG__` testing contract in developer docs and create follow-up issues for any unresolved flakiness.
 
+### [2026-02-06] - Housekeeping & test enforcement
+
+- Added enforcement & best-practices content to `.github/copilot-instructions.md` and `.roocode/memory-bank.md` (PR #6).
+- Implemented a local enforcement script `scripts/ensure-instruction-blocks.mjs`, npm script `ensure-instruction-blocks`, and a Husky pre-commit hook to append the blocks and prevent commits until changes are reviewed (PR #7).
+- Archived optional memory-bank notes to `archive/memory-bank/` to keep the core memory-bank focused on canonical documents and progress updates.
+- README updated with local setup instructions for the enforcement script and Husky hook.
+

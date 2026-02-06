@@ -1,8 +1,8 @@
 /* eslint-disable no-console, no-unused-vars */
-// @e2e @ui
+// @e2e @ui @smoke
 import { test, expect } from '@playwright/test';
 
-test.describe('Keyboard to canvas end-to-end @ui', () => {
+test.describe('Keyboard to canvas end-to-end @ui @smoke', () => {
   test('physical keyboard typing displays text on canvas (PRINT "HI") @ui', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('canvas', { timeout: 10000 });

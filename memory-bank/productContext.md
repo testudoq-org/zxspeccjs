@@ -32,3 +32,11 @@ Build a ZX Spectrum emulator that runs entirely in the browser using ES6 JavaScr
 
 ---
 2025-12-23 23:44:07 - Initial product context created from idea-for-project.md
+
+## Recent progress (2026-02-06)
+
+- Added repository-level quality & test enforcement rules to `.github/copilot-instructions.md` and `.roocode/memory-bank.md` (see PR #6).
+- Appended best-practices guidance for `.mjs`, ES6+, Vitest and Playwright to the RooCode memory-bank file.
+- Added automation to ensure instruction blocks are present (`scripts/ensure-instruction-blocks.mjs`), an `ensure-instruction-blocks` npm script, and a Husky pre-commit hook to enforce changes locally (PR #7).
+- Archived optional memory-bank notes to `archive/memory-bank/` to keep core files focused on canonical project context.
+- Verify locally with: `npm run test:unit && npx playwright test tests/e2e --grep @smoke`.

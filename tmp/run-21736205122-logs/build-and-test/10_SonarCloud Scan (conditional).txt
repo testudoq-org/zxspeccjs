@@ -1,0 +1,56 @@
+﻿2026-02-06T02:17:36.9509309Z ##[warning]Unexpected input(s) 'organization', 'projectKey', valid inputs are ['entryPoint', 'args', 'projectBaseDir']
+2026-02-06T02:17:36.9523233Z ##[group]Run sonarsource/sonarcloud-github-action@v2
+2026-02-06T02:17:36.9523543Z with:
+2026-02-06T02:17:36.9523723Z   organization: testudoq
+2026-02-06T02:17:36.9523949Z   projectKey: zxspeccjs
+2026-02-06T02:17:36.9524152Z   projectBaseDir: .
+2026-02-06T02:17:36.9524332Z env:
+2026-02-06T02:17:36.9524587Z   SONAR_TOKEN: ***
+2026-02-06T02:17:36.9524770Z ##[endgroup]
+2026-02-06T02:17:36.9619692Z ##[command]/usr/bin/docker run --name b076ac15ef40f474537985fefbb343e5dcf_bbdc6e --label 049b07 --workdir /github/workspace --rm -e "SONAR_TOKEN" -e "INPUT_ORGANIZATION" -e "INPUT_PROJECTKEY" -e "INPUT_ARGS" -e "INPUT_PROJECTBASEDIR" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e "ACTIONS_ORCHESTRATION_ID" -e GITHUB_ACTIONS=true -e CI=true --entrypoint "/entrypoint.sh" -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp":"/github/runner_temp" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/zxspeccjs/zxspeccjs":"/github/workspace" 049b07:6ac15ef40f474537985fefbb343e5dcf
+2026-02-06T02:17:38.8276806Z INFO: Scanner configuration file: /opt/sonar-scanner/conf/sonar-scanner.properties
+2026-02-06T02:17:38.8286974Z INFO: Project root configuration file: /github/workspace/sonar-project.properties
+2026-02-06T02:17:38.8506893Z INFO: SonarScanner 5.0.1.3006
+2026-02-06T02:17:38.8508416Z INFO: Java 17.0.11 Alpine (64-bit)
+2026-02-06T02:17:38.8509073Z INFO: Linux 6.11.0-1018-azure amd64
+2026-02-06T02:17:39.0641727Z INFO: User cache: /opt/sonar-scanner/.sonar/cache
+2026-02-06T02:17:42.2751250Z INFO: Analyzing on SonarCloud
+2026-02-06T02:17:42.2752263Z INFO: Default locale: "en_US", source code encoding: "UTF-8" (analysis is platform dependent)
+2026-02-06T02:17:43.0755801Z INFO: Load global settings
+2026-02-06T02:17:43.7384020Z INFO: Load global settings (done) | time=664ms
+2026-02-06T02:17:43.8095714Z INFO: Server id: 1BD809FA-AWHW8ct9-T_TB3XqouNu
+2026-02-06T02:17:43.9642365Z INFO: Loading required plugins
+2026-02-06T02:17:43.9642905Z INFO: Load plugins index
+2026-02-06T02:17:44.1748847Z INFO: Load plugins index (done) | time=212ms
+2026-02-06T02:17:44.1750578Z INFO: Load/download plugins
+2026-02-06T02:17:44.7150569Z INFO: Load/download plugins (done) | time=539ms
+2026-02-06T02:17:44.9610806Z INFO: Loaded core extensions: a3s, sca, architecture
+2026-02-06T02:17:45.2567310Z INFO: Process project properties
+2026-02-06T02:17:45.2714974Z INFO: Project key: zxspeccjs
+2026-02-06T02:17:45.2715560Z INFO: Base dir: /github/workspace
+2026-02-06T02:17:45.2716143Z INFO: Working dir: /github/workspace/.scannerwork
+2026-02-06T02:17:45.2889966Z INFO: Found an active CI vendor: 'Github Actions'
+2026-02-06T02:17:45.2908145Z INFO: Load project branches
+2026-02-06T02:17:45.4354955Z INFO: Load project branches (done) | time=145ms
+2026-02-06T02:17:45.4411737Z INFO: Load project settings for component key: 'zxspeccjs'
+2026-02-06T02:17:45.5926093Z INFO: Inferred api base url 'https://api.sonarcloud.io' from host url 'https://sonarcloud.io'.
+2026-02-06T02:17:45.6987191Z INFO: Inferred api base url 'https://api.sonarcloud.io' from host url 'https://sonarcloud.io'.
+2026-02-06T02:17:46.1576961Z INFO: Inferred api base url 'https://api.sonarcloud.io' from host url 'https://sonarcloud.io'.
+2026-02-06T02:17:46.1620555Z INFO: Check ALM binding of project 'zxspeccjs'
+2026-02-06T02:17:46.3059179Z INFO: Detected project binding: NONEXISTENT
+2026-02-06T02:17:46.3062133Z INFO: Check ALM binding of project 'zxspeccjs' (done) | time=144ms
+2026-02-06T02:17:46.3083812Z INFO: Load project pull requests
+2026-02-06T02:17:46.4572354Z INFO: Load project pull requests (done) | time=148ms
+2026-02-06T02:17:46.4594820Z INFO: Load branch configuration
+2026-02-06T02:17:46.4603026Z INFO: Github event: pull_request
+2026-02-06T02:17:46.4689639Z INFO: Auto-configuring pull request 7
+2026-02-06T02:17:46.4811228Z INFO: ------------------------------------------------------------------------
+2026-02-06T02:17:46.4811879Z INFO: EXECUTION FAILURE
+2026-02-06T02:17:46.4812968Z INFO: ------------------------------------------------------------------------
+2026-02-06T02:17:46.4813911Z INFO: Total time: 7.657s
+2026-02-06T02:17:46.5049528Z INFO: Final Memory: 13M/60M
+2026-02-06T02:17:46.5050583Z INFO: ------------------------------------------------------------------------
+2026-02-06T02:17:46.5055064Z ERROR: Error during SonarScanner execution
+2026-02-06T02:17:46.5056260Z ERROR: Could not find a default branch for project with key 'zxspeccjs'. Make sure project exists.
+2026-02-06T02:17:46.5057127Z ERROR: 
+2026-02-06T02:17:46.5058797Z ERROR: Re-run SonarScanner using the -X switch to enable full debug logging.

@@ -136,3 +136,9 @@ Before committing Z80 changes:
 ---
 2025-12-23 23:44:33 - Initial system patterns documented
 2026-01-28 - Added CB instruction architecture and breadcrumbs for ROM/memory defects
+
+## Repository housekeeping (2026-02-06)
+
+- Centralized quality & test guidance added to both Copilot and RooCode instruction files (see `.github/copilot-instructions.md` and `.roocode/memory-bank.md`, PR #6).
+- Added an automated, local enforcement script (`scripts/ensure-instruction-blocks.mjs`) and Husky pre-commit hook to ensure instruction blocks exist and are kept up-to-date (PR #7).
+- Archive: optional memory-bank notes moved to `archive/memory-bank/` to keep system patterns focused on canonical rules and architecture.

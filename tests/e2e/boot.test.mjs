@@ -1,8 +1,10 @@
 // @e2e @ui
+/* eslint-env browser */
+/* global window, console */
 import { test, expect } from '@playwright/test';
 
 test.describe('ZX Spectrum Emulator Boot Tests', () => {
-  test('boot screen displays © symbol correctly', async ({ page }) => {
+  test('@smoke boot screen displays © symbol correctly', async ({ page }) => {
     await page.goto('/');
     
     // Wait for emulator canvas to load and boot sequence to complete
@@ -34,7 +36,7 @@ test.describe('ZX Spectrum Emulator Boot Tests', () => {
     }
   });
 
-  test('keyboard interaction works in BASIC prompt', async ({ page }) => {
+  test('@smoke keyboard interaction works in BASIC prompt', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('canvas', { timeout: 10000 });
     

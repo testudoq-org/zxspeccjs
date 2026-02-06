@@ -13,6 +13,9 @@ export default {
     file: 'dist/bundle.min.js',
     format: 'iife',
     name: 'ZXSpec',
-    sourcemap: true
+    sourcemap: true,
+    // Support dynamic imports by inlining them into the single IIFE bundle.
+    // See: https://rollupjs.org/configuration-options/#output-inlineDynamicImports
+    inlineDynamicImports: true
   }
 };

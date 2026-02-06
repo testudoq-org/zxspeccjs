@@ -5,10 +5,13 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.Testudoq_token }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
@@ -27,3 +30,13 @@ jobs:
         run: npm run build
         env:
           CI: true
+
+      - name: SonarCloud Scan (conditional)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
+        with:
+          projectBaseDir: .
+          args: >-
+            -Dsonar.organization=testudoq-org -Dsonar.projectKey=testudoq-org_zxspeccjs
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}}

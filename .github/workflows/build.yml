@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: SonarQube Scan
+        # Pinned to a specific commit SHA for immutability and security
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
+        with:
+          args: >-
+            -Dsonar.organization=testudoq-org -Dsonar.projectKey=testudoq-org_zxspeccjs
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

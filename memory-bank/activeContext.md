@@ -81,3 +81,9 @@ The CB-prefix instruction decoder now correctly separates opcode ranges:
 
 ---
 2026-02-02 - Snapshot of renderer/backfill/diagnostics work
+
+## Recent housekeeping (2026-02-06)
+
+- Added enforcement & best-practices blocks to `.github/copilot-instructions.md` and `.roocode/memory-bank.md` to standardize pre-commit and PR reminders (PR #6).
+- Added `scripts/ensure-instruction-blocks.mjs` and a Husky pre-commit hook to append the blocks automatically when missing; PR #7 created to add these files.
+- Archived non-core memory-bank documents to `archive/memory-bank/` to reduce noise and keep `memory-bank/` focused on core artifacts.
