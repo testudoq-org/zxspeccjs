@@ -102,24 +102,22 @@ Legal notice
 
 ## Acknowledgements & Thanks
 
-This project builds on the incredible work of the ZX Spectrum community and would not have been possible without the following resources, tools, and archives. Huge thanks to everyone who has kept the Speccy alive for decades!
+This project was inspired and immensely assisted by the incredible work of the ZX Spectrum community. Huge thanks to everyone keeping the Speccy scene alive!
 
-- **[gasman/jsspeccy3](https://github.com/gasman/jsspeccy3)**A high-performance ZX Spectrum emulator for the browser (written by Matt Westcott / gasman). This is the core emulation engine powering the browser experience here. It's a complete rewrite using modern web tech (WebAssembly, Web Workers, etc.) for accurate 48K/128K/Pentagon emulation, tape loading, AY sound, and more. Check out the live demo at [https://jsspeccy.zxdemo.org/](https://jsspeccy.zxdemo.org/) and the source on GitHub. Massive respect for open-sourcing this gem!
+- **[gasman/jsspeccy3](https://github.com/gasman/jsspeccy3)** by Matt Westcott (gasman)This project was inspired and/or immensely assisted by gasman/jsspeccy3 — a fantastic high-performance ZX Spectrum emulator for the browser using WebAssembly and modern web technologies. I discovered it after starting my own emulator journey, and it helped immensely with ideas, technical approaches, and motivation for accurate emulation (cycle timing, tape handling, AY sound, etc.). Check out the original source and live demo at https://jsspeccy.zxdemo.org/. Massive respect for open-sourcing such high-quality work!
 - **[World of Spectrum Classic](https://worldofspectrum.org/)**
-  The definitive online archive for ZX Spectrum software, preserving thousands of games, utilities, magazines, and documentation. Many of the tape images (.TAP/.TZX), ROMs, screenshots, and loading screens used or tested with this project come from (or were inspired by) this irreplaceable resource. Thank you for keeping the library accessible and for all the historical context.
+  The go-to archive for ZX Spectrum software, tapes (.TAP/.TZX), ROMs, screenshots, and history. Many assets tested/inspired here come from or were cross-referenced with this essential resource.
 
-Additional shout-outs to other community pillars commonly referenced or utilized in Spectrum emulation projects:
+Additional thanks to:
 
-- **Internet Archive ZX Spectrum collections** — For mirrored games, tapes, and snapshots (e.g., https://archive.org/details/zx_spectrum_library_games).
-- **ZXDB (by Einar Saukas and others)** — Extensive database of Spectrum software metadata, often cross-referenced with World of Spectrum.
-- **Various open-source tools** — Including TAP/TZX utilities, Z80 snapshot handlers, and font/ROM dumps shared in the community (respecting original copyrights where applicable).
+- Internet Archive ZX Spectrum collections (e.g., mirrored games and snapshots).
+- ZXDB and other community databases for metadata and context.
+- Various open tools and shared knowledge in the Spectrum emulation scene.
 
 ### Licensing
 
-**ZXSPECCJS is licensed under the GNU General Public License version 3 (GPL-3.0)** — see the [`COPYING` file](COPYING) in this repository for the full license text.
+**ZXSPECCJS is licensed under the GNU General Public License version 3 (GPL-3.0)** — see the [`COPYING`](COPYING) file in this repository for the full text.
 
-This project incorporates and/or derives from gasman/jsspeccy3, which is also licensed under GPL-3.0. As required by the GPL, the source code remains open, modifications are clearly indicated (where applicable), and the license is preserved throughout. All original copyrights and credits for ROMs, tapes, and other assets are retained by their respective owners and are used here strictly in the spirit of preservation, education, and fair use.
-
-If you distribute or modify ZXSPECCJS, please adhere to the terms of the GPL-3.0.
+This choice reflects the open-source spirit of projects like jsspeccy3. All original copyrights for ROMs, tapes, fonts, and other assets remain with their creators and are used here in the spirit of preservation, education, and fair use.
 
 Long live the ZX Spectrum! 🕹️🇬🇧
