@@ -74,6 +74,20 @@ const SPECIAL_COMBOS = {
   'Backspace': ['shift', '0'],  // DELETE = Caps Shift + 0
 };
 
+/**
+ * Check if an event target is an editable element (input, textarea, contenteditable).
+ * When user is typing in such elements, keyboard events should not be captured by the emulator.
+ * @param {EventTarget} target
+ * @returns {boolean}
+ */
+function isEditableTarget(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (target.isContentEditable) return true;
+  return false;
+}
+
 export default class Input {
   constructor() {
     // Each row is stored as 5-bit value (1 = released, 0 = pressed)
@@ -242,6 +256,12 @@ export default class Input {
   }
 
   _keydown(e) {
+    // IMPORTANT: Do not capture keyboard events when user is typing in an editable element
+    // (e.g., search input in Tape Library UI). Allow the event to propagate normally.
+    if (isEditableTarget(e.target)) {
+      return; // Let the input/textarea handle the event
+    }
+
     // Check for special combos first
     if (SPECIAL_COMBOS[e.code]) {
       e.preventDefault();
@@ -312,6 +332,11 @@ export default class Input {
   }
 
   _keyup(e) {
+    // IMPORTANT: Do not capture keyboard events when user is typing in an editable element
+    if (isEditableTarget(e.target)) {
+      return; // Let the input/textarea handle the event
+    }
+
     // Check for special combos first
     if (SPECIAL_COMBOS[e.code]) {
       e.preventDefault();
