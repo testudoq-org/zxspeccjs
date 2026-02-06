@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /* eslint-env node */
+/* eslint no-console: "off" */
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
