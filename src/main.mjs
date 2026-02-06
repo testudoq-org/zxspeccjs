@@ -1,6 +1,6 @@
 ﻿/* eslint-env browser */
 /* eslint-disable no-undef, no-empty */
-/* global window, document, performance, requestAnimationFrame, cancelAnimationFrame, setTimeout, clearTimeout, console, navigator, caches, location, localStorage */
+/* global window, document, performance, requestAnimationFrame, cancelAnimationFrame, setTimeout, clearTimeout, console, navigator, caches, location, localStorage, CustomEvent */
 import spec48 from './roms/spec48.js';
 import romManager from './romManager.mjs';
 import { Loader } from './loader.mjs';
@@ -258,6 +258,7 @@ export class Emulator {
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const tapeLibraryBtn = document.getElementById('tapeLibraryBtn');
 
     if (loadBtn) loadBtn.addEventListener('click', () => this.handleLoad());
     if (startBtn) startBtn.addEventListener('click', () => this.start());
@@ -271,6 +272,25 @@ export class Emulator {
         }
       } catch { try { this.reset(); } catch { /* ignore */ } }
     });
+
+    // Tape Library button - dynamically import and toggle the tape UI
+    if (tapeLibraryBtn) {
+      tapeLibraryBtn.addEventListener('click', async () => {
+        try {
+          const tapeUi = await import('./tapeUi.mjs');
+          const container = document.getElementById('tape-ui-root');
+          if (container && !container.dataset.initialized) {
+            tapeUi.createUI(container);
+            tapeUi.setCallbacks({ onLoadTape: (url, _fileName) => this.loadTapeFromUrl(url, { autoStart: false }) });
+            container.dataset.initialized = 'true';
+          }
+          tapeUi.togglePanel();
+        } catch (e) {
+          console.error('[Emulator] Tape UI load error', e);
+          this.status('Tape UI failed to load');
+        }
+      });
+    }
 
     // Allow file input drag/drop helpers
     if (this.romInput) Loader.attachInput(this.romInput, (result, file) => this._onFileLoaded(result, file));
@@ -531,6 +551,122 @@ export class Emulator {
       this._lastTap = parsed;
     } else {
       this.status('Unknown file loaded');
+    }
+  }
+
+  // ============================================================================
+  // Tape Loading API (for remote tape loading feature)
+  // ============================================================================
+
+  /**
+   * Inject a tape into the emulator.
+   * @param {ArrayBuffer|Object} input - ArrayBuffer or parsed tape { type: 'tap', blocks }
+   * @param {Object} opts - { fileName, source, autoStart }
+   * @returns {Promise<{ success: boolean, message?: string }>}
+   */
+  async injectTape(input, opts = {}) {
+    const { fileName = 'tape', autoStart = false } = opts;
+
+    try {
+      let parsed;
+
+      if (input instanceof ArrayBuffer) {
+        // Detect type from content or filename
+        parsed = Loader.parseByExtension(input, fileName);
+      } else if (input && typeof input === 'object') {
+        parsed = input;
+      } else {
+        return { success: false, message: 'Invalid input' };
+      }
+
+      // Store the tape
+      this._lastTap = parsed;
+
+      // Emit event
+      this._emitTapeEvent('tape-loaded', { fileName, parsed });
+
+      if (autoStart && parsed.type === 'tap') {
+        // Future: trigger tape loading sequence
+        this.status(`TAP ${fileName} loaded (auto-start not yet implemented)`);
+      } else {
+        this.status(`TAP ${fileName} loaded (not auto-started)`);
+      }
+
+      return { success: true };
+    } catch (err) {
+      this._emitTapeEvent('tape-load-error', { code: 'INJECT_ERROR', message: err.message });
+      return { success: false, message: err.message };
+    }
+  }
+
+  /**
+   * Load a tape from a remote URL.
+   * @param {string} url - URL to fetch
+   * @param {Object} opts - { onProgress(percent, loaded, total), signal, autoStart }
+   * @returns {Promise<{ success: boolean, message?: string }>}
+   */
+  async loadTapeFromUrl(url, opts = {}) {
+    const { onProgress, signal, autoStart = false } = opts;
+
+    // Extract filename from URL
+    const fileName = url.split('/').pop() || 'tape';
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    try {
+      this._emitTapeEvent('tape-load-progress', { percent: 0, loaded: 0, total: 0, fileName });
+
+      // Handle ZIP files
+      if (ext === 'zip') {
+        const buffer = await Loader.loadFromUrl(url, {
+          onProgress: (percent, loaded, total) => {
+            if (onProgress) onProgress(percent, loaded, total);
+            this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
+          },
+          signal,
+        });
+
+        const entries = await Loader.extractTapeFromZip(buffer);
+        if (entries.length === 0) {
+          throw new Error('No tape files found in ZIP');
+        }
+
+        // Use first tape file
+        const first = entries[0];
+        const parsed = Loader.parseByExtension(first.arrayBuffer, first.name);
+        return await this.injectTape(parsed, { fileName: first.name, autoStart });
+      }
+
+      // Standard TAP/TZX
+      const buffer = await Loader.loadFromUrl(url, {
+        onProgress: (percent, loaded, total) => {
+          if (onProgress) onProgress(percent, loaded, total);
+          this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
+        },
+        signal,
+      });
+
+      const parsed = Loader.parseByExtension(buffer, fileName);
+      return await this.injectTape(parsed, { fileName, autoStart });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        this.status('Tape load cancelled');
+        return { success: false, message: 'Cancelled' };
+      }
+
+      this._emitTapeEvent('tape-load-error', { code: 'FETCH_ERROR', message: err.message });
+      this.status(`Tape load error: ${err.message}`);
+      return { success: false, message: err.message };
+    }
+  }
+
+  /**
+   * Emit a tape-related event.
+   * @param {string} type - Event type
+   * @param {Object} detail - Event details
+   */
+  _emitTapeEvent(type, detail) {
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent(type, { detail }));
     }
   }
 
@@ -1231,6 +1367,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!canvas) return;
 
   const emu = new Emulator({ canvas });
+
+  // Expose emulator and tape API globally for debugging and tests
+  window.emu = emu;
+  window.emu.injectTape = emu.injectTape.bind(emu);
+  window.emu.loadTapeFromUrl = emu.loadTapeFromUrl.bind(emu);
 
   // Initialize ROM selector (UI) and wire selection handler
   try {

@@ -1,3 +1,6 @@
+/* eslint-env browser */
+/* global fetch, console, setTimeout, clearTimeout, window, File, FileReader, DOMException */
+
 export class Loader {
   /**
    * High-level file loader. Returns either an ArrayBuffer for plain ROMs
@@ -98,7 +101,7 @@ export class Loader {
    * parsed result (ArrayBuffer or object).
    */
   static attachInput(inputEl, onLoad) {
-    inputEl.addEventListener('change', async (e) => {
+    inputEl.addEventListener('change', async () => {
       const file = inputEl.files && inputEl.files[0];
       if (!file) return;
       // Use FileReader to demonstrate progress and compatibility
@@ -131,5 +134,223 @@ export class Loader {
         console.error('Drag drop load error', err);
       }
     });
+  }
+
+  // ============================================================================
+  // Remote loading (tape loading feature)
+  // ============================================================================
+
+  /**
+   * Fetch a file from a URL with streaming progress and retry support.
+   * @param {string} url - URL to fetch
+   * @param {Object} opts - { onProgress(percent, loaded, total), signal, retries }
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async loadFromUrl(url, opts = {}) {
+    const { onProgress, signal, retries = 2 } = opts;
+    const BACKOFF_BASE = 500;
+
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const result = await this._fetchWithProgress(url, signal, onProgress);
+        return result;
+      } catch (err) {
+        lastError = err;
+        if (err.name === 'AbortError') throw err;
+        if (err.retryAfter) {
+          await this._delay(err.retryAfter * 1000, signal);
+          continue;
+        }
+        if (attempt < retries) {
+          const backoff = BACKOFF_BASE * Math.pow(2, attempt);
+          await this._delay(backoff, signal);
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to fetch');
+  }
+
+  /**
+   * Fetch with streaming progress support.
+   * @param {string} url
+   * @param {AbortSignal} signal
+   * @param {Function} onProgress
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async _fetchWithProgress(url, signal, onProgress) {
+    const response = await fetch(url, { mode: 'cors', signal });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
+        const err = new Error('Rate limited');
+        err.retryAfter = retryAfter;
+        throw err;
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const reader = response.body && response.body.getReader();
+    if (!reader) {
+      return await response.arrayBuffer();
+    }
+
+    return await this._readStream(reader, response.headers, onProgress);
+  }
+
+  /**
+   * Read a stream and combine chunks with progress reporting.
+   * @param {ReadableStreamDefaultReader} reader
+   * @param {Headers} headers
+   * @param {Function} onProgress
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async _readStream(reader, headers, onProgress) {
+    const contentLength = parseInt(headers.get('Content-Length') || '0', 10);
+    const chunks = [];
+    let loaded = 0;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+
+      if (onProgress && contentLength > 0) {
+        const percent = Math.round((loaded / contentLength) * 100);
+        onProgress(percent, loaded, contentLength);
+      }
+    }
+
+    return this._combineChunks(chunks, loaded);
+  }
+
+  /**
+   * Combine Uint8Array chunks into a single ArrayBuffer.
+   * @param {Uint8Array[]} chunks
+   * @param {number} totalLength
+   * @returns {ArrayBuffer}
+   */
+  static _combineChunks(chunks, totalLength) {
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return combined.buffer;
+  }
+
+  /**
+   * Helper: delay with abort support.
+   * @param {number} ms
+   * @param {AbortSignal} signal
+   */
+  static _delay(ms, signal) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      }
+    });
+  }
+
+  /**
+   * Minimal TZX parser stub. Returns the raw buffer as a TZX object.
+   * Full TZX parsing can be added later.
+   * @param {ArrayBuffer} arrayBuffer
+   * @returns {{ type: 'tzx', blocks: null, raw: ArrayBuffer }}
+   */
+  static parseTZX(arrayBuffer) {
+    // TZX header signature: "ZXTape!\x1A" (8 bytes)
+    const buf = new Uint8Array(arrayBuffer);
+    const header = String.fromCharCode(...buf.slice(0, 7));
+
+    if (header !== 'ZXTape!') {
+      console.warn('[Loader] TZX header not found, treating as raw');
+    }
+
+    // For now, return raw buffer. Full parsing can be added later.
+    return { type: 'tzx', blocks: null, raw: arrayBuffer };
+  }
+
+  /**
+   * Extract tape files from a ZIP archive.
+   * Uses JSZip if available, otherwise throws.
+   * @param {ArrayBuffer} arrayBuffer - ZIP file contents
+   * @returns {Promise<Array<{ name: string, format: string, arrayBuffer: ArrayBuffer }>>}
+   */
+  static async extractTapeFromZip(arrayBuffer) {
+    // Check if JSZip is available globally or as module
+    let JSZip = null;
+    if (typeof window !== 'undefined' && window.JSZip) {
+      JSZip = window.JSZip;
+    } else {
+      try {
+        // Dynamic import for module environments
+        const module = await import('jszip');
+        JSZip = module.default || module;
+      } catch {
+        throw new Error('JSZip not available. Include JSZip to extract ZIP files.');
+      }
+    }
+
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const entries = [];
+    const TAPE_EXTENSIONS = ['tap', 'tzx'];
+
+    for (const [filename, file] of Object.entries(zip.files)) {
+      if (file.dir) continue;
+
+      const ext = filename.split('.').pop().toLowerCase();
+      if (TAPE_EXTENSIONS.includes(ext)) {
+        const data = await file.async('arraybuffer');
+        entries.push({
+          name: filename,
+          format: ext.toUpperCase(),
+          arrayBuffer: data,
+        });
+      }
+    }
+
+    // Sort to prefer .tap first
+    entries.sort((a, b) => {
+      if (a.format === 'TAP' && b.format !== 'TAP') return -1;
+      if (a.format !== 'TAP' && b.format === 'TAP') return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return entries;
+  }
+
+  /**
+   * Parse a remote tape file by extension.
+   * @param {ArrayBuffer} arrayBuffer
+   * @param {string} fileName
+   * @returns {Object} Parsed result ({ type: 'tap', blocks } or { type: 'tzx', ... })
+   */
+  static parseByExtension(arrayBuffer, fileName) {
+    const ext = (fileName || '').split('.').pop().toLowerCase();
+
+    if (ext === 'tap') {
+      return this.parseTAP(arrayBuffer);
+    }
+
+    if (ext === 'tzx') {
+      return this.parseTZX(arrayBuffer);
+    }
+
+    if (ext === 'z80') {
+      return this.parseZ80(arrayBuffer);
+    }
+
+    // Unknown format: return raw
+    return { type: 'unknown', raw: arrayBuffer };
   }
 }
