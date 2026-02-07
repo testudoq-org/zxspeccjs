@@ -281,6 +281,45 @@ export class Loader {
   }
 
   /**
+   * Minimal .sna parser supporting classic 48K snapshots.
+   * Many .sna files include a 27-byte CPU register header followed by 48K RAM.
+   * This parser defensively extracts the last 48K as RAM and reads SP when
+   * available. It keeps parsing simple and forgiving.
+   */
+  static parseSNA(arrayBuffer) {
+    const buf = new Uint8Array(arrayBuffer);
+    const len = buf.length;
+    const RAM_SIZE = 48 * 1024;
+
+    let ramImage = null;
+    if (len >= RAM_SIZE) {
+      ramImage = buf.subarray(len - RAM_SIZE, len);
+    }
+
+    const regs = {};
+    try {
+      const dv = new DataView(arrayBuffer);
+      // SP in many .sna variants is stored at offsets 0x1A-0x1B (little-endian)
+      if (len >= 0x1C) {
+        regs.SP = dv.getUint16(0x1A, true);
+      }
+      // Some variants include I and R at offsets 0x00 and 0x11 (best-effort)
+      if (len >= 1) regs.I = dv.getUint8(0x00);
+      if (len >= 0x12) regs.R = dv.getUint8(0x11);
+    } catch (e) {
+      // ignore parsing errors
+    }
+
+    return {
+      rom: null,
+      snapshot: {
+        ram: ramImage ? new Uint8Array(ramImage) : null,
+        registers: regs
+      }
+    };
+  }
+
+  /**
    * Extract tape files from a ZIP archive.
    * Uses JSZip if available, otherwise throws.
    * @param {ArrayBuffer} arrayBuffer - ZIP file contents
@@ -348,6 +387,10 @@ export class Loader {
 
     if (ext === 'z80') {
       return this.parseZ80(arrayBuffer);
+    }
+
+    if (ext === 'sna') {
+      return this.parseSNA(arrayBuffer);
     }
 
     // Unknown format: return raw

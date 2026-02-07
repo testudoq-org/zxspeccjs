@@ -115,6 +115,12 @@ export function createUI(container) {
   elements.detailCreator = container.querySelector('.tape-detail-creator');
   elements.detailDate = container.querySelector('.tape-detail-date');
   elements.detailDescription = container.querySelector('.tape-detail-description');
+  // Hide the detail description from the search results and remove it from the accessibility tree
+  if (elements.detailDescription) {
+    elements.detailDescription.style.display = 'none';
+    elements.detailDescription.setAttribute('aria-hidden', 'true');
+    elements.detailDescription.removeAttribute('tabindex');
+  }
   elements.filesList = container.querySelector('.tape-files-list');
   elements.progressContainer = container.querySelector('.tape-progress');
   elements.progressBar = container.querySelector('.tape-progress-bar');
@@ -337,7 +343,7 @@ function updateDetailUI() {
   elements.detailTitle.textContent = item.title;
   elements.detailCreator.textContent = `Creator: ${item.creator}`;
   elements.detailDate.textContent = item.date ? `Date: ${item.date}` : '';
-  elements.detailDescription.textContent = item.description || '';
+  // Description intentionally hidden in search UI for all result states
 
   if (state.isLoadingDetails) {
     elements.filesList.innerHTML = '<li>Loading files...</li>';

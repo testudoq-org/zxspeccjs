@@ -281,7 +281,12 @@ export class Emulator {
           const container = document.getElementById('tape-ui-root');
           if (container && !container.dataset.initialized) {
             tapeUi.createUI(container);
-            tapeUi.setCallbacks({ onLoadTape: (url, _fileName) => this.loadTapeFromUrl(url, { autoStart: false }) });
+            tapeUi.setCallbacks({ onLoadTape: (url, fileName, opts = {}) => {
+              // Auto-start snapshots (e.g., .z80) when loaded from Tape Library UI
+              const ext = (fileName || '').split('.').pop().toLowerCase();
+              const autoStart = ext === 'z80';
+              return this.loadTapeFromUrl(url, { ...opts, autoStart });
+            } });
             container.dataset.initialized = 'true';
           }
           tapeUi.togglePanel();
@@ -524,27 +529,9 @@ export class Emulator {
       await this.loadROM(buf);
       this.status(`ROM ${file.name} loaded`);
     } else if (parsed && parsed.snapshot) {
-      // create emulator if needed
-      if (!this.memory) await this._createCore(parsed.rom || null);
-      // load snapshot RAM
-      if (parsed.snapshot.ram) {
-        // ram in Memory starts at index 0
-        this.memory.ram.set(parsed.snapshot.ram.subarray(0, Math.min(parsed.snapshot.ram.length, this.memory.RAM_SIZE)));
-      }
-      // set CPU registers if present
-      if (!this.cpu) this.cpu = new Z80(this.memory);
-      const regs = parsed.snapshot.registers || {};
-      // set a few registers defensively
-      if (typeof regs.PC === 'number') this.cpu.PC = regs.PC & 0xffff;
-      if (typeof regs.SP === 'number') this.cpu.SP = regs.SP & 0xffff;
-      if (typeof regs.A === 'number') this.cpu.A = regs.A & 0xff;
-      if (typeof regs.F === 'number') this.cpu.F = regs.F & 0xff;
-      if (typeof regs.B === 'number') this.cpu.B = regs.B & 0xff;
-      if (typeof regs.C === 'number') this.cpu.C = regs.C & 0xff;
-      if (typeof regs.H === 'number') this.cpu.H = regs.H & 0xff;
-      if (typeof regs.L === 'number') this.cpu.L = regs.L & 0xff;
+      // Apply snapshot (centralized helper) and start emulation
+      await this.applySnapshot(parsed, { fileName: file.name, autoStart: true });
 
-      this.status(`Snapshot ${file.name} loaded`);
     } else if (parsed && parsed.type === 'tap') {
       // TAP handling not wired automatically; keep for future
       this.status('TAP loaded (not auto-started)');
@@ -579,6 +566,15 @@ export class Emulator {
         return { success: false, message: 'Invalid input' };
       }
 
+      // If this is a snapshot, apply it immediately (and emit event after successful apply)
+      if (parsed && parsed.snapshot) {
+        const ok = await this.applySnapshot(parsed, { fileName, autoStart });
+        if (!ok) return { success: false, message: 'Failed to apply snapshot' };
+        this._lastTap = parsed;
+        this._emitTapeEvent('tape-loaded', { fileName, parsed });
+        return { success: true };
+      }
+
       // Store the tape
       this._lastTap = parsed;
 
@@ -596,6 +592,92 @@ export class Emulator {
     } catch (err) {
       this._emitTapeEvent('tape-load-error', { code: 'INJECT_ERROR', message: err.message });
       return { success: false, message: err.message };
+    }
+  }
+
+  /**
+   * Apply a snapshot object into the emulator (memory and registers) and optionally start
+   * @param {Object} parsed - Parsed loader output containing snapshot
+   * @param {Object} opts - { fileName, autoStart }
+   * @returns {Promise<boolean>} true if applied successfully
+   */
+  async applySnapshot(parsed, opts = {}) {
+    const { fileName = 'snapshot', autoStart = true } = opts;
+    try {
+      this.status(`Applying snapshot ${fileName}...`);
+
+      // Pause running emulation if active
+      try { if (typeof this.pause === 'function') this.pause(); } catch (e) { void e; }
+
+      // Ensure emulator core exists
+      if (!this.memory) await this._createCore(parsed.rom || null);
+
+      // Load RAM into memory: write into the mapped RAM pages (pages[1..3])
+      const ram = parsed.snapshot && parsed.snapshot.ram;
+      if (ram && ram.length > 0) {
+        // Prefer full 48K copy when available
+        if (ram.length >= 0xC000) {
+          if (this.memory.pages[1]) this.memory.pages[1].set(ram.subarray(0x0000, 0x4000));
+          if (this.memory.pages[2]) this.memory.pages[2].set(ram.subarray(0x4000, 0x8000));
+          if (this.memory.pages[3]) this.memory.pages[3].set(ram.subarray(0x8000, 0xC000));
+        } else {
+          // Partial RAM: fill pages sequentially
+          let off = 0;
+          for (let p = 1; p <= 3 && off < ram.length; p++) {
+            const len = Math.min(0x4000, ram.length - off);
+            if (this.memory.pages[p]) this.memory.pages[p].set(ram.subarray(off, off + len));
+            off += len;
+          }
+        }
+        // Sync flat linear view if present
+        try { if (this.memory._flatRam) this.memory._syncFlatRamFromBanks(); } catch (e) { void e; }
+      }
+
+      // Ensure CPU exists
+      if (!this.cpu) this.cpu = new Z80(this.memory);
+
+      // Set registers defensively
+      const regs = parsed.snapshot.registers || {};
+      if (typeof regs.PC === 'number') this.cpu.PC = regs.PC & 0xffff;
+      if (typeof regs.SP === 'number') this.cpu.SP = regs.SP & 0xffff;
+      if (typeof regs.A === 'number') this.cpu.A = regs.A & 0xff;
+      if (typeof regs.F === 'number') this.cpu.F = regs.F & 0xff;
+      if (typeof regs.B === 'number') this.cpu.B = regs.B & 0xff;
+      if (typeof regs.C === 'number') this.cpu.C = regs.C & 0xff;
+      if (typeof regs.D === 'number') this.cpu.D = regs.D & 0xff;
+      if (typeof regs.E === 'number') this.cpu.E = regs.E & 0xff;
+      if (typeof regs.H === 'number') this.cpu.H = regs.H & 0xff;
+      if (typeof regs.L === 'number') this.cpu.L = regs.L & 0xff;
+      if (typeof regs.IX === 'number') this.cpu.IX = regs.IX & 0xffff;
+      if (typeof regs.IY === 'number') this.cpu.IY = regs.IY & 0xffff;
+      if (typeof regs.I === 'number') this.cpu.I = regs.I & 0xff;
+      if (typeof regs.R === 'number') this.cpu.R = regs.R & 0xff;
+      if (typeof regs.IFF1 !== 'undefined') this.cpu.IFF1 = !!regs.IFF1;
+      if (typeof regs.IFF2 !== 'undefined') this.cpu.IFF2 = !!regs.IFF2;
+      if (typeof regs.IM === 'number') this.cpu.IM = regs.IM & 0xff;
+
+      // Initialize peripherals and input
+      try { this.input.start(); } catch (e) { void e; }
+
+      // Resume audio context if possible (user gesture should allow resume on click)
+      try {
+        if (this.sound && this.sound.ctx && typeof this.sound.ctx.resume === 'function' && this.sound.ctx.state === 'suspended') {
+          await this.sound.ctx.resume();
+        }
+      } catch (e) { void e; }
+
+      // Focus canvas for keyboard input
+      try { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); } catch (e) { void e; }
+
+      // Start emulation loop
+      try { if (autoStart && typeof this.start === 'function') this.start(); } catch (e) { void e; }
+
+      this.status(`Snapshot ${fileName} applied`);
+      return true;
+    } catch (err) {
+      this._emitTapeEvent('tape-load-error', { code: 'APPLY_ERROR', message: err.message });
+      this.status(`Snapshot apply error: ${err.message}`);
+      return false;
     }
   }
 
