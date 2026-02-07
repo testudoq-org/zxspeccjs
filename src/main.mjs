@@ -682,13 +682,102 @@ export class Emulator {
   }
 
   /**
+   * Client-side CORS-aware fetch with Archive.org fallback via cors.archive.org when possible.
+   * @param {string} url - original URL
+   * @param {Object} opts - { metadata, timeoutMs }
+   * @returns {Promise<ArrayBuffer>}
+   */
+  async fetchWithArchiveCorsFallback(url, opts = {}) {
+    const { metadata = null, timeoutMs = 12000 } = opts;
+
+    const tryFetch = async (candidate) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(candidate, { signal: controller.signal, redirect: 'follow' });
+        clearTimeout(id);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.arrayBuffer();
+      } finally { clearTimeout(id); }
+    };
+
+    // 1) try original
+    try {
+      return await tryFetch(url);
+    } catch (err) {
+      const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS/i.test(err?.message || '');
+      if (!isCorsLike) throw err;
+    }
+
+    // 2) build fallback candidates (try server-specific CORS endpoints, workable_servers list, and a host-based cors path)
+    const candidates = [];
+
+    try {
+      const fname = metadata && metadata.files && metadata.files.length ? encodeURIComponent(metadata.files[0].name) : encodeURIComponent((new URL(url)).pathname.split('/').pop());
+
+      // Use explicit server field
+      if (metadata && metadata.server && metadata.identifier) {
+        candidates.push(`https://cors.archive.org/cors/${metadata.server}/download/${metadata.identifier}/${fname}`);
+        // Also try direct server host (may or may not have CORS)
+        candidates.push(`https://${metadata.server}/download/${metadata.identifier}/${fname}`);
+      }
+
+      // Workable servers may be listed in metadata (try each)
+      if (metadata && Array.isArray(metadata.workable_servers)) {
+        for (const s of metadata.workable_servers) {
+          if (!s) continue;
+          candidates.push(`https://cors.archive.org/cors/${s}/download/${metadata.identifier}/${fname}`);
+          candidates.push(`https://${s}/download/${metadata.identifier}/${fname}`);
+        }
+      }
+
+      // Try d1/d2 hosts sometimes provided in metadata
+      if (metadata && metadata.d1) {
+        candidates.push(`https://cors.archive.org/cors/${metadata.d1}/download/${metadata.identifier}/${fname}`);
+        candidates.push(`https://${metadata.d1}/download/${metadata.identifier}/${fname}`);
+      }
+      if (metadata && metadata.d2) {
+        candidates.push(`https://cors.archive.org/cors/${metadata.d2}/download/${metadata.identifier}/${fname}`);
+        candidates.push(`https://${metadata.d2}/download/${metadata.identifier}/${fname}`);
+      }
+    } catch (e) { /* ignore */ }
+
+    try {
+      const u = new URL(url);
+      candidates.push(`https://cors.archive.org/cors/${u.hostname}${u.pathname}`);
+    } catch (e) { /* ignore */ }
+
+    // De-duplicate while preserving order
+    const seen = new Set();
+    const uniq = [];
+    for (const c of candidates) {
+      if (!c || seen.has(c)) continue; seen.add(c); uniq.push(c);
+    }
+    candidates.splice(0, candidates.length, ...uniq);
+
+    // Expose candidates (test/debug) and track attempts
+    try { if (typeof window !== 'undefined') { window.__CORS_CANDIDATES__ = candidates.slice(); window.__CORS_TRIED__ = []; } } catch (e) { void e; }
+
+    for (const c of candidates) {
+      try {
+        try { if (typeof window !== 'undefined') window.__CORS_TRIED__.push(c); } catch (e) { void e; }
+        return await tryFetch(c);
+      } catch (e) { /* try next */ }
+    }
+
+    const out = new Error('CORS or network error when fetching resource (archive.org), tried client fallbacks');
+    out.name = 'CORS_FALLBACK_FAILED';
+    throw out;
+  }
+
+  /**
    * Load a tape from a remote URL.
    * @param {string} url - URL to fetch
-   * @param {Object} opts - { onProgress(percent, loaded, total), signal, autoStart }
+   * @param {Object} opts - { onProgress(percent, loaded, total), signal, autoStart, metadata }
    * @returns {Promise<{ success: boolean, message?: string }>}
    */
   async loadTapeFromUrl(url, opts = {}) {
-    const { onProgress, signal, autoStart = false } = opts;
+    const { onProgress, signal, autoStart = false, metadata = null } = opts;
 
     // Extract filename from URL
     const fileName = url.split('/').pop() || 'tape';
@@ -719,13 +808,37 @@ export class Emulator {
       }
 
       // Standard TAP/TZX
-      const buffer = await Loader.loadFromUrl(url, {
-        onProgress: (percent, loaded, total) => {
-          if (onProgress) onProgress(percent, loaded, total);
-          this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
-        },
-        signal,
-      });
+      let buffer = null;
+      try {
+        buffer = await Loader.loadFromUrl(url, {
+          onProgress: (percent, loaded, total) => {
+            if (onProgress) onProgress(percent, loaded, total);
+            this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
+          },
+          signal,
+        });
+      } catch (err) {
+        // If initial fetch failed due to CORS/network, try client-side fallback using cors.archive.org
+        const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS/i.test(err?.message || '');
+        if (isCorsLike) {
+          try {
+            const arr = await this.fetchWithArchiveCorsFallback(url, { metadata, timeoutMs: 12000 });
+            buffer = arr;
+          } catch (fallbackErr) {
+            // Map to ZX-style message and emit a CORS error
+            this._emitTapeEvent('tape-load-error', { code: 'CORS', message: fallbackErr.message });
+            this.status('R Tape loading error, 0 : 1');
+            return { success: false, message: fallbackErr.message };
+          }
+        } else if (err.name === 'AbortError') {
+          this.status('Tape load cancelled');
+          return { success: false, message: 'Cancelled' };
+        } else {
+          this._emitTapeEvent('tape-load-error', { code: 'FETCH_ERROR', message: err.message });
+          this.status(`Tape load error: ${err.message}`);
+          return { success: false, message: err.message };
+        }
+      }
 
       const parsed = Loader.parseByExtension(buffer, fileName);
       return await this.injectTape(parsed, { fileName, autoStart });

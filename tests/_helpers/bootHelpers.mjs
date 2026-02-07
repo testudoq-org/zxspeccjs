@@ -24,6 +24,8 @@ export async function setupDiagnostics(page) {
   return consoleMsgs;
 }
 
+// safeGoto helper implemented later in this file; use the canonical implementation to avoid duplication.
+
 export async function checkSpec48(page, consoleMsgs) {
   const specAvailable = await page.evaluate(() => !!window.spec48);
   if (!specAvailable) {
@@ -427,4 +429,34 @@ export async function collectSystemVars(page) {
     }
     return null;
   });
+}
+
+export async function safeGoto(page, path = '/', { timeout = 10000, tries = 3, waitUntil = 'load' } = {}) {
+  const url = path.startsWith('http') ? path : new URL(path, 'http://localhost:8080').toString();
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    try {
+      const res = await page.goto(url, { timeout, waitUntil });
+      if (res) return res;
+      return res; // treat navigation as successful if no response is exposed
+    } catch (err) {
+      // Log and retry a few times to mitigate transient navigation/storage race issues
+      // eslint-disable-next-line no-console
+      console.warn(`safeGoto attempt ${attempt} failed: ${String(err)}`);
+      if (attempt === tries) {
+        // Collect additional diagnostics to help investigate persistent failures
+        try {
+          const initErrors = await page.evaluate(() => (window.__INIT_ERRORS__ || []));
+          const html = await page.content();
+          let domLog = null;
+          try { domLog = await page.evaluate(() => (window.__TEST__ && window.__TEST__.domLog) ? window.__TEST__.domLog.slice(-50) : null); } catch (e) { void e; }
+          console.error('safeGoto final failure - window.__INIT_ERRORS__:', JSON.stringify(initErrors, null, 2));
+          console.error('safeGoto final failure - recent DOM logs:', JSON.stringify(domLog, null, 2));
+          console.error('safeGoto final failure - page HTML snippet:', html.slice(0, 200));
+        } catch (e) { console.error('safeGoto diagnostics collection failed:', String(e)); }
+        throw err;
+      }
+      await page.waitForTimeout(150 * attempt);
+    }
+  }
+  return null;
 }

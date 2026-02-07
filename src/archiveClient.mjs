@@ -236,7 +236,12 @@ export async function fetchMetadata(identifier, { signal } = {}) {
     date: meta.publicdate || meta.date || null,
     description: meta.description || null,
     mediatype: meta.mediatype || null,
-    files: files.map((f) => normalizeFileEntry(identifier, f))
+    files: files.map((f) => normalizeFileEntry(identifier, f)),
+    // Preserve host info from raw metadata to help client-side CORS fallbacks
+    server: json.server || null,
+    d1: json.d1 || null,
+    d2: json.d2 || null,
+    workable_servers: json.workable_servers || null
   };
 
   setCache(cacheKey, item);

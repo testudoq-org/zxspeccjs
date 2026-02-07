@@ -4,13 +4,21 @@
 
 // @e2e @ui
 import { test, expect } from '@playwright/test';
-import { setupDiagnostics, ensureStarted } from '../_helpers/bootHelpers.mjs';
+import { setupDiagnostics, ensureStarted, safeGoto } from '../_helpers/bootHelpers.mjs';
 
 // This test verifies MSB-first mapping: writing 0x80 into bitmap should light left-most pixel of the byte
 test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {
   await setupDiagnostics(page);
-  await page.goto('http://localhost:8080/');
-  await page.waitForSelector('#screen', { timeout: 10000 });
+  // Use resilient navigation helper to avoid transient Playwright storage/navigation race
+  await safeGoto(page, '/');
+  try {
+    await page.waitForSelector('#screen', { timeout: 10000 });
+  } catch (e) {
+    // Capture any early init errors for diagnostics then rethrow with details
+    let initErrs = [];
+    try { initErrs = await page.evaluate(() => window.__INIT_ERRORS__ || []); } catch (e2) { void e2; }
+    throw new Error(`Navigation/setup failed; init errors: ${JSON.stringify((initErrs || []).slice(-20))} - ${e && e.message ? e.message : String(e)}`);
+  }
   await page.click('#startBtn').catch(() => {});
   await ensureStarted(page);
 

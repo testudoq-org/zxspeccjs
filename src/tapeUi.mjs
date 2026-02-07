@@ -265,7 +265,8 @@ async function handleLoadTape(file) {
       onProgress: (percent) => {
         state.loadProgress = percent;
         updateProgressUI();
-      }
+      },
+      metadata: state.selectedItem // pass fetched metadata to allow CORS fallback candidates
     });
     state.isLoadingTape = false;
     state.loadProgress = 100;
