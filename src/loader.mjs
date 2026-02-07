@@ -180,7 +180,7 @@ export class Loader {
    * @returns {Promise<ArrayBuffer>}
    */
   static async _fetchWithProgress(url, signal, onProgress) {
-    const response = await fetch(url, { mode: 'cors', signal });
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit', signal });
 
     if (!response.ok) {
       if (response.status === 429) {

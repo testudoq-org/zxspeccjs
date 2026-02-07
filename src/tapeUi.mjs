@@ -7,7 +7,7 @@
  * and tape loading controls with progress/error display.
  */
 
-import { searchArchive, fetchMetadata, getLoadableFiles, getZipFiles } from './archiveClient.mjs';
+import { searchArchive, fetchMetadata, getLoadableFiles, getZipFiles, buildDirectDownloadUrl } from './archiveClient.mjs';
 
 // UI state
 const state = {
@@ -260,7 +260,14 @@ async function handleLoadTape(file) {
 
   try {
     state.abortController = new AbortController();
-    await callbacks.onLoadTape(file.url, file.name, {
+    // Build a direct-server URL from metadata (avoids 302 → CORS block)
+    let loadUrl = file.url;
+    try {
+      loadUrl = buildDirectDownloadUrl(state.selectedItem, file.name);
+    } catch (_e) {
+      // Fallback: keep original file.url
+    }
+    await callbacks.onLoadTape(loadUrl, file.name, {
       signal: state.abortController.signal,
       onProgress: (percent) => {
         state.loadProgress = percent;

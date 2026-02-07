@@ -690,82 +690,103 @@ export class Emulator {
   async fetchWithArchiveCorsFallback(url, opts = {}) {
     const { metadata = null, timeoutMs = 12000 } = opts;
 
+    // Simple fetch with timeout — no custom headers, no credentials
+    // (keeps it a "simple request" to avoid preflight).
     const tryFetch = async (candidate) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await fetch(candidate, { signal: controller.signal, redirect: 'follow' });
+        const res = await fetch(candidate, {
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow',
+          signal: controller.signal
+        });
         clearTimeout(id);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.arrayBuffer();
       } finally { clearTimeout(id); }
     };
 
-    // 1) try original
+    // 1) Try the original URL (may already be a direct server URL from buildDirectDownloadUrl)
     try {
       return await tryFetch(url);
     } catch (err) {
-      const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS/i.test(err?.message || '');
+      const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS|ERR_FAILED/i.test(err?.message || '');
       if (!isCorsLike) throw err;
     }
 
-    // 2) build fallback candidates (try server-specific CORS endpoints, workable_servers list, and a host-based cors path)
+    // 2) Build fallback candidates, prioritising patterns that actually work
     const candidates = [];
+    const id = metadata?.id || metadata?.identifier;
+    const server = metadata?.server;
+    const dir = metadata?.dir;
 
+    // Extract filename from URL
+    let fname;
     try {
-      const fname = metadata && metadata.files && metadata.files.length ? encodeURIComponent(metadata.files[0].name) : encodeURIComponent((new URL(url)).pathname.split('/').pop());
+      fname = decodeURIComponent(new URL(url).pathname.split('/').pop());
+    } catch (_e) {
+      fname = url.split('/').pop();
+    }
+    const encodedFname = encodeURIComponent(fname);
 
-      // Use explicit server field
-      if (metadata && metadata.server && metadata.identifier) {
-        candidates.push(`https://cors.archive.org/cors/${metadata.server}/download/${metadata.identifier}/${fname}`);
-        // Also try direct server host (may or may not have CORS)
-        candidates.push(`https://${metadata.server}/download/${metadata.identifier}/${fname}`);
-      }
+    // ── Priority 1: Direct server+dir path (jsspeccy3 approach, usually has CORS) ──
+    if (server && dir) {
+      candidates.push(`https://${server}${dir}/${encodedFname}`);
+    }
 
-      // Workable servers may be listed in metadata (try each)
-      if (metadata && Array.isArray(metadata.workable_servers)) {
-        for (const s of metadata.workable_servers) {
-          if (!s) continue;
-          candidates.push(`https://cors.archive.org/cors/${s}/download/${metadata.identifier}/${fname}`);
-          candidates.push(`https://${s}/download/${metadata.identifier}/${fname}`);
-        }
-      }
+    // ── Priority 2: cors.archive.org/cors/ with identifier (sometimes works) ──
+    if (id) {
+      candidates.push(`https://cors.archive.org/cors/${id}/${encodedFname}`);
+    }
 
-      // Try d1/d2 hosts sometimes provided in metadata
-      if (metadata && metadata.d1) {
-        candidates.push(`https://cors.archive.org/cors/${metadata.d1}/download/${metadata.identifier}/${fname}`);
-        candidates.push(`https://${metadata.d1}/download/${metadata.identifier}/${fname}`);
-      }
-      if (metadata && metadata.d2) {
-        candidates.push(`https://cors.archive.org/cors/${metadata.d2}/download/${metadata.identifier}/${fname}`);
-        candidates.push(`https://${metadata.d2}/download/${metadata.identifier}/${fname}`);
-      }
-    } catch (e) { /* ignore */ }
+    // ── Priority 3: cors.archive.org/cors/{server}/download/{id}/{file} ──
+    if (server && id) {
+      candidates.push(`https://cors.archive.org/cors/${server}/download/${id}/${encodedFname}`);
+    }
 
+    // ── Priority 4: Alternate servers from metadata ──
+    const altServers = [];
+    if (metadata && Array.isArray(metadata.workable_servers)) {
+      altServers.push(...metadata.workable_servers);
+    }
+    if (metadata?.d1) altServers.push(metadata.d1);
+    if (metadata?.d2) altServers.push(metadata.d2);
+
+    for (const alt of altServers) {
+      if (!alt || alt === server) continue;
+      // Direct path on alternate server
+      if (dir) candidates.push(`https://${alt}${dir}/${encodedFname}`);
+      // cors.archive.org path via alternate server
+      if (id) candidates.push(`https://cors.archive.org/cors/${alt}/download/${id}/${encodedFname}`);
+    }
+
+    // ── Priority 5: cors.archive.org rewrites of original URL host+path ──
     try {
       const u = new URL(url);
       candidates.push(`https://cors.archive.org/cors/${u.hostname}${u.pathname}`);
-    } catch (e) { /* ignore */ }
+    } catch (_e) { /* ignore */ }
 
-    // De-duplicate while preserving order
+    // De-duplicate while preserving priority order
     const seen = new Set();
-    const uniq = [];
-    for (const c of candidates) {
-      if (!c || seen.has(c)) continue; seen.add(c); uniq.push(c);
-    }
-    candidates.splice(0, candidates.length, ...uniq);
+    const uniq = candidates.filter(c => {
+      if (!c || seen.has(c)) return false;
+      seen.add(c);
+      return true;
+    });
 
-    // Expose candidates (test/debug) and track attempts
-    try { if (typeof window !== 'undefined') { window.__CORS_CANDIDATES__ = candidates.slice(); window.__CORS_TRIED__ = []; } } catch (e) { void e; }
+    // Expose candidates for test/debug
+    try { if (typeof window !== 'undefined') { window.__CORS_CANDIDATES__ = uniq.slice(); window.__CORS_TRIED__ = []; } } catch (_e) { void _e; }
 
-    for (const c of candidates) {
+    for (const c of uniq) {
       try {
-        try { if (typeof window !== 'undefined') window.__CORS_TRIED__.push(c); } catch (e) { void e; }
+        try { if (typeof window !== 'undefined') window.__CORS_TRIED__.push(c); } catch (_e) { void _e; }
         return await tryFetch(c);
-      } catch (e) { /* try next */ }
+      } catch (_e) { /* try next */ }
     }
 
-    const out = new Error('CORS or network error when fetching resource (archive.org), tried client fallbacks');
+    const out = new Error('R Tape loading error, 0 : 1');
     out.name = 'CORS_FALLBACK_FAILED';
     throw out;
   }

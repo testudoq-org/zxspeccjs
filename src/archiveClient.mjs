@@ -239,9 +239,11 @@ export async function fetchMetadata(identifier, { signal } = {}) {
     files: files.map((f) => normalizeFileEntry(identifier, f)),
     // Preserve host info from raw metadata to help client-side CORS fallbacks
     server: json.server || null,
+    dir: json.dir || null,            // e.g. "/27/items/zx_Jetpac..." — used for direct download
     d1: json.d1 || null,
     d2: json.d2 || null,
-    workable_servers: json.workable_servers || null
+    workable_servers: json.workable_servers || null,
+    identifier: identifier             // convenience: always available
   };
 
   setCache(cacheKey, item);
@@ -306,10 +308,40 @@ export function clearCache() {
   }
 }
 
+/**
+ * Build a direct download URL using metadata server + dir, bypassing
+ * archive.org/download/ which 302-redirects to a host that often lacks CORS.
+ * This is the approach jsspeccy3 uses — the direct storage servers
+ * (e.g. ia800102.us.archive.org) typically send Access-Control-Allow-Origin.
+ *
+ * @param {Object} metadata - Metadata object (from fetchMetadata)
+ * @param {string} fileName - File name to download
+ * @returns {string} Direct URL, or fallback archive.org/download URL
+ */
+export function buildDirectDownloadUrl(metadata, fileName) {
+  const server = metadata?.server;
+  const dir = metadata?.dir;
+  const id = metadata?.id || metadata?.identifier;
+  const encoded = encodeURIComponent(fileName);
+
+  // Best: direct server path (no redirect, usually has CORS)
+  if (server && dir) {
+    return `https://${server}${dir}/${encoded}`;
+  }
+
+  // Fallback: standard path (may 302 + CORS-fail)
+  if (id) {
+    return `https://archive.org/download/${id}/${encoded}`;
+  }
+
+  throw new Error('Cannot build download URL: metadata missing server/dir and identifier');
+}
+
 export default {
   searchArchive,
   fetchMetadata,
   buildSearchUrl,
+  buildDirectDownloadUrl,
   normalizeSearchResult,
   normalizeFileEntry,
   getTapeFiles,
