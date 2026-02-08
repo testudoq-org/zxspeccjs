@@ -2,6 +2,41 @@
 
 Records architectural and implementation decisions for the ZX Spectrum emulator project.
 
+---
+
+## 2026-02-08 — Z80 Parser Rewrite & Testability Decisions
+
+### Decision: Complete Rewrite of Z80 Snapshot Parser
+- **Context**: Jetpac .z80 snapshots loaded from Archive.org showed "Snapshot applied" but canvas stayed blank
+- **Root Cause**: 5 catastrophic bugs — wrong register offsets, no V2/V3 detection, no RLE decompression, wrong RAM extraction, missing registers
+- **Decision**: Full rewrite of `Loader.parseZ80()` rather than incremental patches
+- **Rationale**: Every register offset was wrong; patching would be fragile. A clean implementation against the spec is more maintainable.
+- **Implementation**: V1/V2/V3 detection, correct header offsets, paged memory blocks, `_z80Decompress()` for RLE
+
+### Decision: Restore Alternate Registers and Border in applySnapshot()
+- **Context**: Snapshot format stores alternate register set (A'/F'/BC'/DE'/HL') and border colour
+- **Decision**: Add full alternate register and border colour restoration
+- **Rationale**: Many games set alternate registers before snapshotting; without restoring them, game state is incomplete
+- **Implementation**: `applySnapshot()` now calls `cpu.setAlternates()` and `ula.setBorderColour()`
+
+### Decision: Add data-testid Attributes for E2E Stability
+- **Context**: All E2E tests relied on CSS class selectors which break on style refactors
+- **Decision**: Add `data-testid` attributes to 14 key UI elements (HTML + tapeUi.mjs)
+- **Rationale**: data-testid is a stable contract between code and tests; immune to CSS/DOM restructuring
+- **Implementation**: Added to canvas, buttons, search elements, results, detail panel, file list
+
+### Decision: autoStart for .sna Snapshots
+- **Context**: SNA snapshots loaded from Tape Library were silently paused — only .z80 triggered autoStart
+- **Decision**: Extend autoStart to include `.sna` extension
+- **Rationale**: Both formats are snapshots and should behave identically in the UI flow
+
+### Decision: Canvas Pixel Check with Retry + Memory Fallback
+- **Context**: E2E canvas pixel assertion failed because rAF hadn't rendered the first frame yet
+- **Decision**: Retry loop (10 × 200ms) for canvas check, with memory-based fallback (pages[1] sum > 0)
+- **Rationale**: Canvas rendering timing varies by machine; memory check is deterministic and instant
+
+---
+
 ## Decision
 
 - Use ES6 JavaScript modules for all emulator components

@@ -2,6 +2,25 @@
 
 This file provides a high-level overview of the ZX Spectrum emulator project for the web, based on [`memory-bank/idea-for-project.md`](memory-bank/idea-for-project.md:1).
 
+---
+
+## 2026-02-08 — Z80 Parser Rewrite & Snapshot Loading Fixed
+
+### Critical Fix: Z80 Snapshot Parser
+- **Problem**: .z80 snapshots from Archive.org (including Jetpac) showed "applied" but canvas stayed blank
+- **Root Cause**: 5 bugs in `Loader.parseZ80()` — wrong offsets, no V2/V3, no RLE decompression
+- **Fix**: Complete parser rewrite with V1/V2/V3 support, correct offsets, paged memory blocks
+- **Result**: Jetpac and other games now load and run correctly from Archive.org
+
+### Testability Improvements
+- 14 `data-testid` attributes added for stable E2E selectors
+- Dedicated Jetpac E2E test with stubbed network
+- 19 unit tests for Z80 parser (was 1 broken test)
+- `.sna` autoStart from Tape Library UI
+- **Total tests**: 126 unit + 35 E2E = 161 all passing
+
+---
+
 ## Project Goal
 
 Build a ZX Spectrum emulator that runs entirely in the browser using ES6 JavaScript modules, emulating the Z80 CPU, memory, graphics, keyboard, and sound, with a simple UI and file loading support.

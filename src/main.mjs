@@ -1,6 +1,6 @@
 ﻿/* eslint-env browser */
 /* eslint-disable no-undef, no-empty */
-/* global window, document, performance, requestAnimationFrame, cancelAnimationFrame, setTimeout, clearTimeout, console, navigator, caches, location, localStorage */
+/* global window, document, performance, requestAnimationFrame, cancelAnimationFrame, setTimeout, clearTimeout, console, navigator, caches, location, localStorage, CustomEvent */
 import spec48 from './roms/spec48.js';
 import romManager from './romManager.mjs';
 import { Loader } from './loader.mjs';
@@ -258,6 +258,7 @@ export class Emulator {
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const tapeLibraryBtn = document.getElementById('tapeLibraryBtn');
 
     if (loadBtn) loadBtn.addEventListener('click', () => this.handleLoad());
     if (startBtn) startBtn.addEventListener('click', () => this.start());
@@ -271,6 +272,30 @@ export class Emulator {
         }
       } catch { try { this.reset(); } catch { /* ignore */ } }
     });
+
+    // Tape Library button - dynamically import and toggle the tape UI
+    if (tapeLibraryBtn) {
+      tapeLibraryBtn.addEventListener('click', async () => {
+        try {
+          const tapeUi = await import('./tapeUi.mjs');
+          const container = document.getElementById('tape-ui-root');
+          if (container && !container.dataset.initialized) {
+            tapeUi.createUI(container);
+            tapeUi.setCallbacks({ onLoadTape: (url, fileName, opts = {}) => {
+              // Auto-start snapshots (e.g., .z80) when loaded from Tape Library UI
+              const ext = (fileName || '').split('.').pop().toLowerCase();
+              const autoStart = ext === 'z80' || ext === 'sna';
+              return this.loadTapeFromUrl(url, { ...opts, autoStart });
+            } });
+            container.dataset.initialized = 'true';
+          }
+          tapeUi.togglePanel();
+        } catch (e) {
+          console.error('[Emulator] Tape UI load error', e);
+          this.status('Tape UI failed to load');
+        }
+      });
+    }
 
     // Allow file input drag/drop helpers
     if (this.romInput) Loader.attachInput(this.romInput, (result, file) => this._onFileLoaded(result, file));
@@ -504,33 +529,377 @@ export class Emulator {
       await this.loadROM(buf);
       this.status(`ROM ${file.name} loaded`);
     } else if (parsed && parsed.snapshot) {
-      // create emulator if needed
-      if (!this.memory) await this._createCore(parsed.rom || null);
-      // load snapshot RAM
-      if (parsed.snapshot.ram) {
-        // ram in Memory starts at index 0
-        this.memory.ram.set(parsed.snapshot.ram.subarray(0, Math.min(parsed.snapshot.ram.length, this.memory.RAM_SIZE)));
-      }
-      // set CPU registers if present
-      if (!this.cpu) this.cpu = new Z80(this.memory);
-      const regs = parsed.snapshot.registers || {};
-      // set a few registers defensively
-      if (typeof regs.PC === 'number') this.cpu.PC = regs.PC & 0xffff;
-      if (typeof regs.SP === 'number') this.cpu.SP = regs.SP & 0xffff;
-      if (typeof regs.A === 'number') this.cpu.A = regs.A & 0xff;
-      if (typeof regs.F === 'number') this.cpu.F = regs.F & 0xff;
-      if (typeof regs.B === 'number') this.cpu.B = regs.B & 0xff;
-      if (typeof regs.C === 'number') this.cpu.C = regs.C & 0xff;
-      if (typeof regs.H === 'number') this.cpu.H = regs.H & 0xff;
-      if (typeof regs.L === 'number') this.cpu.L = regs.L & 0xff;
+      // Apply snapshot (centralized helper) and start emulation
+      await this.applySnapshot(parsed, { fileName: file.name, autoStart: true });
 
-      this.status(`Snapshot ${file.name} loaded`);
     } else if (parsed && parsed.type === 'tap') {
       // TAP handling not wired automatically; keep for future
       this.status('TAP loaded (not auto-started)');
       this._lastTap = parsed;
     } else {
       this.status('Unknown file loaded');
+    }
+  }
+
+  // ============================================================================
+  // Tape Loading API (for remote tape loading feature)
+  // ============================================================================
+
+  /**
+   * Inject a tape into the emulator.
+   * @param {ArrayBuffer|Object} input - ArrayBuffer or parsed tape { type: 'tap', blocks }
+   * @param {Object} opts - { fileName, source, autoStart }
+   * @returns {Promise<{ success: boolean, message?: string }>}
+   */
+  async injectTape(input, opts = {}) {
+    const { fileName = 'tape', autoStart = false } = opts;
+
+    try {
+      let parsed;
+
+      if (input instanceof ArrayBuffer) {
+        // Detect type from content or filename
+        parsed = Loader.parseByExtension(input, fileName);
+      } else if (input && typeof input === 'object') {
+        parsed = input;
+      } else {
+        return { success: false, message: 'Invalid input' };
+      }
+
+      // If this is a snapshot, apply it immediately (and emit event after successful apply)
+      if (parsed && parsed.snapshot) {
+        const ok = await this.applySnapshot(parsed, { fileName, autoStart });
+        if (!ok) return { success: false, message: 'Failed to apply snapshot' };
+        this._lastTap = parsed;
+        this._emitTapeEvent('tape-loaded', { fileName, parsed });
+        return { success: true };
+      }
+
+      // Store the tape
+      this._lastTap = parsed;
+
+      // Emit event
+      this._emitTapeEvent('tape-loaded', { fileName, parsed });
+
+      if (autoStart && parsed.type === 'tap') {
+        // Future: trigger tape loading sequence
+        this.status(`TAP ${fileName} loaded (auto-start not yet implemented)`);
+      } else {
+        this.status(`TAP ${fileName} loaded (not auto-started)`);
+      }
+
+      return { success: true };
+    } catch (err) {
+      this._emitTapeEvent('tape-load-error', { code: 'INJECT_ERROR', message: err.message });
+      return { success: false, message: err.message };
+    }
+  }
+
+  /**
+   * Apply a snapshot object into the emulator (memory and registers) and optionally start
+   * @param {Object} parsed - Parsed loader output containing snapshot
+   * @param {Object} opts - { fileName, autoStart }
+   * @returns {Promise<boolean>} true if applied successfully
+   */
+  async applySnapshot(parsed, opts = {}) {
+    const { fileName = 'snapshot', autoStart = true } = opts;
+    try {
+      this.status(`Applying snapshot ${fileName}...`);
+
+      // Pause running emulation if active
+      try { if (typeof this.pause === 'function') this.pause(); } catch (e) { void e; }
+
+      // Ensure emulator core exists
+      if (!this.memory) await this._createCore(parsed.rom || null);
+
+      // Load RAM into memory: write into the mapped RAM pages (pages[1..3])
+      const ram = parsed.snapshot && parsed.snapshot.ram;
+      if (ram && ram.length > 0) {
+        // Prefer full 48K copy when available
+        if (ram.length >= 0xC000) {
+          if (this.memory.pages[1]) this.memory.pages[1].set(ram.subarray(0x0000, 0x4000));
+          if (this.memory.pages[2]) this.memory.pages[2].set(ram.subarray(0x4000, 0x8000));
+          if (this.memory.pages[3]) this.memory.pages[3].set(ram.subarray(0x8000, 0xC000));
+        } else {
+          // Partial RAM: fill pages sequentially
+          let off = 0;
+          for (let p = 1; p <= 3 && off < ram.length; p++) {
+            const len = Math.min(0x4000, ram.length - off);
+            if (this.memory.pages[p]) this.memory.pages[p].set(ram.subarray(off, off + len));
+            off += len;
+          }
+        }
+        // Sync flat linear view if present
+        try { if (this.memory._flatRam) this.memory._syncFlatRamFromBanks(); } catch (e) { void e; }
+      }
+
+      // Ensure CPU exists
+      if (!this.cpu) this.cpu = new Z80(this.memory);
+
+      // Set registers defensively
+      const regs = parsed.snapshot.registers || {};
+      if (typeof regs.PC === 'number') this.cpu.PC = regs.PC & 0xffff;
+      if (typeof regs.SP === 'number') this.cpu.SP = regs.SP & 0xffff;
+      if (typeof regs.A === 'number') this.cpu.A = regs.A & 0xff;
+      if (typeof regs.F === 'number') this.cpu.F = regs.F & 0xff;
+      if (typeof regs.B === 'number') this.cpu.B = regs.B & 0xff;
+      if (typeof regs.C === 'number') this.cpu.C = regs.C & 0xff;
+      if (typeof regs.D === 'number') this.cpu.D = regs.D & 0xff;
+      if (typeof regs.E === 'number') this.cpu.E = regs.E & 0xff;
+      if (typeof regs.H === 'number') this.cpu.H = regs.H & 0xff;
+      if (typeof regs.L === 'number') this.cpu.L = regs.L & 0xff;
+      if (typeof regs.IX === 'number') this.cpu.IX = regs.IX & 0xffff;
+      if (typeof regs.IY === 'number') this.cpu.IY = regs.IY & 0xffff;
+      if (typeof regs.I === 'number') this.cpu.I = regs.I & 0xff;
+      if (typeof regs.R === 'number') this.cpu.R = regs.R & 0xff;
+      if (typeof regs.IFF1 !== 'undefined') this.cpu.IFF1 = !!regs.IFF1;
+      if (typeof regs.IFF2 !== 'undefined') this.cpu.IFF2 = !!regs.IFF2;
+      if (typeof regs.IM === 'number') this.cpu.IM = regs.IM & 0xff;
+
+      // Restore alternate register set if present
+      if (typeof regs.A2 === 'number' && typeof this.cpu.A2 !== 'undefined') this.cpu.A2 = regs.A2 & 0xff;
+      if (typeof regs.F2 === 'number' && typeof this.cpu.F2 !== 'undefined') this.cpu.F2 = regs.F2 & 0xff;
+      if (typeof regs.B2 === 'number' && typeof this.cpu.B2 !== 'undefined') this.cpu.B2 = regs.B2 & 0xff;
+      if (typeof regs.C2 === 'number' && typeof this.cpu.C2 !== 'undefined') this.cpu.C2 = regs.C2 & 0xff;
+      if (typeof regs.D2 === 'number' && typeof this.cpu.D2 !== 'undefined') this.cpu.D2 = regs.D2 & 0xff;
+      if (typeof regs.E2 === 'number' && typeof this.cpu.E2 !== 'undefined') this.cpu.E2 = regs.E2 & 0xff;
+      if (typeof regs.H2 === 'number' && typeof this.cpu.H2 !== 'undefined') this.cpu.H2 = regs.H2 & 0xff;
+      if (typeof regs.L2 === 'number' && typeof this.cpu.L2 !== 'undefined') this.cpu.L2 = regs.L2 & 0xff;
+
+      // Restore border colour if ULA is available
+      try {
+        if (typeof regs.borderColor === 'number' && this.ula) {
+          this.ula.borderColor = regs.borderColor & 0x07;
+        }
+      } catch (e) { void e; }
+
+      // Initialize peripherals and input
+      try { this.input.start(); } catch (e) { void e; }
+
+      // Resume audio context if possible (user gesture should allow resume on click)
+      try {
+        if (this.sound && this.sound.ctx && typeof this.sound.ctx.resume === 'function' && this.sound.ctx.state === 'suspended') {
+          await this.sound.ctx.resume();
+        }
+      } catch (e) { void e; }
+
+      // Focus canvas for keyboard input
+      try { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); } catch (e) { void e; }
+
+      // Start emulation loop
+      try { if (autoStart && typeof this.start === 'function') this.start(); } catch (e) { void e; }
+
+      this.status(`Snapshot ${fileName} applied`);
+      return true;
+    } catch (err) {
+      this._emitTapeEvent('tape-load-error', { code: 'APPLY_ERROR', message: err.message });
+      this.status(`Snapshot apply error: ${err.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Client-side CORS-aware fetch with Archive.org fallback via cors.archive.org when possible.
+   * @param {string} url - original URL
+   * @param {Object} opts - { metadata, timeoutMs }
+   * @returns {Promise<ArrayBuffer>}
+   */
+  async fetchWithArchiveCorsFallback(url, opts = {}) {
+    const { metadata = null, timeoutMs = 12000 } = opts;
+
+    // Simple fetch with timeout — no custom headers, no credentials
+    // (keeps it a "simple request" to avoid preflight).
+    const tryFetch = async (candidate) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(candidate, {
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow',
+          signal: controller.signal
+        });
+        clearTimeout(id);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.arrayBuffer();
+      } finally { clearTimeout(id); }
+    };
+
+    // 1) Try the original URL (may already be a direct server URL from buildDirectDownloadUrl)
+    try {
+      return await tryFetch(url);
+    } catch (err) {
+      const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS|ERR_FAILED/i.test(err?.message || '');
+      if (!isCorsLike) throw err;
+    }
+
+    // 2) Build fallback candidates, prioritising patterns that actually work
+    const candidates = [];
+    const id = metadata?.id || metadata?.identifier;
+    const server = metadata?.server;
+    const dir = metadata?.dir;
+
+    // Extract filename from URL
+    let fname;
+    try {
+      fname = decodeURIComponent(new URL(url).pathname.split('/').pop());
+    } catch (_e) {
+      fname = url.split('/').pop();
+    }
+    const encodedFname = encodeURIComponent(fname);
+
+    // ── Priority 1: Direct server+dir path (jsspeccy3 approach, usually has CORS) ──
+    if (server && dir) {
+      candidates.push(`https://${server}${dir}/${encodedFname}`);
+    }
+
+    // ── Priority 2: cors.archive.org/cors/ with identifier (sometimes works) ──
+    if (id) {
+      candidates.push(`https://cors.archive.org/cors/${id}/${encodedFname}`);
+    }
+
+    // ── Priority 3: cors.archive.org/cors/{server}/download/{id}/{file} ──
+    if (server && id) {
+      candidates.push(`https://cors.archive.org/cors/${server}/download/${id}/${encodedFname}`);
+    }
+
+    // ── Priority 4: Alternate servers from metadata ──
+    const altServers = [];
+    if (metadata && Array.isArray(metadata.workable_servers)) {
+      altServers.push(...metadata.workable_servers);
+    }
+    if (metadata?.d1) altServers.push(metadata.d1);
+    if (metadata?.d2) altServers.push(metadata.d2);
+
+    for (const alt of altServers) {
+      if (!alt || alt === server) continue;
+      // Direct path on alternate server
+      if (dir) candidates.push(`https://${alt}${dir}/${encodedFname}`);
+      // cors.archive.org path via alternate server
+      if (id) candidates.push(`https://cors.archive.org/cors/${alt}/download/${id}/${encodedFname}`);
+    }
+
+    // ── Priority 5: cors.archive.org rewrites of original URL host+path ──
+    try {
+      const u = new URL(url);
+      candidates.push(`https://cors.archive.org/cors/${u.hostname}${u.pathname}`);
+    } catch (_e) { /* ignore */ }
+
+    // De-duplicate while preserving priority order
+    const seen = new Set();
+    const uniq = candidates.filter(c => {
+      if (!c || seen.has(c)) return false;
+      seen.add(c);
+      return true;
+    });
+
+    // Expose candidates for test/debug
+    try { if (typeof window !== 'undefined') { window.__CORS_CANDIDATES__ = uniq.slice(); window.__CORS_TRIED__ = []; } } catch (_e) { void _e; }
+
+    for (const c of uniq) {
+      try {
+        try { if (typeof window !== 'undefined') window.__CORS_TRIED__.push(c); } catch (_e) { void _e; }
+        return await tryFetch(c);
+      } catch (_e) { /* try next */ }
+    }
+
+    const out = new Error('R Tape loading error, 0 : 1');
+    out.name = 'CORS_FALLBACK_FAILED';
+    throw out;
+  }
+
+  /**
+   * Load a tape from a remote URL.
+   * @param {string} url - URL to fetch
+   * @param {Object} opts - { onProgress(percent, loaded, total), signal, autoStart, metadata }
+   * @returns {Promise<{ success: boolean, message?: string }>}
+   */
+  async loadTapeFromUrl(url, opts = {}) {
+    const { onProgress, signal, autoStart = false, metadata = null } = opts;
+
+    // Extract filename from URL
+    const fileName = url.split('/').pop() || 'tape';
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    try {
+      this._emitTapeEvent('tape-load-progress', { percent: 0, loaded: 0, total: 0, fileName });
+
+      // Handle ZIP files
+      if (ext === 'zip') {
+        const buffer = await Loader.loadFromUrl(url, {
+          onProgress: (percent, loaded, total) => {
+            if (onProgress) onProgress(percent, loaded, total);
+            this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
+          },
+          signal,
+        });
+
+        const entries = await Loader.extractTapeFromZip(buffer);
+        if (entries.length === 0) {
+          throw new Error('No tape files found in ZIP');
+        }
+
+        // Use first tape file
+        const first = entries[0];
+        const parsed = Loader.parseByExtension(first.arrayBuffer, first.name);
+        return await this.injectTape(parsed, { fileName: first.name, autoStart });
+      }
+
+      // Standard TAP/TZX
+      let buffer = null;
+      try {
+        buffer = await Loader.loadFromUrl(url, {
+          onProgress: (percent, loaded, total) => {
+            if (onProgress) onProgress(percent, loaded, total);
+            this._emitTapeEvent('tape-load-progress', { percent, loaded, total, fileName });
+          },
+          signal,
+        });
+      } catch (err) {
+        // If initial fetch failed due to CORS/network, try client-side fallback using cors.archive.org
+        const isCorsLike = err instanceof TypeError || /Failed to fetch|NetworkError|CORS/i.test(err?.message || '');
+        if (isCorsLike) {
+          try {
+            const arr = await this.fetchWithArchiveCorsFallback(url, { metadata, timeoutMs: 12000 });
+            buffer = arr;
+          } catch (fallbackErr) {
+            // Map to ZX-style message and emit a CORS error
+            this._emitTapeEvent('tape-load-error', { code: 'CORS', message: fallbackErr.message });
+            this.status('R Tape loading error, 0 : 1');
+            return { success: false, message: fallbackErr.message };
+          }
+        } else if (err.name === 'AbortError') {
+          this.status('Tape load cancelled');
+          return { success: false, message: 'Cancelled' };
+        } else {
+          this._emitTapeEvent('tape-load-error', { code: 'FETCH_ERROR', message: err.message });
+          this.status(`Tape load error: ${err.message}`);
+          return { success: false, message: err.message };
+        }
+      }
+
+      const parsed = Loader.parseByExtension(buffer, fileName);
+      return await this.injectTape(parsed, { fileName, autoStart });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        this.status('Tape load cancelled');
+        return { success: false, message: 'Cancelled' };
+      }
+
+      this._emitTapeEvent('tape-load-error', { code: 'FETCH_ERROR', message: err.message });
+      this.status(`Tape load error: ${err.message}`);
+      return { success: false, message: err.message };
+    }
+  }
+
+  /**
+   * Emit a tape-related event.
+   * @param {string} type - Event type
+   * @param {Object} detail - Event details
+   */
+  _emitTapeEvent(type, detail) {
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent(type, { detail }));
     }
   }
 
@@ -1231,6 +1600,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!canvas) return;
 
   const emu = new Emulator({ canvas });
+
+  // Expose emulator and tape API globally for debugging and tests
+  window.emu = emu;
+  window.emu.injectTape = emu.injectTape.bind(emu);
+  window.emu.loadTapeFromUrl = emu.loadTapeFromUrl.bind(emu);
 
   // Initialize ROM selector (UI) and wire selection handler
   try {

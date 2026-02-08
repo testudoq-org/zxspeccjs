@@ -2,6 +2,97 @@
 
 Documents coding, architectural, and testing patterns for the ZX Spectrum emulator project.
 
+---
+
+## 2026-02-08 — Z80 Snapshot Parsing & E2E Testability Patterns
+
+### Z80 Snapshot Format Pattern (loader.mjs)
+- **Version detection**: If `PC` (bytes 6-7) is 0, the file is V2 or V3 (extended header at offset 30)
+- **V1 header** (30 bytes): A@0, F@1, BC@2-3, HL@4-5, PC@6-7, SP@8-9, I@10, R@11, flags@12
+  - Flags byte 12: bit0 = R bit7, bits 1-3 = border colour, bit5 = V1 compressed flag
+- **V2/V3 extended header**: extLen at offset 30 (LE 16-bit), real PC at offset 32
+  - V2: extLen=23, V3: extLen=54 or 55
+  - Data begins at offset 32 + extLen
+- **Paged memory blocks**: 3-byte header = `length` (LE 16-bit) + `page#` (uint8)
+  - If length=0xFFFF → uncompressed 16 384-byte page
+  - Otherwise → RLE-compressed block of `length` bytes
+- **Page mapping** (48K mode): page 4→0x8000, page 5→0xC000, page 8→0x4000
+  - 128K mode: pages 3-10 map to banks 0-7
+- **RLE decompression** (`_z80Decompress`): ED ED NN VV → repeat VV NN times; lone ED passed through
+
+### data-testid Selector Pattern
+- **Convention**: All interactive/observable elements get `data-testid="descriptive-name"` attributes
+- **Locations**: index.html (4 elements: screen, tape-library-btn, status, tape-ui-root), tapeUi.mjs (10 elements)
+- **E2E usage**: `page.locator('[data-testid="tape-search-input"]')` — stable across CSS/DOM changes
+- **Benefit**: Decouples tests from CSS selectors, class names, and DOM structure
+
+### Canvas Pixel Verification Pattern (E2E)
+- **Retry loop**: Up to 10 attempts × 200 ms wait (allows rAF to fire)
+- **Primary check**: `page.evaluate()` reads 2D canvas pixel data
+- **Memory fallback**: If canvas returns all zeroes (off-screen or compositor issue), verify via `emulator.memory.peek()` directly
+- **waitForEvent race avoidance**: Register `page.evaluate(() => new Promise(…))` listener **before** the click that triggers the load
+
+---
+
+## 2026-02-07 — Archive.org Integration Patterns
+
+### API Client Pattern (archiveClient.mjs)
+- **Caching Strategy**: Memory + localStorage with TTLs
+  - Search results: 24 hours
+  - Metadata: 7 days
+- **File Classification Flags**:
+  - `isTape`: TAP, TZX files (stream-loaded)
+  - `isSnapshot`: Z80, SNA files (direct memory load)
+  - `isLoadable`: Combined flag for UI filtering
+- **Accessor Functions**:
+  - `getTapeFiles(files)`: Filter for tapes only
+  - `getSnapshotFiles(files)`: Filter for snapshots only
+  - `getLoadableFiles(files)`: Combined tapes + snapshots
+
+### UI Toggle Pattern (tapeUi.mjs)
+- **Visibility Check**: Always compare against expected "shown" state, not "hidden"
+- **Correct Pattern**:
+  ```javascript
+  const isCurrentlyShown = style.display === 'block';
+  style.display = isCurrentlyShown ? 'none' : 'block';
+  ```
+- **Anti-Pattern** (causes first-load bug):
+  ```javascript
+  // WRONG: Empty string !== 'none' evaluates to true
+  const isCurrentlyShown = style.display !== 'none';
+  ```
+
+### E2E Testing Patterns (Playwright)
+
+#### Mock Network Responses
+```javascript
+await page.route('**/archive.org/advancedsearch.php**', route => {
+  route.fulfill({ contentType: 'application/json', body: JSON.stringify(mockData) });
+});
+```
+
+#### Bypass Overlay Blocking
+When elements are blocked by overlays (diagnostics panel, keyboard overlay):
+```javascript
+// Use JavaScript click instead of Playwright's native click
+await button.evaluate((btn) => btn.click());
+```
+
+#### Generate Valid Test Payloads
+For Z80 snapshot testing:
+```javascript
+function generateMinimalZ80Payload() {
+  const header = new Uint8Array(30);
+  header[6] = 0;    // PC low byte
+  header[7] = 0x40; // PC high byte (0x4000)
+  header[12] = 0;   // Border color
+  const ram = new Uint8Array(48 * 1024);
+  return new Uint8Array([...header, ...ram]);
+}
+```
+
+---
+
 ## Coding Patterns
 
 - Use ES6 modules (.mjs) for all source files

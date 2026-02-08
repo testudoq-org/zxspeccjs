@@ -1,3 +1,6 @@
+/* eslint-env browser */
+/* global fetch, console, setTimeout, clearTimeout, window, File, FileReader, DOMException */
+
 export class Loader {
   /**
    * High-level file loader. Returns either an ArrayBuffer for plain ROMs
@@ -25,50 +28,178 @@ export class Loader {
     return buffer;
   }
 
-  /** Minimal/robust .z80 parser that extracts a 48K RAM image when present
-   * and attempts to read basic registers from common header offsets.
-   * This implementation intentionally keeps parsing simple and defensive.
+  /**
+   * Decompress Z80 snapshot RLE-compressed data.
+   * Scheme: ED ED NN VV → repeat byte VV NN times; other bytes are literal.
+   * @param {Uint8Array} src - Compressed data
+   * @param {number} expectedLen - Expected decompressed length (e.g. 16384 for one page)
+   * @returns {Uint8Array} Decompressed data
+   */
+  static _z80Decompress(src, expectedLen) {
+    const out = new Uint8Array(expectedLen);
+    let si = 0;
+    let di = 0;
+    while (si < src.length && di < expectedLen) {
+      if (si + 3 < src.length && src[si] === 0xED && src[si + 1] === 0xED) {
+        const count = src[si + 2];
+        const val = src[si + 3];
+        for (let j = 0; j < count && di < expectedLen; j++) out[di++] = val;
+        si += 4;
+      } else {
+        out[di++] = src[si++];
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Full .z80 snapshot parser supporting v1, v2, and v3 formats.
+   * Correctly handles header registers, version detection, RLE decompression,
+   * and paged memory blocks for both 48K and 128K snapshots.
+   * @param {ArrayBuffer} arrayBuffer - Raw .z80 file contents
+   * @returns {{ rom: null, snapshot: { ram: Uint8Array|null, registers: Object, hwMode: number, version: number } }}
    */
   static parseZ80(arrayBuffer) {
     const buf = new Uint8Array(arrayBuffer);
     const len = buf.length;
-
-    // Try to find a contiguous 48K RAM image (49152 bytes). Many .z80 files
-    // append the full RAM image after a header. As a heuristic take the last
-    // 49152 bytes if the file is large enough.
-    const RAM_SIZE = 48 * 1024;
-    let ramImage = null;
-    if (len >= RAM_SIZE) {
-      ramImage = buf.subarray(len - RAM_SIZE, len);
+    if (len < 30) {
+      return { rom: null, snapshot: { ram: null, registers: {}, version: 0, hwMode: 0 } };
     }
 
-    // Try to read some registers from the header if present (v1/v2 hints).
+    const dv = new DataView(arrayBuffer);
+    const PAGE_SIZE = 16384;
+
+    // ── V1 header (30 bytes) — correct offsets per Z80 file format spec ──
     const regs = {};
-    try {
-      const dv = new DataView(arrayBuffer);
-      // Common v1 header places PC at offset 0x0C (little-endian) when compressed=0
-      if (len >= 30) {
-        regs.A = dv.getUint8(0x05) || 0;
-        regs.F = dv.getUint8(0x06) || 0;
-        regs.B = dv.getUint8(0x07) || 0;
-        regs.C = dv.getUint8(0x08) || 0;
-        regs.H = dv.getUint8(0x09) || 0;
-        regs.L = dv.getUint8(0x0A) || 0;
-        // PC little-endian at 0x0C
-        regs.PC = dv.getUint16(0x0C, true) || 0;
-        regs.SP = dv.getUint16(0x10, true) || 0;
-        regs.I = dv.getUint8(0x0E) || 0;
-        regs.R = dv.getUint8(0x11) || 0;
+    regs.A = dv.getUint8(0);
+    regs.F = dv.getUint8(1);
+    regs.C = dv.getUint8(2);
+    regs.B = dv.getUint8(3);
+    regs.L = dv.getUint8(4);
+    regs.H = dv.getUint8(5);
+    const headerPC = dv.getUint16(6, true);   // 0 means v2/v3
+    regs.SP = dv.getUint16(8, true);
+    regs.I = dv.getUint8(10);
+    const rLow = dv.getUint8(11);             // R bits 0-6
+    let flagByte = dv.getUint8(12);
+    if (flagByte === 255) flagByte = 1;        // per spec: 255 → treat as 1
+    regs.R = (rLow & 0x7F) | ((flagByte & 0x01) << 7); // reconstruct R bit 7
+    regs.borderColor = (flagByte >> 1) & 0x07;
+    const v1Compressed = !!(flagByte & 0x20);
+
+    regs.E = dv.getUint8(13);
+    regs.D = dv.getUint8(14);
+    // Alternate register set
+    regs.C2 = dv.getUint8(15);  // C'
+    regs.B2 = dv.getUint8(16);  // B'
+    regs.E2 = dv.getUint8(17);  // E'
+    regs.D2 = dv.getUint8(18);  // D'
+    regs.L2 = dv.getUint8(19);  // L'
+    regs.H2 = dv.getUint8(20);  // H'
+    regs.A2 = dv.getUint8(21);  // A'
+    regs.F2 = dv.getUint8(22);  // F'
+    regs.IY = dv.getUint16(23, true);
+    regs.IX = dv.getUint16(25, true);
+    regs.IFF1 = dv.getUint8(27) !== 0;
+    regs.IFF2 = dv.getUint8(28) !== 0;
+    regs.IM = dv.getUint8(29) & 0x03;
+
+    // ── Version detection ──
+    let version = 1;
+    let hwMode = 0;
+    let dataOffset = 30;
+
+    if (headerPC === 0 && len > 32) {
+      // V2 or V3: extended header present
+      const extLen = dv.getUint16(30, true);
+      regs.PC = dv.getUint16(32, true);        // real PC from extended header
+      if (len > 34) hwMode = dv.getUint8(34);  // hardware mode
+      version = extLen === 23 ? 2 : 3;
+      dataOffset = 32 + extLen;                 // skip past extended header
+    } else {
+      regs.PC = headerPC;
+    }
+
+    // ── Memory extraction ──
+    const RAM_48K = 3 * PAGE_SIZE; // 49152 bytes
+    let ramImage = null;
+
+    if (version === 1) {
+      // V1: raw or compressed 48K block starting at offset 30
+      const raw = buf.subarray(30);
+      if (v1Compressed) {
+        // Compressed: decompress up to 48K; stop at 00 ED ED 00 marker or end
+        let endIdx = raw.length;
+        for (let i = 0; i + 3 < raw.length; i++) {
+          if (raw[i] === 0x00 && raw[i + 1] === 0xED && raw[i + 2] === 0xED && raw[i + 3] === 0x00) {
+            endIdx = i;
+            break;
+          }
+        }
+        ramImage = this._z80Decompress(raw.subarray(0, endIdx), RAM_48K);
+      } else {
+        // Uncompressed v1: take up to 48K from offset 30
+        const available = Math.min(raw.length, RAM_48K);
+        ramImage = new Uint8Array(RAM_48K);
+        ramImage.set(raw.subarray(0, available));
       }
-    } catch (e) {
-      // ignore parsing errors, fall back to defaults
+    } else {
+      // V2/V3: paged memory blocks
+      // Allocate full 48K RAM (pages 4/5/8 for 48K; banks 0-7 for 128K)
+      ramImage = new Uint8Array(RAM_48K);
+      let pos = dataOffset;
+
+      while (pos + 3 <= len) {
+        const blockLen = dv.getUint16(pos, true);
+        const pageNum = dv.getUint8(pos + 2);
+        pos += 3;
+
+        let pageData;
+        if (blockLen === 0xFFFF) {
+          // Uncompressed: next 16384 bytes
+          pageData = buf.subarray(pos, pos + PAGE_SIZE);
+          pos += PAGE_SIZE;
+        } else {
+          // Compressed block
+          if (pos + blockLen > len) break; // truncated
+          const compressed = buf.subarray(pos, pos + blockLen);
+          pageData = this._z80Decompress(compressed, PAGE_SIZE);
+          pos += blockLen;
+        }
+
+        // Map page number to 48K RAM offset
+        //  48K mode:  page 4 → 0x8000 (offset 0x4000 in RAM), page 5 → 0xC000 (offset 0x8000), page 8 → 0x4000 (offset 0x0000)
+        // 128K mode:  pages 3-10 → RAM banks 0-7 (we build a linear 48K for 48K games)
+        let ramOffset = -1;
+        if (hwMode <= 1) {
+          // 48K mode page mapping
+          if (pageNum === 8) ramOffset = 0x0000;     // 0x4000-0x7FFF → RAM offset 0
+          else if (pageNum === 4) ramOffset = 0x4000; // 0x8000-0xBFFF → RAM offset 0x4000
+          else if (pageNum === 5) ramOffset = 0x8000; // 0xC000-0xFFFF → RAM offset 0x8000
+        } else {
+          // 128K: pages 3..10 map to RAM banks 0..7
+          // For basic 48K playback, map bank 5→offset 0, bank 2→offset 0x4000, bank 0→offset 0x8000
+          const bank = pageNum - 3;
+          if (bank === 5) ramOffset = 0x0000;
+          else if (bank === 2) ramOffset = 0x4000;
+          else if (bank === 0) ramOffset = 0x8000;
+          // Other banks: skip for now (128K full support can be added later)
+        }
+
+        if (ramOffset >= 0 && ramOffset + PAGE_SIZE <= RAM_48K) {
+          const copyLen = Math.min(pageData.length, PAGE_SIZE);
+          ramImage.set(pageData.subarray(0, copyLen), ramOffset);
+        }
+      }
     }
 
     return {
       rom: null,
       snapshot: {
-        ram: ramImage ? new Uint8Array(ramImage) : null,
-        registers: regs
+        ram: ramImage,
+        registers: regs,
+        version,
+        hwMode
       }
     };
   }
@@ -98,7 +229,7 @@ export class Loader {
    * parsed result (ArrayBuffer or object).
    */
   static attachInput(inputEl, onLoad) {
-    inputEl.addEventListener('change', async (e) => {
+    inputEl.addEventListener('change', async () => {
       const file = inputEl.files && inputEl.files[0];
       if (!file) return;
       // Use FileReader to demonstrate progress and compatibility
@@ -131,5 +262,266 @@ export class Loader {
         console.error('Drag drop load error', err);
       }
     });
+  }
+
+  // ============================================================================
+  // Remote loading (tape loading feature)
+  // ============================================================================
+
+  /**
+   * Fetch a file from a URL with streaming progress and retry support.
+   * @param {string} url - URL to fetch
+   * @param {Object} opts - { onProgress(percent, loaded, total), signal, retries }
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async loadFromUrl(url, opts = {}) {
+    const { onProgress, signal, retries = 2 } = opts;
+    const BACKOFF_BASE = 500;
+
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const result = await this._fetchWithProgress(url, signal, onProgress);
+        return result;
+      } catch (err) {
+        lastError = err;
+        if (err.name === 'AbortError') throw err;
+        if (err.retryAfter) {
+          await this._delay(err.retryAfter * 1000, signal);
+          continue;
+        }
+        if (attempt < retries) {
+          const backoff = BACKOFF_BASE * Math.pow(2, attempt);
+          await this._delay(backoff, signal);
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to fetch');
+  }
+
+  /**
+   * Fetch with streaming progress support.
+   * @param {string} url
+   * @param {AbortSignal} signal
+   * @param {Function} onProgress
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async _fetchWithProgress(url, signal, onProgress) {
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit', signal });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
+        const err = new Error('Rate limited');
+        err.retryAfter = retryAfter;
+        throw err;
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const reader = response.body && response.body.getReader();
+    if (!reader) {
+      return await response.arrayBuffer();
+    }
+
+    return await this._readStream(reader, response.headers, onProgress);
+  }
+
+  /**
+   * Read a stream and combine chunks with progress reporting.
+   * @param {ReadableStreamDefaultReader} reader
+   * @param {Headers} headers
+   * @param {Function} onProgress
+   * @returns {Promise<ArrayBuffer>}
+   */
+  static async _readStream(reader, headers, onProgress) {
+    const contentLength = parseInt(headers.get('Content-Length') || '0', 10);
+    const chunks = [];
+    let loaded = 0;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+
+      if (onProgress && contentLength > 0) {
+        const percent = Math.round((loaded / contentLength) * 100);
+        onProgress(percent, loaded, contentLength);
+      }
+    }
+
+    return this._combineChunks(chunks, loaded);
+  }
+
+  /**
+   * Combine Uint8Array chunks into a single ArrayBuffer.
+   * @param {Uint8Array[]} chunks
+   * @param {number} totalLength
+   * @returns {ArrayBuffer}
+   */
+  static _combineChunks(chunks, totalLength) {
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return combined.buffer;
+  }
+
+  /**
+   * Helper: delay with abort support.
+   * @param {number} ms
+   * @param {AbortSignal} signal
+   */
+  static _delay(ms, signal) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      }
+    });
+  }
+
+  /**
+   * Minimal TZX parser stub. Returns the raw buffer as a TZX object.
+   * Full TZX parsing can be added later.
+   * @param {ArrayBuffer} arrayBuffer
+   * @returns {{ type: 'tzx', blocks: null, raw: ArrayBuffer }}
+   */
+  static parseTZX(arrayBuffer) {
+    // TZX header signature: "ZXTape!\x1A" (8 bytes)
+    const buf = new Uint8Array(arrayBuffer);
+    const header = String.fromCharCode(...buf.slice(0, 7));
+
+    if (header !== 'ZXTape!') {
+      console.warn('[Loader] TZX header not found, treating as raw');
+    }
+
+    // For now, return raw buffer. Full parsing can be added later.
+    return { type: 'tzx', blocks: null, raw: arrayBuffer };
+  }
+
+  /**
+   * Minimal .sna parser supporting classic 48K snapshots.
+   * Many .sna files include a 27-byte CPU register header followed by 48K RAM.
+   * This parser defensively extracts the last 48K as RAM and reads SP when
+   * available. It keeps parsing simple and forgiving.
+   */
+  static parseSNA(arrayBuffer) {
+    const buf = new Uint8Array(arrayBuffer);
+    const len = buf.length;
+    const RAM_SIZE = 48 * 1024;
+
+    let ramImage = null;
+    if (len >= RAM_SIZE) {
+      ramImage = buf.subarray(len - RAM_SIZE, len);
+    }
+
+    const regs = {};
+    try {
+      const dv = new DataView(arrayBuffer);
+      // SP in many .sna variants is stored at offsets 0x1A-0x1B (little-endian)
+      if (len >= 0x1C) {
+        regs.SP = dv.getUint16(0x1A, true);
+      }
+      // Some variants include I and R at offsets 0x00 and 0x11 (best-effort)
+      if (len >= 1) regs.I = dv.getUint8(0x00);
+      if (len >= 0x12) regs.R = dv.getUint8(0x11);
+    } catch (e) {
+      // ignore parsing errors
+    }
+
+    return {
+      rom: null,
+      snapshot: {
+        ram: ramImage ? new Uint8Array(ramImage) : null,
+        registers: regs
+      }
+    };
+  }
+
+  /**
+   * Extract tape files from a ZIP archive.
+   * Uses JSZip if available, otherwise throws.
+   * @param {ArrayBuffer} arrayBuffer - ZIP file contents
+   * @returns {Promise<Array<{ name: string, format: string, arrayBuffer: ArrayBuffer }>>}
+   */
+  static async extractTapeFromZip(arrayBuffer) {
+    // Check if JSZip is available globally or as module
+    let JSZip = null;
+    if (typeof window !== 'undefined' && window.JSZip) {
+      JSZip = window.JSZip;
+    } else {
+      try {
+        // Dynamic import for module environments
+        const module = await import('jszip');
+        JSZip = module.default || module;
+      } catch {
+        throw new Error('JSZip not available. Include JSZip to extract ZIP files.');
+      }
+    }
+
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const entries = [];
+    const TAPE_EXTENSIONS = ['tap', 'tzx'];
+
+    for (const [filename, file] of Object.entries(zip.files)) {
+      if (file.dir) continue;
+
+      const ext = filename.split('.').pop().toLowerCase();
+      if (TAPE_EXTENSIONS.includes(ext)) {
+        const data = await file.async('arraybuffer');
+        entries.push({
+          name: filename,
+          format: ext.toUpperCase(),
+          arrayBuffer: data,
+        });
+      }
+    }
+
+    // Sort to prefer .tap first
+    entries.sort((a, b) => {
+      if (a.format === 'TAP' && b.format !== 'TAP') return -1;
+      if (a.format !== 'TAP' && b.format === 'TAP') return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return entries;
+  }
+
+  /**
+   * Parse a remote tape file by extension.
+   * @param {ArrayBuffer} arrayBuffer
+   * @param {string} fileName
+   * @returns {Object} Parsed result ({ type: 'tap', blocks } or { type: 'tzx', ... })
+   */
+  static parseByExtension(arrayBuffer, fileName) {
+    const ext = (fileName || '').split('.').pop().toLowerCase();
+
+    if (ext === 'tap') {
+      return this.parseTAP(arrayBuffer);
+    }
+
+    if (ext === 'tzx') {
+      return this.parseTZX(arrayBuffer);
+    }
+
+    if (ext === 'z80') {
+      return this.parseZ80(arrayBuffer);
+    }
+
+    if (ext === 'sna') {
+      return this.parseSNA(arrayBuffer);
+    }
+
+    // Unknown format: return raw
+    return { type: 'unknown', raw: arrayBuffer };
   }
 }
