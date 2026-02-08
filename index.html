@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <canvas id="screen" tabindex="0" width="320" height="240" aria-label="ZX Spectrum screen"></canvas>
+  <canvas id="screen" tabindex="0" width="320" height="240" aria-label="ZX Spectrum screen" data-testid="screen"></canvas>
   <div class="controls">
     <label for="rom-select">Select ROM</label>
     <select id="rom-select" aria-label="ROM selection"></select>
@@ -26,9 +26,9 @@
     <button id="startBtn">Start</button>
     <button id="stopBtn">Stop</button>
     <button id="resetBtn">Reset</button>
-    <button id="tapeLibraryBtn" title="Open Tape Library to search and load tapes from Archive.org">📼 Tape Library</button>
-    <p id="status">Status: idle — Selected ROM: spec48</p>
-    <div id="tape-ui-root"></div>
+    <button id="tapeLibraryBtn" data-testid="tape-library-btn" title="Open Tape Library to search and load tapes from Archive.org">📼 Tape Library</button>
+    <p id="status" data-testid="status">Status: idle — Selected ROM: spec48</p>
+    <div id="tape-ui-root" data-testid="tape-ui-root"></div>
   </div>
   <script type="module" src="./src/main.mjs"></script>
 </body>

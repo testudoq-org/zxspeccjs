@@ -4,100 +4,88 @@ Tracks current status, recent changes, and open questions for the ZX Spectrum em
 
 ---
 
-## 2026-02-07 — Tape Library E2E Tests & Z80 Snapshot Support
+## 2026-02-08 — Z80 Snapshot Parser Rewrite & Jetpac E2E Test
 
 ### Current Focus
-- **TAPE LIBRARY FEATURE ENHANCED**: Z80/SNA snapshot support added to Archive.org integration
-- **E2E TESTS COMPLETE**: Comprehensive Playwright test suite for Tape Library (4 tests passing)
-- **BUG FIX**: togglePanel() visibility logic corrected for first-load behavior
+- **Z80 PARSER COMPLETELY REWRITTEN**: Full V1/V2/V3 support with RLE decompression, correct header offsets, paged memory blocks
+- **JETPAC CONFIRMED WORKING**: .z80 snapshots from Archive.org now load and run correctly
+- **E2E JETPAC TEST ADDED**: Dedicated Playwright test for the exact Tape Library → Jetpac snapshot flow
+- **TESTABILITY HARDENED**: 14 `data-testid` attributes added to HTML and Tape UI, `.sna` autoStart fixed
 
-### Changes Made
+### Changes Made (this session)
 
-#### Z80 Snapshot Support (src/archiveClient.mjs)
-- Added `isSnapshot` flag for `.z80`/`.sna` files in `normalizeFileEntry()`
-- Added `isLoadable` flag combining tapes (TAP/TZX) and snapshots
-- New functions: `getSnapshotFiles()`, `getLoadableFiles()`
-- Snapshots load directly into memory vs tapes which stream
+#### Z80 Snapshot Parser Rewrite (src/loader.mjs)
+- **5 catastrophic bugs fixed** in `Loader.parseZ80()`:
+  1. All register header offsets were wrong (shifted ~5 bytes)
+  2. No V2/V3 version detection (PC=0 at byte 6 signals extended header)
+  3. No RLE decompression (ED ED NN VV scheme)
+  4. Wrong RAM extraction ("last 48K" heuristic)
+  5. Missing registers (DE, IX, IY, IFF1, IFF2, IM)
+- New `_z80Decompress()` static helper for RLE decompression
+- Correct V1 header offsets: A@0, F@1, C@2, B@3, L@4, H@5, PC@6, SP@8, I@10, R@11
+- V2/V3: reads real PC from extended header offset 32, parses paged memory blocks
 
-#### Tape UI Improvements (src/tapeUi.mjs)
-- Changed import to use `getLoadableFiles` instead of `getTapeFiles`
-- `updateDetailPanel()` now shows snapshots first (prioritized), then tapes
-- Button labels dynamically show "Load snapshot" vs "Load tape"
-- **Bug Fix**: `togglePanel()` fixed to check `currentDisplay === 'block'` instead of `!== 'none'` (empty string on first load caused panel to hide instead of show)
+#### Alternate Register / Border Restore (src/main.mjs)
+- `applySnapshot()` now restores alternate registers (A2/F2/B2/C2/D2/E2/H2/L2)
+- Border colour from snapshot applied to ULA
+- `autoStart` extended from `.z80` only → `.z80 || .sna`
 
-#### E2E Test Suite (tests/e2e/tape-library.spec.mjs)
-- New ~550 line test file with comprehensive coverage
-- 4 test cases: smoke flow, empty search error, keyboard focus, close panel
-- Mock data for Archive.org endpoints (search, metadata, download)
-- `generateMinimalZ80Payload()` creates valid Z80 v1 file for testing
-- Uses `loadButton.evaluate((btn) => btn.click())` to bypass overlay blocking
+#### data-testid Attributes (index.html, src/tapeUi.mjs)
+- `index.html`: screen, tape-library-btn, status, tape-ui-root
+- `tapeUi.mjs`: tape-search-input, tape-search-btn, tape-results, tape-results-count, tape-results-list, tape-detail, tape-detail-title, tape-detail-close, tape-files-list, tape-result-details-btn, tape-load-btn
+
+#### Unit Tests (tests/unit/loader.z80.test.mjs)
+- 19 tests in 6 describe blocks replacing 1 broken test
+- Covers V1 uncompressed/compressed, V2 compressed/uncompressed, edge cases, decompression helper
+
+#### E2E Test (tests/e2e/snapshot-jetpac.spec.mjs) — NEW
+- 2 tests: full flow (@smoke) and status-text focused
+- Stubbed network, data-testid selectors, canvas pixel retry loop + memory fallback
+
+#### E2E Fixes (tape-library.spec.mjs, tape-cors-fallback.spec.mjs)
+- Fixed `generateMinimalZ80Payload()` to use correct Z80 header offsets
 
 ### Test Results
-- ✅ All 106 unit tests passing
-- ✅ All 4 Tape Library E2E tests passing
+- ✅ **126 unit tests passing** (31 files)
+- ✅ **35 E2E tests passing** (all specs)
 - ✅ Codacy analysis clean on all modified files
 
 ### Files Modified
-- `src/archiveClient.mjs`: Z80 snapshot support
-- `src/tapeUi.mjs`: Loadable files display + togglePanel fix
-- `tests/e2e/tape-library.spec.mjs`: New comprehensive E2E test
-
----
-
-## Current Focus
-
-- **BOOT SEQUENCE WORKING**: Character rendering bug fixed, copyright message displays correctly
-- **CB INSTRUCTION FIX COMPLETE**: Critical Z80 instruction decoder bug resolved
-- **VERIFIED**: Boot screen shows "© 1982 Sinclair Research Ltd" with full 8-pixel-tall characters
-
-## Recent Changes (2026-01-28)
-
-### Critical Bug Fix: CB-Prefix Instruction Decoder
-- **Root Cause**: Shift/rotate handlers (opcodes 0x00-0x3F) incorrectly matched RES/SET opcodes (0x80-0xFF)
-- **Fix Applied**: Added `if (cbOpcode < 0x40)` guard in `_executeCBOperation()` method
-- **Impact**: RES 0,(HL) was executing as RL, corrupting FLAGS and breaking character printing
-- **Result**: Full boot sequence now works correctly
-
-### Files Modified
-- `src/z80.mjs`: CB instruction decoder fix (line 249)
-- `src/ula.mjs`: Removed direct FRAMES memory writes
-- `src/frameBuffer.mjs`: New deferred rendering system
-- `.gitignore`: Updated to exclude temp debug files
-
-### Commit Details
-- Branch: `fix/boot-sequence-quick-fix`
-- Commit: 24 files changed, 3687 insertions, 961 deletions
-
-## Architecture Changes
-
-### Z80 CB Instruction Handling
-The CB-prefix instruction decoder now correctly separates opcode ranges:
-- 0x00-0x3F: Shift/Rotate (guarded with `if (cbOpcode < 0x40)`)
-- 0x40-0x7F: BIT test
-- 0x80-0xBF: RES (reset bit)
-- 0xC0-0xFF: SET (set bit)
-
-### ULA Changes
-- `generateInterruptSync()` no longer writes directly to FRAMES (0x5C78)
-- ROM is now responsible for all system variable management
+| File | Change |
+|------|--------|
+| `src/loader.mjs` | Rewrite parseZ80(), add _z80Decompress() |
+| `src/main.mjs` | Alternate regs + border restore; .sna autoStart |
+| `src/tapeUi.mjs` | data-testid on 10 elements |
+| `index.html` | data-testid on 4 elements |
+| `tests/unit/loader.z80.test.mjs` | 19 new tests |
+| `tests/e2e/snapshot-jetpac.spec.mjs` | NEW — 2 Jetpac E2E tests |
+| `tests/e2e/tape-library.spec.mjs` | Fix Z80 header offsets |
+| `tests/e2e/tape-cors-fallback.spec.mjs` | Fix Z80 header offsets |
 
 ## Open Questions/Issues
 
 - Confirm legal status of ROM usage
-- Determine scope for initial release (features, supported formats)
-- Consider adding CB instruction unit tests to prevent regression
+- Follow-up: AbortController cleanup in tapeUi.mjs for stale fetches
+- Follow-up: `willReadFrequently` on canvas 2D context
+- Follow-up: Extract `createUI` helper to reduce Lizard nloc warning (74 LOC → <50)
 
 ## ⚠️ Critical Breadcrumbs
 
+### Z80 Snapshot Format (never get wrong again):
+1. **V1 header** is 30 bytes — PC at offset 6; if PC==0 → V2/V3 extended header follows
+2. **V2/V3 extended header** starts at offset 30; `extLen` at offset 30 (LE16); real PC at offset 32; pages follow at 30+2+extLen
+3. **Page mapping** (48K): page 4→0x8000, page 5→0xC000, page 8→0x4000
+4. **RLE**: ED ED NN VV = repeat VV NN times; block length 0xFFFF = uncompressed 16384 bytes
+
 ### Never Modify Without Understanding:
-1. **`_executeCBOperation()` in z80.mjs** - CB opcode ranges MUST be checked before sub-operation dispatch
-2. **FLAGS system variable (0x5C3B)** - Used by character printing; corruption causes rendering bugs
-3. **PR_ALL routine (0x0B93-0x0BC5)** - Critical character printing path; uses RES/SET on FLAGS
+1. **`_executeCBOperation()` in z80.mjs** — CB opcode ranges MUST be checked before sub-operation dispatch
+2. **FLAGS system variable (0x5C3B)** — Used by character printing; corruption causes rendering bugs
+3. **`parseZ80()` in loader.mjs** — Header offsets are verified against the spec; do not shift them
 
 ### Test Before Committing:
-- Boot screen must show full 8-pixel-tall characters
-- Copyright message "© 1982 Sinclair Research Ltd" must be readable
-- Verify RES 0,(HL) at 0x5C3B produces correct FLAGS value
+- Boot screen must show "© 1982 Sinclair Research Ltd" with full 8-pixel-tall characters
+- Jetpac .z80 snapshot must load and show non-blank canvas
+- `npm run test:unit && npm run test:e2e`
 
 ---
 2026-01-28 - Updated with CB instruction fix and boot sequence success

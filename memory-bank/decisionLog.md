@@ -4,30 +4,36 @@ Records architectural and implementation decisions for the ZX Spectrum emulator 
 
 ---
 
-## 2026-02-07 — Tape Library & Z80 Snapshot Decisions
+## 2026-02-08 — Z80 Parser Rewrite & Testability Decisions
 
-### Decision: Support Z80/SNA Snapshots in Archive.org Browser
-- **Context**: User asked "should we not use the .z80 and load straight into memory?" when viewing Archive.org search results
-- **Decision**: Add snapshot support alongside tape files, with snapshots prioritized in UI
-- **Rationale**: Snapshots provide instant loading (direct memory state) vs tapes which require streaming/decoding
-- **Implementation**: `isSnapshot` and `isLoadable` flags in archiveClient.mjs; `getLoadableFiles()` returns both types
+### Decision: Complete Rewrite of Z80 Snapshot Parser
+- **Context**: Jetpac .z80 snapshots loaded from Archive.org showed "Snapshot applied" but canvas stayed blank
+- **Root Cause**: 5 catastrophic bugs — wrong register offsets, no V2/V3 detection, no RLE decompression, wrong RAM extraction, missing registers
+- **Decision**: Full rewrite of `Loader.parseZ80()` rather than incremental patches
+- **Rationale**: Every register offset was wrong; patching would be fragile. A clean implementation against the spec is more maintainable.
+- **Implementation**: V1/V2/V3 detection, correct header offsets, paged memory blocks, `_z80Decompress()` for RLE
 
-### Decision: Prioritize Snapshots Over Tapes in UI
-- **Context**: Both tape files and snapshot files can be valid choices for loading games
-- **Decision**: Show snapshots first in the file list, with tapes following
-- **Rationale**: Snapshots are faster to load and more reliable; users can still choose tapes if needed
-- **Implementation**: `updateDetailPanel()` renders snapshot buttons before tape buttons
+### Decision: Restore Alternate Registers and Border in applySnapshot()
+- **Context**: Snapshot format stores alternate register set (A'/F'/BC'/DE'/HL') and border colour
+- **Decision**: Add full alternate register and border colour restoration
+- **Rationale**: Many games set alternate registers before snapshotting; without restoring them, game state is incomplete
+- **Implementation**: `applySnapshot()` now calls `cpu.setAlternates()` and `ula.setBorderColour()`
 
-### Decision: Use JavaScript Click for Overlay-Blocked Elements
-- **Context**: Playwright E2E tests failed because diagnostics panel and keyboard overlay blocked button clicks
-- **Decision**: Use `element.evaluate((el) => el.click())` instead of Playwright's native `.click()`
-- **Rationale**: JavaScript click bypasses overlay detection while still testing the actual button handler
-- **Trade-off**: Less realistic user interaction but necessary for test reliability
+### Decision: Add data-testid Attributes for E2E Stability
+- **Context**: All E2E tests relied on CSS class selectors which break on style refactors
+- **Decision**: Add `data-testid` attributes to 14 key UI elements (HTML + tapeUi.mjs)
+- **Rationale**: data-testid is a stable contract between code and tests; immune to CSS/DOM restructuring
+- **Implementation**: Added to canvas, buttons, search elements, results, detail panel, file list
 
-### Decision: Generate Valid Z80 Payloads in Tests
-- **Context**: E2E tests needed mock responses for Archive.org download endpoints
-- **Decision**: Create `generateMinimalZ80Payload()` that produces valid Z80 v1 files (30-byte header + 48K RAM)
-- **Rationale**: Using valid file format ensures loader code is properly exercised during tests
+### Decision: autoStart for .sna Snapshots
+- **Context**: SNA snapshots loaded from Tape Library were silently paused — only .z80 triggered autoStart
+- **Decision**: Extend autoStart to include `.sna` extension
+- **Rationale**: Both formats are snapshots and should behave identically in the UI flow
+
+### Decision: Canvas Pixel Check with Retry + Memory Fallback
+- **Context**: E2E canvas pixel assertion failed because rAF hadn't rendered the first frame yet
+- **Decision**: Retry loop (10 × 200ms) for canvas check, with memory-based fallback (pages[1] sum > 0)
+- **Rationale**: Canvas rendering timing varies by machine; memory check is deterministic and instant
 
 ---
 

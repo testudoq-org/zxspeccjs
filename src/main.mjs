@@ -284,7 +284,7 @@ export class Emulator {
             tapeUi.setCallbacks({ onLoadTape: (url, fileName, opts = {}) => {
               // Auto-start snapshots (e.g., .z80) when loaded from Tape Library UI
               const ext = (fileName || '').split('.').pop().toLowerCase();
-              const autoStart = ext === 'z80';
+              const autoStart = ext === 'z80' || ext === 'sna';
               return this.loadTapeFromUrl(url, { ...opts, autoStart });
             } });
             container.dataset.initialized = 'true';

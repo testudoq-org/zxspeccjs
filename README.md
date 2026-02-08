@@ -99,12 +99,14 @@ Legal notice
 
 ---
 
-
 ## Acknowledgements & Thanks
 
 This project was inspired and immensely assisted by the incredible work of the ZX Spectrum community. Huge thanks to everyone keeping the Speccy scene alive!
 
+"*It was scary stuff, radically advanced. It was shattered, didn't work, but it gave us ideas, took us in new directions, things we would never have thought of.*" 🤖 ~Miles Dyson Director of Special Projects at Cyberdyne Systems
+
 - **[gasman/jsspeccy3](https://github.com/gasman/jsspeccy3)** by Matt Westcott (gasman)This project was inspired and/or immensely assisted by gasman/jsspeccy3 — a fantastic high-performance ZX Spectrum emulator for the browser using WebAssembly and modern web technologies. I discovered it after starting my own emulator journey, and it helped immensely with ideas, technical approaches, and motivation for accurate emulation (cycle timing, tape handling, AY sound, etc.). Check out the original source and live demo at https://jsspeccy.zxdemo.org/. Massive respect for open-sourcing such high-quality work!
+  
 - **[World of Spectrum Classic](https://worldofspectrum.org/)**
   The go-to archive for ZX Spectrum software, tapes (.TAP/.TZX), ROMs, screenshots, and history. Many assets tested/inspired here come from or were cross-referenced with this essential resource.
 
@@ -113,6 +115,9 @@ Additional thanks to:
 - Internet Archive ZX Spectrum collections (e.g., mirrored games and snapshots).
 - ZXDB and other community databases for metadata and context.
 - Various open tools and shared knowledge in the Spectrum emulation scene.
+- Facebook ZX Spectrum groups, for the inspiration and the sheer joy of the 8bit hardware that revolutionised and democracised personal computing.
+- Miles Dyson Director of Special Projects at Cyberdyne Systems for keeping me motivated ~"*It was scary stuff, radically advanced. It was shattered, didn't work, but it gave us ideas, took us in new directions, things we would never have thought of.*" 
+  - 🤖Claude.AI, Grok.AI, Cohere AI, RooCode and Github copilot.
 
 ### Licensing
 

@@ -4,29 +4,20 @@ This file provides a high-level overview of the ZX Spectrum emulator project for
 
 ---
 
-## 2026-02-07 — Archive.org Tape Library Feature
+## 2026-02-08 — Z80 Parser Rewrite & Snapshot Loading Fixed
 
-### New Feature: Tape Library with Archive.org Integration
-- **Purpose**: Browse and load ZX Spectrum games directly from Archive.org's software library
-- **Supported Formats**: TAP, TZX (tapes), Z80, SNA (snapshots)
-- **Architecture**:
-  - `src/archiveClient.mjs`: Archive.org API client with caching (24h search, 7d metadata)
-  - `src/tapeUi.mjs`: Search UI panel with keyboard support
-- **User Flow**:
-  1. Click "Tape Library" button
-  2. Search for games (e.g., "Jet Set Willy")
-  3. View search results with game metadata
-  4. Click game to see available files
-  5. Load snapshot (instant) or tape (streaming)
+### Critical Fix: Z80 Snapshot Parser
+- **Problem**: .z80 snapshots from Archive.org (including Jetpac) showed "applied" but canvas stayed blank
+- **Root Cause**: 5 bugs in `Loader.parseZ80()` — wrong offsets, no V2/V3, no RLE decompression
+- **Fix**: Complete parser rewrite with V1/V2/V3 support, correct offsets, paged memory blocks
+- **Result**: Jetpac and other games now load and run correctly from Archive.org
 
-### Archive.org API Endpoints Used
-- Search: `https://archive.org/advancedsearch.php?q=collection:softwarelibrary_zx_spectrum title:"query"`
-- Metadata: `https://archive.org/metadata/{identifier}`
-- Download: `https://archive.org/download/{identifier}/{filename}`
-
-### File Format Priority
-- Z80/SNA snapshots shown first (direct memory load, instant startup)
-- TAP/TZX tapes shown after (stream-based loading)
+### Testability Improvements
+- 14 `data-testid` attributes added for stable E2E selectors
+- Dedicated Jetpac E2E test with stubbed network
+- 19 unit tests for Z80 parser (was 1 broken test)
+- `.sna` autoStart from Tape Library UI
+- **Total tests**: 126 unit + 35 E2E = 161 all passing
 
 ---
 

@@ -62,8 +62,8 @@ export function createUI(container) {
   container.innerHTML = `
     <div class="tape-ui">
       <div class="tape-search">
-        <input type="text" class="tape-search-input" placeholder="Search Archive.org for ZX Spectrum tapes..." />
-        <button class="tape-search-btn" type="button">Search</button>
+        <input type="text" class="tape-search-input" data-testid="tape-search-input" placeholder="Search Archive.org for ZX Spectrum tapes..." />
+        <button class="tape-search-btn" data-testid="tape-search-btn" type="button">Search</button>
       </div>
       
       <div class="tape-error" style="display: none;">
@@ -71,17 +71,17 @@ export function createUI(container) {
         <button class="tape-retry-btn" type="button">Retry</button>
       </div>
       
-      <div class="tape-results" style="display: none;">
+      <div class="tape-results" data-testid="tape-results" style="display: none;">
         <div class="tape-results-header">
-          <span class="tape-results-count"></span>
+          <span class="tape-results-count" data-testid="tape-results-count"></span>
         </div>
-        <ul class="tape-results-list"></ul>
+        <ul class="tape-results-list" data-testid="tape-results-list"></ul>
       </div>
       
-      <div class="tape-detail" style="display: none;">
+      <div class="tape-detail" data-testid="tape-detail" style="display: none;">
         <div class="tape-detail-header">
-          <h3 class="tape-detail-title"></h3>
-          <button class="tape-detail-close" type="button">&times;</button>
+          <h3 class="tape-detail-title" data-testid="tape-detail-title"></h3>
+          <button class="tape-detail-close" data-testid="tape-detail-close" type="button">&times;</button>
         </div>
         <div class="tape-detail-meta">
           <p class="tape-detail-creator"></p>
@@ -90,7 +90,7 @@ export function createUI(container) {
         </div>
         <div class="tape-detail-files">
           <h4>Files:</h4>
-          <ul class="tape-files-list"></ul>
+          <ul class="tape-files-list" data-testid="tape-files-list"></ul>
         </div>
         <div class="tape-progress" style="display: none;">
           <div class="tape-progress-bar-container">
@@ -320,7 +320,7 @@ function updateResultsUI() {
       <span class="tape-result-title">${escapeHtml(item.title)}</span>
       <span class="tape-result-creator">${escapeHtml(item.creator)}</span>
       <span class="tape-result-source">${escapeHtml(item.source)}</span>
-      <button class="tape-result-details-btn" type="button">Details</button>
+      <button class="tape-result-details-btn" data-testid="tape-result-details-btn" type="button">Details</button>
     </li>
   `).join('');
 
@@ -376,7 +376,7 @@ function updateDetailUI() {
       <span class="tape-file-name">${escapeHtml(file.name)}</span>
       <span class="tape-file-format">(${escapeHtml(file.format)})</span>
       ${file.size ? `<span class="tape-file-size">${formatSize(file.size)}</span>` : ''}
-      <button class="tape-load-btn" type="button">${buttonText}</button>
+      <button class="tape-load-btn" data-testid="tape-load-btn" type="button">${buttonText}</button>
     </li>
   `;
   }).join('');

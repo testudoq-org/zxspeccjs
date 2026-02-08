@@ -2,6 +2,77 @@
 
 ---
 
+## [2026-02-08] — Z80 SNAPSHOT PARSER REWRITE & JETPAC E2E TEST
+
+### Summary
+Complete rewrite of the Z80 snapshot parser to fix 5 catastrophic bugs that caused .z80 snapshots (like Jetpac) to show "Snapshot applied" but render a blank canvas. Added dedicated Jetpac E2E test, 14 data-testid attributes for testability, and 19 unit tests for the parser.
+
+### Root Cause — 5 Bugs in Loader.parseZ80()
+1. **Wrong register offsets**: Every register was read from the wrong byte position
+2. **No V2/V3 detection**: PC=0 at byte 6 signals extended header, but code didn't check
+3. **No RLE decompression**: ED ED NN VV scheme was completely missing
+4. **Wrong RAM extraction**: Used "last 48K" heuristic instead of paged memory blocks
+5. **Missing registers**: DE, IX, IY, IFF1, IFF2, IM not read
+
+### Completed Tasks
+
+#### 1. Z80 Parser Rewrite (src/loader.mjs)
+- Full V1/V2/V3 detection and parsing
+- Correct V1 header offsets (A@0, F@1, C@2, B@3, L@4, H@5, PC@6, SP@8, I@10, R@11, flags@12)
+- V2/V3 extended header: extLen at offset 30, real PC at offset 32
+- Paged memory blocks with 3-byte headers (length LE + page#)
+- Page mapping: 48K pages 4→0x8000, 5→0xC000, 8→0x4000; 128K banks 0-7
+- New `_z80Decompress()` static helper for RLE decompression
+
+#### 2. Alternate Registers & Border (src/main.mjs)
+- `applySnapshot()` restores A'/F'/BC'/DE'/HL' from snapshot
+- Border colour applied to ULA
+- `autoStart` extended to include `.sna` extension
+
+#### 3. data-testid Attributes (index.html, src/tapeUi.mjs)
+- 4 elements in index.html: screen, tape-library-btn, status, tape-ui-root
+- 10 elements in tapeUi.mjs: search input/btn, results, detail panel, file list, buttons
+
+#### 4. Unit Tests (tests/unit/loader.z80.test.mjs)
+- 19 tests in 6 describe blocks:
+  - V1 uncompressed (5), V1 compressed (2), V2 compressed (4), V2 uncompressed (1)
+  - Edge cases (3), _z80Decompress helper (4)
+- Helpers: `generateV1Uncompressed()`, `generateV1Compressed()`, `generateV2()`, `generateV2Uncompressed()`
+
+#### 5. Jetpac E2E Test (tests/e2e/snapshot-jetpac.spec.mjs) — NEW
+- Full flow: navigate → Tape Library → search "Jetpac" → Details → Load snapshot → verify
+- Status text: condensed assertion of status pattern
+- Uses stubbed network, data-testid selectors, canvas retry + memory fallback
+- Tags: @snapshot, @smoke
+
+#### 6. E2E Header Offset Fixes
+- `tape-library.spec.mjs`: Fixed `generateMinimalZ80Payload()` offsets
+- `tape-cors-fallback.spec.mjs`: Fixed `generateMinimalZ80Payload()` offsets
+
+### Test Results
+- ✅ Unit tests: **126 passed** (31 files) — 2.9s
+- ✅ E2E tests: **35 passed** — 1.1m
+- ✅ Codacy analysis: Clean on all modified files (only pre-existing warnings in main.mjs)
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/loader.mjs` | Rewrite parseZ80(), add _z80Decompress() |
+| `src/main.mjs` | Alternate regs + border restore; .sna autoStart |
+| `src/tapeUi.mjs` | data-testid on 10 elements |
+| `index.html` | data-testid on 4 elements |
+| `tests/unit/loader.z80.test.mjs` | 19 new tests (replaced 1 broken) |
+| `tests/e2e/snapshot-jetpac.spec.mjs` | NEW — 2 E2E tests |
+| `tests/e2e/tape-library.spec.mjs` | Fix Z80 header offsets |
+| `tests/e2e/tape-cors-fallback.spec.mjs` | Fix Z80 header offsets |
+
+### Known Flakiness Risks
+1. **Canvas pixel timing**: rAF may not have fired; test uses 10×200ms retry + memory fallback
+2. **`waitForEvent('tape-loaded')`**: listener registered before click to avoid race
+3. **Stub fidelity**: Stubbed JSON mirrors real Archive.org shape; periodic live runs recommended
+
+---
+
 ## [2026-02-07] — TAPE LIBRARY E2E TESTS & Z80 SNAPSHOT SUPPORT
 
 ### Summary
