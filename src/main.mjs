@@ -656,6 +656,23 @@ export class Emulator {
       if (typeof regs.IFF2 !== 'undefined') this.cpu.IFF2 = !!regs.IFF2;
       if (typeof regs.IM === 'number') this.cpu.IM = regs.IM & 0xff;
 
+      // Restore alternate register set if present
+      if (typeof regs.A2 === 'number' && typeof this.cpu.A2 !== 'undefined') this.cpu.A2 = regs.A2 & 0xff;
+      if (typeof regs.F2 === 'number' && typeof this.cpu.F2 !== 'undefined') this.cpu.F2 = regs.F2 & 0xff;
+      if (typeof regs.B2 === 'number' && typeof this.cpu.B2 !== 'undefined') this.cpu.B2 = regs.B2 & 0xff;
+      if (typeof regs.C2 === 'number' && typeof this.cpu.C2 !== 'undefined') this.cpu.C2 = regs.C2 & 0xff;
+      if (typeof regs.D2 === 'number' && typeof this.cpu.D2 !== 'undefined') this.cpu.D2 = regs.D2 & 0xff;
+      if (typeof regs.E2 === 'number' && typeof this.cpu.E2 !== 'undefined') this.cpu.E2 = regs.E2 & 0xff;
+      if (typeof regs.H2 === 'number' && typeof this.cpu.H2 !== 'undefined') this.cpu.H2 = regs.H2 & 0xff;
+      if (typeof regs.L2 === 'number' && typeof this.cpu.L2 !== 'undefined') this.cpu.L2 = regs.L2 & 0xff;
+
+      // Restore border colour if ULA is available
+      try {
+        if (typeof regs.borderColor === 'number' && this.ula) {
+          this.ula.borderColor = regs.borderColor & 0x07;
+        }
+      } catch (e) { void e; }
+
       // Initialize peripherals and input
       try { this.input.start(); } catch (e) { void e; }
 

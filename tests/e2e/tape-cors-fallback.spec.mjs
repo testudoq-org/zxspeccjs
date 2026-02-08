@@ -9,11 +9,13 @@ const CORS_ARCHIVE_PATTERN = /cors\.archive\.org\/cors\//;
 // Direct server URL pattern — matches ia800300.us.archive.org, ia600300.us.archive.org, etc.
 const DIRECT_SERVER_PATTERN = /ia\d+\.us\.archive\.org\//;
 
-// Minimal Z80 payload helper (PC at 0x4000)
+// Minimal Z80 payload helper (PC at 0x4000) — correct v1 header offsets
 function generateMinimalZ80Payload() {
   const header = new Uint8Array(30);
-  header[0x0C] = 0x00; // PC low
-  header[0x0D] = 0x40; // PC high -> 0x4000
+  header[6] = 0x00;  // PC low (offset 6)
+  header[7] = 0x40;  // PC high (offset 7) → 0x4000
+  header[27] = 1;    // IFF1 = enabled
+  header[29] = 1;    // IM 1
   const ram = new Uint8Array(48 * 1024);
   const out = new Uint8Array(header.length + ram.length);
   out.set(header, 0);

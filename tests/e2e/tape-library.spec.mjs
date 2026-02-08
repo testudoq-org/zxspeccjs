@@ -132,36 +132,50 @@ const MOCK_METADATA_RESPONSE = {
  */
 function generateMinimalZ80Payload() {
   // Z80 v1 header (30 bytes) + 48K uncompressed RAM
+  // Offsets per the actual Z80 file format specification
   const header = new Uint8Array(30);
 
-  // Set registers at offsets expected by Loader.parseZ80
-  // A (0x05), F (0x06)
-  header[0x05] = 0x00; // A
-  header[0x06] = 0x00; // F
+  // A (offset 0), F (offset 1)
+  header[0] = 0x00; // A
+  header[1] = 0x00; // F
 
-  // B (0x07), C (0x08)
-  header[0x07] = 0x00;
-  header[0x08] = 0x00;
+  // BC: C (offset 2), B (offset 3)
+  header[2] = 0x00;
+  header[3] = 0x00;
 
-  // H (0x09), L (0x0A)
-  header[0x09] = 0x00;
-  header[0x0A] = 0x00;
+  // HL: L (offset 4), H (offset 5)
+  header[4] = 0x00;
+  header[5] = 0x00;
 
-  // PC little-endian at 0x0C - set to 0x4000 so we can assert it in tests
-  header[0x0C] = 0x00; // low byte
-  header[0x0D] = 0x40; // high byte (0x4000)
+  // PC little-endian at offset 6 - set to 0x4000 so we can assert it in tests
+  header[6] = 0x00; // low byte
+  header[7] = 0x40; // high byte (0x4000)
 
-  // I (0x0E)
-  header[0x0E] = 0x3F;
+  // SP at offset 8 (little-endian)
+  header[8] = 0xFF; // low
+  header[9] = 0xFF; // high
 
-  // SP at 0x10 (little-endian)
-  header[0x10] = 0xFF; // low
-  header[0x11] = 0xFF; // high
+  // I (offset 10)
+  header[10] = 0x3F;
 
-  // R (0x11) - note: may overlap with SP high byte in v1 header layout; acceptable
-  header[0x11] = 0x00;
+  // R (offset 11) bits 0-6
+  header[11] = 0x00;
 
-  // Remaining header bytes left as zeros
+  // Flag byte (offset 12): bit0=R bit7, bits1-3=border, bit5=compressed
+  header[12] = 0x00; // not compressed, border=0
+
+  // DE: E (offset 13), D (offset 14)
+  header[13] = 0x00;
+  header[14] = 0x00;
+
+  // IY at offset 23, IX at offset 25
+  header[23] = 0x00; header[24] = 0x00;
+  header[25] = 0x00; header[26] = 0x00;
+
+  // IFF1 (offset 27), IFF2 (offset 28), IM (offset 29)
+  header[27] = 1; // EI
+  header[28] = 1;
+  header[29] = 1; // IM 1
 
   // Create 48K RAM (all zeros for minimal payload)
   const ram = new Uint8Array(48 * 1024);
