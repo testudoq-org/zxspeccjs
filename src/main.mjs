@@ -657,19 +657,23 @@ export class Emulator {
       if (typeof regs.IM === 'number') this.cpu.IM = regs.IM & 0xff;
 
       // Restore alternate register set if present
-      if (typeof regs.A2 === 'number' && typeof this.cpu.A2 !== 'undefined') this.cpu.A2 = regs.A2 & 0xff;
-      if (typeof regs.F2 === 'number' && typeof this.cpu.F2 !== 'undefined') this.cpu.F2 = regs.F2 & 0xff;
-      if (typeof regs.B2 === 'number' && typeof this.cpu.B2 !== 'undefined') this.cpu.B2 = regs.B2 & 0xff;
-      if (typeof regs.C2 === 'number' && typeof this.cpu.C2 !== 'undefined') this.cpu.C2 = regs.C2 & 0xff;
-      if (typeof regs.D2 === 'number' && typeof this.cpu.D2 !== 'undefined') this.cpu.D2 = regs.D2 & 0xff;
-      if (typeof regs.E2 === 'number' && typeof this.cpu.E2 !== 'undefined') this.cpu.E2 = regs.E2 & 0xff;
-      if (typeof regs.H2 === 'number' && typeof this.cpu.H2 !== 'undefined') this.cpu.H2 = regs.H2 & 0xff;
-      if (typeof regs.L2 === 'number' && typeof this.cpu.L2 !== 'undefined') this.cpu.L2 = regs.L2 & 0xff;
+      // Z80 class uses underscore suffix (A_, B_, ...) for primed registers
+      if (typeof regs.A2 === 'number') this.cpu.A_ = regs.A2 & 0xff;
+      if (typeof regs.F2 === 'number') this.cpu.F_ = regs.F2 & 0xff;
+      if (typeof regs.B2 === 'number') this.cpu.B_ = regs.B2 & 0xff;
+      if (typeof regs.C2 === 'number') this.cpu.C_ = regs.C2 & 0xff;
+      if (typeof regs.D2 === 'number') this.cpu.D_ = regs.D2 & 0xff;
+      if (typeof regs.E2 === 'number') this.cpu.E_ = regs.E2 & 0xff;
+      if (typeof regs.H2 === 'number') this.cpu.H_ = regs.H2 & 0xff;
+      if (typeof regs.L2 === 'number') this.cpu.L_ = regs.L2 & 0xff;
 
       // Restore border colour if ULA is available
       try {
         if (typeof regs.borderColor === 'number' && this.ula) {
-          this.ula.borderColor = regs.borderColor & 0x07;
+          this.ula.border = regs.borderColor & 0x07;
+          if (typeof this.ula._updateCanvasBorder === 'function') {
+            this.ula._updateCanvasBorder();
+          }
         }
       } catch (e) { void e; }
 
@@ -966,7 +970,12 @@ export class Emulator {
           _portReadCount++;
           return result;
         }
-        return 0xFF; // Default for unhandled ports
+        // Kempston joystick (port 0x1F): return 0x00 (no input)
+        // Active-high convention — 0xFF would mean all directions + fire pressed
+        if ((port & 0xFF) === 0x1F) return 0x00;
+        // Default for unhandled ports: 0xFF (floating bus high)
+        // Many unhandled reads on real hardware float high, except Kempston
+        return 0xFF;
       },
       // Debug helper to enable verbose port read logging
       enableDebug: (enabled) => { _portReadDebugEnabled = enabled; },
@@ -1572,11 +1581,9 @@ export class Emulator {
         }
       } catch (e) { void e; }
 
-      // Optionally update sound using CPU tstates / port toggles (best-effort)
-      // Sound integration requires CPU OUT implementation; here we provide a hook
-      if (this.sound && this.cpu && typeof this.sound.notifyToggleAt === 'function') {
-        // best-effort: use cpu.tstates to allow sound module to compute frequency
-        this.sound.notifyToggleAt(this.cpu.tstates || 0);
+      // Flush the beeper sample buffer for this frame
+      if (this.sound && typeof this.sound.endFrame === 'function') {
+        this.sound.endFrame(this.cpu ? (this.cpu.tstates - TSTATES_PER_FRAME) : 0);
       }
 
       this._acc -= FRAME_MS;

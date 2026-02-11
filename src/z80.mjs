@@ -463,6 +463,28 @@ export class Z80 {
   _setFlagH(cond) { if (cond) this.F |= 0x10; else this.F &= ~0x10; }
   _setFlagPV(cond) { if (cond) this.F |= 0x04; else this.F &= ~0x04; }
 
+  // Parity check: returns true if even number of 1-bits (even parity)
+  _parity(v) {
+    v = (v & 0xFF);
+    v ^= v >>> 4;
+    v ^= v >>> 2;
+    v ^= v >>> 1;
+    return (v & 1) === 0;
+  }
+
+  // Common flag update for IN r,(C) instructions: S, Z, H=0, P/V=parity, N=0, C unchanged
+  _setInFlags(val) {
+    val = val & 0xFF;
+    // Preserve carry, clear everything else, then set appropriately
+    let f = this.F & 0x01; // keep C
+    if (val & 0x80) f |= 0x80; // S
+    if (val === 0) f |= 0x40; // Z
+    // H = 0 (already)
+    if (this._parity(val)) f |= 0x04; // P/V = parity
+    // N = 0 (already)
+    this.F = f;
+  }
+
   // Basic arithmetic helpers (add / adc / sub / sbc) to centralise flag updates
   _addA(n) {
     const before = this.A;
@@ -708,16 +730,27 @@ export class Z80 {
 
   // Execute a single instruction and return t-states consumed
   step() {
-    // Handle interrupts (very basic IM 1)
+    // Handle interrupts — dispatch on IM mode
     if (this.intRequested && this.IFF1) {
       this.halted = false; // HALT is exited on interrupt
       this.IFF1 = false; this.IFF2 = false;
-      // maskable interrupt: push PC and jump to 0x0038
       this.pushWord(this.PC);
-      this.PC = 0x0038;
+
+      if (this.IM === 2) {
+        // IM 2: vector table lookup at (I << 8 | 0xFF)
+        // On a real Spectrum the data bus byte is 0xFF during INT acknowledgement
+        const vectorAddr = ((this.I & 0xFF) << 8) | 0xFF;
+        const lo = this.readByte(vectorAddr);
+        const hi = this.readByte((vectorAddr + 1) & 0xFFFF);
+        this.PC = (hi << 8) | lo;
+      } else {
+        // IM 0 and IM 1: jump to 0x0038 (RST 38h)
+        this.PC = 0x0038;
+      }
+
       this.intRequested = false;
-      const consumed = 13; // typical RST/INT cost approximation
-      // Ensure reliable PC tracking for interrupts - ALWAYS call debug hooks
+      const consumed = this.IM === 2 ? 19 : 13;
+      // Ensure reliable PC tracking for interrupts
       this._updateDebugHooks(this.PC);
       if (this.debugCallback) {
         this.debugCallback(0xFF, this.PC - consumed); // Interrupt opcode approximation
@@ -2473,27 +2506,123 @@ export class Z80 {
             this.tstates += 15; return 15;
           }
 
-          // IN/OUT (C) instructions (ED 70..71, 78..79)
-          case 0x70: { // IN B,(C)
+          // IN/OUT (C) instructions — full set (ED 40..7B)
+          case 0x40: { // IN B,(C)
             const port = this._getBC();
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
-              try { val = this.io.read(port) & 0xFF; } catch(e) { val = 0xFF; }
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
             }
             this.B = val;
-            this._setFlagZ(this.B);
-            this._setFlagS(this.B);
-            // parity (P/V)
-            const ones = this.B.toString(2).split('1').length - 1;
-            this._setFlagPV((ones % 2) === 0);
-            this.F &= ~0x10; // H = 0
-            this.F &= ~0x02; // N = 0
+            this._setInFlags(val);
             this.tstates += 12; return 12;
           }
-          case 0x71: { // OUT (C),B
+          case 0x41: { // OUT (C),B
             const port = this._getBC();
             if (this.io && typeof this.io.write === 'function') {
-              try { this.io.write(port, this.B & 0xFF, this.tstates); } catch(e) { /* ignore */ }
+              try { this.io.write(port, this.B & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x48: { // IN C,(C)
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            this.C = val;
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x49: { // OUT (C),C
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, this.C & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x50: { // IN D,(C)
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            this.D = val;
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x51: { // OUT (C),D
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, this.D & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x58: { // IN E,(C)
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            this.E = val;
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x59: { // OUT (C),E
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, this.E & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x60: { // IN H,(C)
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            this.H = val;
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x61: { // OUT (C),H
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, this.H & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x68: { // IN L,(C)
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            this.L = val;
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x69: { // OUT (C),L
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, this.L & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            this.tstates += 12; return 12;
+          }
+          case 0x70: { // IN (C) — undocumented: affects flags only, result discarded
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            // Flags set but result not stored to any register
+            this._setInFlags(val);
+            this.tstates += 12; return 12;
+          }
+          case 0x71: { // OUT (C),0 — undocumented: outputs 0
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, 0, this.tstates); } catch(_e) { /* ignore */ }
             }
             this.tstates += 12; return 12;
           }
@@ -2501,22 +2630,17 @@ export class Z80 {
             const port = this._getBC();
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
-              try { val = this.io.read(port) & 0xFF; } catch(e) { val = 0xFF; }
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
             }
             this.A = val;
-            this._setFlagZ(this.A);
-            this._setFlagS(this.A);
-            const ones = this.A.toString(2).split('1').length - 1;
-            this._setFlagPV((ones % 2) === 0);
-            this.F &= ~0x10; // H = 0
-            this.F &= ~0x02; // N = 0
+            this._setInFlags(val);
             // Minimal test hook: capture last port read for diagnostics
             try {
               if (typeof window !== 'undefined') {
                 window.__TEST__ = window.__TEST__ || {};
                 window.__TEST__.lastPortRead = { port, val, pc: this.PC, t: this.tstates };
               }
-            } catch (e) { /* ignore */ }
+            } catch (_e) { /* ignore */ }
             this.tstates += 12; return 12;
           }
           case 0x79: { // OUT (C),A
@@ -2724,6 +2848,66 @@ export class Z80 {
             const val = this.readWord(addr);
             this.SP = val;
             this.tstates += 20; return 20;
+          }
+
+          // Block I/O instructions
+          case 0xA2: // INI
+          case 0xB2: // INIR
+          case 0xAA: // IND
+          case 0xBA: { // INDR
+            const port = this._getBC();
+            let val = 0xFF;
+            if (this.io && typeof this.io.read === 'function') {
+              try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
+            }
+            const hl = this._getHL();
+            this.writeByte(hl, val);
+            this.B = (this.B - 1) & 0xFF;
+            // INI/INIR increment HL; IND/INDR decrement HL
+            if (edOpcode === 0xA2 || edOpcode === 0xB2) {
+              this._setHL((hl + 1) & 0xFFFF);
+            } else {
+              this._setHL((hl - 1) & 0xFFFF);
+            }
+            // Z flag set if B becomes 0; N = 1
+            this._setFlagZ(this.B);
+            this.F |= 0x02; // N = 1
+            let cycles = 16;
+            // Repeat variants loop while B != 0
+            if ((edOpcode === 0xB2 || edOpcode === 0xBA) && this.B !== 0) {
+              this.PC = (this.PC - 2) & 0xFFFF;
+              cycles += 5;
+            }
+            this.tstates += cycles; return cycles;
+          }
+
+          case 0xA3: // OUTI
+          case 0xB3: // OTIR
+          case 0xAB: // OUTD
+          case 0xBB: { // OTDR
+            const hl = this._getHL();
+            const val = this.readByte(hl);
+            this.B = (this.B - 1) & 0xFF;
+            const port = this._getBC();
+            if (this.io && typeof this.io.write === 'function') {
+              try { this.io.write(port, val, this.tstates); } catch(_e) { /* ignore */ }
+            }
+            // OUTI/OTIR increment HL; OUTD/OTDR decrement HL
+            if (edOpcode === 0xA3 || edOpcode === 0xB3) {
+              this._setHL((hl + 1) & 0xFFFF);
+            } else {
+              this._setHL((hl - 1) & 0xFFFF);
+            }
+            // Z flag set if B becomes 0; N = 1
+            this._setFlagZ(this.B);
+            this.F |= 0x02; // N = 1
+            let cycles = 16;
+            // Repeat variants loop while B != 0
+            if ((edOpcode === 0xB3 || edOpcode === 0xBB) && this.B !== 0) {
+              this.PC = (this.PC - 2) & 0xFFFF;
+              cycles += 5;
+            }
+            this.tstates += cycles; return cycles;
           }
 
           // Default fallback for unimplemented ED opcodes
