@@ -53,6 +53,14 @@ export class Emulator {
     this._executedOpcodes = [];
     this._lastPC = 0;
     this._bootComplete = false;
+
+    // Per-frame trace: opt-in via window.__ZX_TRACE__ = true or setTracing(true)
+    this._traceEnabled = false;
+    this._traceLog = [];          // circular buffer of frame trace objects
+    this._traceMaxFrames = 300;   // keep last N frames
+    this._traceFrameNumber = 0;
+    this._tracePortReads = [];    // collected during a single frame
+    this._tracePortWritesFrame = [];
     
     // Keyboard debug flag
     this._keyboardDebug = false;
@@ -65,6 +73,80 @@ export class Emulator {
     this._keyboardDebug = enabled;
     if (this.input) this.input.setDebug(enabled);
     if (this.ula) this.ula.setDebug(enabled);
+  }
+
+  // ── Per-frame debug tracing ──
+  // Enable with emu.setTracing(true) or window.__ZX_TRACE__ = true
+  setTracing(enabled) {
+    this._traceEnabled = !!enabled;
+    if (!enabled) return;
+    this._traceLog = [];
+    this._traceFrameNumber = 0;
+  }
+
+  getTraceLog() { return this._traceLog; }
+
+  /** Called at the START of each frame inside _loop */
+  _traceFrameStart() {
+    this._tracePortReads = [];
+    this._tracePortWritesFrame = [];
+  }
+
+  /** Called at the END of each frame inside _loop */
+  _traceFrameEnd() {
+    // Allow runtime toggle via window flag
+    if (typeof window !== 'undefined' && window.__ZX_TRACE__ && !this._traceEnabled) {
+      this._traceEnabled = true;
+      this._traceLog = [];
+      this._traceFrameNumber = 0;
+    }
+    if (!this._traceEnabled) return;
+
+    const regs = this.cpu ? {
+      A: this.cpu.A, F: this.cpu.F, B: this.cpu.B, C: this.cpu.C,
+      D: this.cpu.D, E: this.cpu.E, H: this.cpu.H, L: this.cpu.L,
+      PC: this.cpu.PC, SP: this.cpu.SP, IX: this.cpu.IX, IY: this.cpu.IY,
+      I: this.cpu.I, R: this.cpu.R, IM: this.cpu.IM,
+      IFF1: this.cpu.IFF1, IFF2: this.cpu.IFF2,
+      tstates: this.cpu.tstates,
+      A_: this.cpu.A_, F_: this.cpu.F_, B_: this.cpu.B_, C_: this.cpu.C_,
+      D_: this.cpu.D_, E_: this.cpu.E_, H_: this.cpu.H_, L_: this.cpu.L_,
+    } : null;
+
+    const entry = {
+      frame: this._traceFrameNumber,
+      registers: regs,
+      portReads: this._tracePortReads.slice(),
+      portWrites: this._tracePortWritesFrame.slice(),
+      border: this.ula ? this.ula.border : null,
+    };
+
+    this._traceLog.push(entry);
+    if (this._traceLog.length > this._traceMaxFrames) this._traceLog.shift();
+    this._traceFrameNumber++;
+
+    // Expose on window for external consumption / Fuse trace comparison
+    try {
+      if (typeof window !== 'undefined') {
+        if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
+        window.__ZX_DEBUG__.traceLog = this._traceLog;
+        window.__ZX_DEBUG__.traceFrameNumber = this._traceFrameNumber;
+      }
+    } catch { /* best-effort */ }
+  }
+
+  /** Record a port read event during a frame (called from IO adapter) */
+  _tracePortRead(port, value) {
+    if (this._traceEnabled) {
+      this._tracePortReads.push({ port, value, t: this.cpu ? this.cpu.tstates : 0 });
+    }
+  }
+
+  /** Record a port write event during a frame (called from IO adapter) */
+  _tracePortWriteEvent(port, value) {
+    if (this._traceEnabled) {
+      this._tracePortWritesFrame.push({ port, value, t: this.cpu ? this.cpu.tstates : 0 });
+    }
   }
 
   // Debug API methods
@@ -233,6 +315,9 @@ export class Emulator {
             try{ for(let i=0;i<len;i++) out.push(this.memory ? this.memory.read((addr + i) & 0xFFFF) : 0); }catch(e){ void e; }
             return out;
           };
+          // Per-frame trace API
+          window.__ZX_DEBUG__.setTracing = (on) => this.setTracing(on);
+          window.__ZX_DEBUG__.getTraceLog = () => this.getTraceLog();
         }catch(e){ /* best-effort only */ }
       }
 
@@ -945,6 +1030,7 @@ export class Emulator {
       write: (port, value, tstates) => {
         // Track port write for debug API
         this._trackPortWrite(port, value);
+        this._tracePortWriteEvent(port, value);
         // Route port 0xFE to ULA for border control
         if ((port & 0xFF) === 0xFE) {
           if (this.ula && typeof this.ula.writePort === 'function') this.ula.writePort(port, value);
@@ -968,13 +1054,18 @@ export class Emulator {
             } catch (err) { /* ignore logging failures */ }
           }
           _portReadCount++;
+          this._tracePortRead(port, result);
           return result;
         }
         // Kempston joystick (port 0x1F): return 0x00 (no input)
         // Active-high convention — 0xFF would mean all directions + fire pressed
-        if ((port & 0xFF) === 0x1F) return 0x00;
+        if ((port & 0xFF) === 0x1F) {
+          this._tracePortRead(port, 0x00);
+          return 0x00;
+        }
         // Default for unhandled ports: 0xFF (floating bus high)
         // Many unhandled reads on real hardware float high, except Kempston
+        this._tracePortRead(port, 0xFF);
         return 0xFF;
       },
       // Debug helper to enable verbose port read logging
@@ -1471,6 +1562,9 @@ export class Emulator {
 
     // Run one or more 50Hz frames if enough time elapsed
     while (this._acc >= FRAME_MS) {
+      // Per-frame trace collection
+      this._traceFrameStart();
+
       // sync input matrix to ULA
       this._applyInputToULA();
 
@@ -1585,6 +1679,9 @@ export class Emulator {
       if (this.sound && typeof this.sound.endFrame === 'function') {
         this.sound.endFrame(this.cpu ? (this.cpu.tstates - TSTATES_PER_FRAME) : 0);
       }
+
+      // Emit per-frame trace entry (if tracing enabled)
+      this._traceFrameEnd();
 
       this._acc -= FRAME_MS;
     }
