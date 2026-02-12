@@ -38,10 +38,9 @@ export class ULA {
     // Keyboard matrix: 8 rows, each byte bit = 0 when key pressed (active low)
     this.keyMatrix = new Uint8Array(8).fill(0xff);
 
-    // Flash handling
+    // Flash handling — frame-counted like real ULA (toggles every 16 frames)
     this.flashState = false;
-    this._lastFlashToggle = performance.now();
-    this._flashInterval = 320; // ms, typical Spectrum flash period ~320ms
+    this._flashPhase = 0; // 0-31 counter, bit 4 controls flash state
     
     // Display initialization tracking
     this._initialized = false;
@@ -145,7 +144,7 @@ export class ULA {
   }
 
   // Legacy method for backwards compatibility (still available but deprecated)
-  generateInterrupt(tstates) {
+  generateInterrupt(_tstates) {
     // Delegate to synchronous version - tstates tracking no longer needed
     // as we generate interrupt at frame boundary in main loop
     this.generateInterruptSync();
@@ -241,13 +240,11 @@ export class ULA {
 
 
 
-  // Toggle flash state based on time
+  // Advance flash phase by one frame (called once per 50Hz frame).
+  // On real hardware the ULA toggles flash every 16 frames (32-frame period).
   _updateFlash() {
-    const now = performance.now();
-    if (now - this._lastFlashToggle >= this._flashInterval) {
-      this.flashState = !this.flashState;
-      this._lastFlashToggle = now;
-    }
+    this._flashPhase = (this._flashPhase + 1) & 0x1F;
+    this.flashState = (this._flashPhase & 0x10) !== 0;
   }
 
   // Main render routine: read bitmap and attributes from memory and write to canvas ImageData

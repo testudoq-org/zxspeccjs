@@ -276,12 +276,53 @@ export class Memory {
     return addr >= 0x4000 && addr <= 0x7fff;
   }
 
+  /**
+   * Apply ULA memory contention delay for the ZX Spectrum 48K.
+   *
+   * The ULA and CPU share the same RAM at 0x4000-0x7FFF. During active
+   * display, the ULA periodically locks the CPU out for small delays.
+   *
+   * Timing (48K):
+   *   - 69888 T-states per frame, 312 scanlines × 224 T-states each
+   *   - Active display: scanlines 64–255 (192 lines), pixel fetch during
+   *     the first 128 T-states of each scanline
+   *   - First contended T-state of the frame: 14335 (scanline 64, column 0)
+   *   - Contention pattern per 8 T-state group: [6, 5, 4, 3, 2, 1, 0, 0]
+   *
+   * Reference: "The ZX Spectrum ULA" by Chris Smith, ch. 7.
+   */
   _applyContention(addr) {
     if (!this._isContended(addr)) { this._lastContention = 0; return 0; }
-    let extra = 1;
-    if (this.cpu && typeof this.cpu.tstates === 'number') {
-      const t = this.cpu.tstates & 0xff;
-      extra = (t % 7) === 0 ? 6 : ((t % 3) === 0 ? 2 : 1);
+    if (!this.cpu || typeof this.cpu.tstates !== 'number') { this._lastContention = 0; return 0; }
+
+    // Determine position within current frame
+    const frameT = typeof this.cpu.frameStartTstates === 'number'
+      ? this.cpu.tstates - this.cpu.frameStartTstates
+      : this.cpu.tstates % 69888;
+
+    // Active display region: T-states 14335..14335+(192*224)-1 = 14335..57407
+    const FIRST_CONTENDED = 14335;
+    const LAST_CONTENDED = 14335 + 192 * 224 - 1; // 57406
+
+    if (frameT < FIRST_CONTENDED || frameT > LAST_CONTENDED) {
+      this._lastContention = 0;
+      return 0;
+    }
+
+    // Position within scanline (each line = 224 T-states)
+    const lineT = (frameT - FIRST_CONTENDED) % 224;
+
+    // Only the first 128 T-states of each line are contended (pixel fetch)
+    if (lineT >= 128) {
+      this._lastContention = 0;
+      return 0;
+    }
+
+    // Delay pattern: [6, 5, 4, 3, 2, 1, 0, 0]
+    const CONTENTION_PATTERN = [6, 5, 4, 3, 2, 1, 0, 0];
+    const extra = CONTENTION_PATTERN[lineT & 7];
+
+    if (extra > 0) {
       this.cpu.tstates += extra;
     }
     this._lastContention = extra;

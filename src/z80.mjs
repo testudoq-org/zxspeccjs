@@ -761,12 +761,17 @@ export class Z80 {
 
     // If CPU is halted and no interrupt is pending, burn 4 tstates per check
     if (this.halted) {
+      // R increments even during HALT (NOP is fetched repeatedly)
+      this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
       this.tstates += 4;
       return 4;
     }
 
     const currentPC = this.PC;
     const opcode = this.readByte(this.PC++);
+
+    // Increment R register lower 7 bits on every M1 (opcode fetch) cycle
+    this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
     
     // CRITICAL: ALWAYS call debug hooks for reliable PC tracking
     this._updateDebugHooks(currentPC);
@@ -1005,6 +1010,8 @@ export class Z80 {
       }
       case 0xCB: {
         const cbOpcode = this.readByte(this.PC++);
+        // CB prefix: second M1 fetch increments R again
+        this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
         return this._executeCBOperation(cbOpcode);
       }
 
@@ -1862,6 +1869,8 @@ export class Z80 {
       // DD prefix (IX register operations)
       case 0xDD: {
         const ddOpcode = this.readByte(this.PC++);
+        // DD prefix: second M1 fetch increments R again
+        this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
         
         switch (ddOpcode) {
           case 0x21: { // LD IX,nn
@@ -2094,6 +2103,8 @@ export class Z80 {
       // FD prefix (IY register operations)
       case 0xFD: {
         const fdOpcode = this.readByte(this.PC++);
+        // FD prefix: second M1 fetch increments R again
+        this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
         
         switch (fdOpcode) {
           case 0x21: { // LD IY,nn
@@ -2326,6 +2337,8 @@ export class Z80 {
       // ED prefix (extended operations)
       case 0xED: {
         const edOpcode = this.readByte(this.PC++);
+        // ED prefix: second M1 fetch increments R again
+        this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
         switch (edOpcode) {
           // NEG - Negate A (A = 0 - A)
           case 0x44: case 0x4C: case 0x54: case 0x5C: 

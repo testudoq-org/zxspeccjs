@@ -1028,6 +1028,8 @@ export class Emulator {
     let _portReadCount = 0;
     return {
       write: (port, value, tstates) => {
+        // Apply I/O contention delays before the actual port operation
+        this._applyIOContention(port);
         // Track port write for debug API
         this._trackPortWrite(port, value);
         this._tracePortWriteEvent(port, value);
@@ -1041,6 +1043,8 @@ export class Emulator {
         }
       },
       read: (port) => {
+        // Apply I/O contention delays before the actual port operation
+        this._applyIOContention(port);
         // Route port 0xFE to ULA for keyboard reading
         if ((port & 0xFF) === 0xFE) {
           const result = this.ula && typeof this.ula.readPort === 'function' ? this.ula.readPort(port) : 0xFF;
@@ -1063,8 +1067,15 @@ export class Emulator {
           this._tracePortRead(port, 0x00);
           return 0x00;
         }
-        // Default for unhandled ports: 0xFF (floating bus high)
-        // Many unhandled reads on real hardware float high, except Kempston
+        // Floating bus: even ports (bit 0 clear, like ULA) return the byte
+        // currently being fetched from video RAM during active display.
+        // Outside active display or on odd ports, return 0xFF.
+        if ((port & 0x01) === 0) {
+          const fb = this._readFloatingBus();
+          this._tracePortRead(port, fb);
+          return fb;
+        }
+        // Default for unhandled odd ports: 0xFF (bus floats high)
         this._tracePortRead(port, 0xFF);
         return 0xFF;
       },
@@ -1072,6 +1083,91 @@ export class Emulator {
       enableDebug: (enabled) => { _portReadDebugEnabled = enabled; },
       getReadCount: () => _portReadCount
     };
+  }
+
+  /**
+   * Read the floating bus value — returns the byte the ULA is currently
+   * fetching from video RAM during active display.  Outside the active
+   * area, 0xFF is returned (bus floats high).
+   *
+   * The ULA fetches a bitmap byte then an attribute byte in alternating
+   * 4-T-state slots during the first 128 T-states of each display line.
+   */
+  _readFloatingBus() {
+    if (!this.cpu || !this.memory) return 0xFF;
+
+    const frameT = typeof this.cpu.frameStartTstates === 'number'
+      ? this.cpu.tstates - this.cpu.frameStartTstates
+      : this.cpu.tstates % 69888;
+
+    const FIRST_PIXEL = 14335;
+    const scanLine = Math.floor((frameT - FIRST_PIXEL) / 224);
+    if (scanLine < 0 || scanLine >= 192) return 0xFF;
+
+    const lineT = (frameT - FIRST_PIXEL) % 224;
+    if (lineT >= 128) return 0xFF; // border/retrace portion of scanline
+
+    // Within the 128 T-state pixel-fetch window the ULA alternates:
+    //   T+0..T+3 → bitmap fetch,  T+4..T+7 → attribute fetch  (repeat ×16)
+    const cell = Math.floor(lineT / 8);  // character cell 0-15
+    const phase = lineT & 7;
+
+    // Bitmap address in ZX Spectrum interleaved layout
+    const y = scanLine;
+    const bitmapAddr = 0x4000
+      | ((y & 0xC0) << 5)
+      | ((y & 0x07) << 8)
+      | ((y & 0x38) << 2)
+      | cell;
+
+    // Attribute address
+    const attrAddr = 0x5800 + (Math.floor(y / 8) * 32) + cell;
+
+    if (phase < 4) {
+      return this.memory.read(bitmapAddr) & 0xFF;
+    }
+    return this.memory.read(attrAddr) & 0xFF;
+  }
+
+  /**
+   * Apply I/O port contention delays (ZX Spectrum 48K).
+   *
+   * I/O timing depends on two factors:
+   *   1. Whether the port is a "ULA port" (bit 0 of port address is 0)
+   *   2. Whether the port's high byte falls in contended memory (0x40-0x7F)
+   *
+   * Patterns (C = one contention delay, N = 1 T-state with no contention):
+   *   - High byte contended + ULA port:        C:1, C:3           (early + late)
+   *   - High byte contended + non-ULA port:    C:1, C:1, C:1, C:1 (4 contention checks)
+   *   - High byte uncontended + ULA port:      N:1, C:3           (late only)
+   *   - High byte uncontended + non-ULA port:  N:4                (no contention)
+   *
+   * Reference: "The ZX Spectrum ULA" by Chris Smith, ch. 7.
+   */
+  _applyIOContention(port) {
+    if (!this.cpu || !this.memory) return;
+    const isULAPort = (port & 0x01) === 0;
+    const highContended = this.memory._isContended(port & 0xFF00);
+
+    if (highContended && isULAPort) {
+      // C:1, C:3
+      this.memory._applyContention(0x4000); // C
+      this.cpu.tstates += 1;                 // :1
+      this.memory._applyContention(0x4000); // C
+      this.cpu.tstates += 3;                 // :3
+    } else if (highContended && !isULAPort) {
+      // C:1, C:1, C:1, C:1
+      for (let i = 0; i < 4; i++) {
+        this.memory._applyContention(0x4000); // C
+        this.cpu.tstates += 1;                 // :1
+      }
+    } else if (!highContended && isULAPort) {
+      // N:1, C:3
+      this.cpu.tstates += 1;                 // N:1
+      this.memory._applyContention(0x4000); // C
+      this.cpu.tstates += 3;                 // :3
+    }
+    // else: uncontended + non-ULA → N:4 (no extra delays; base I/O timing in CPU)
   }
 
   _installDebugHelpers(ioAdapter) {
@@ -1570,6 +1666,8 @@ export class Emulator {
 
       // Run CPU for a full frame worth of t-states with interrupt generation
       if (this.cpu && typeof this.cpu.runFor === 'function') {
+        // Record frame start T-state so memory contention can compute scanline position
+        this.cpu.frameStartTstates = this.cpu.tstates;
         this.cpu.runFor(TSTATES_PER_FRAME);
         
         // QUICK FIX: Synchronous interrupt generation at frame boundary
