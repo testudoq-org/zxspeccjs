@@ -43,6 +43,13 @@ export class Memory {
     // optional CPU reference for applying tstate delays
     this.cpu = null;
 
+    // contention timing table (lazy-built to match JSSpeccy behavior)
+    this._contentionTable = null;
+    this._frameCycleCount = 69888; // default for 48K
+    this._firstContended = 14335;
+    this._tstatesPerRow = 224;
+    this._contendedLines = 192;
+
     // debug mem write log (captures writes to 0x4000..0x5AFF)
     this._memWrites = [];
 
@@ -291,40 +298,44 @@ export class Memory {
    *
    * Reference: "The ZX Spectrum ULA" by Chris Smith, ch. 7.
    */
+  _buildContentionTableIfNeeded() {
+    if (this._contentionTable) return;
+    const frameCycleCount = this._frameCycleCount;
+    const table = new Uint8Array(frameCycleCount).fill(0);
+    let pos = 0;
+    // fill until first contended tstate
+    while (pos < this._firstContended && pos < frameCycleCount) table[pos++] = 0;
+
+    // for each visible scanline, set contention for first 128 tstates
+    for (let y = 0; y < this._contendedLines && pos < frameCycleCount; y++) {
+      for (let x = 0; x < this._tstatesPerRow && pos < frameCycleCount; x++) {
+        if (x < 128) {
+          const seq = x & 0x07;
+          table[pos++] = (seq === 7) ? 0 : (6 - seq);
+        } else {
+          table[pos++] = 0;
+        }
+      }
+    }
+
+    // rest of frame = 0
+    while (pos < frameCycleCount) table[pos++] = 0;
+    this._contentionTable = table;
+  }
+
   _applyContention(addr) {
     if (!this._isContended(addr)) { this._lastContention = 0; return 0; }
     if (!this.cpu || typeof this.cpu.tstates !== 'number') { this._lastContention = 0; return 0; }
 
-    // Determine position within current frame
-    const frameT = typeof this.cpu.frameStartTstates === 'number'
-      ? this.cpu.tstates - this.cpu.frameStartTstates
-      : this.cpu.tstates % 69888;
+    this._buildContentionTableIfNeeded();
 
-    // Active display region: T-states 14335..14335+(192*224)-1 = 14335..57407
-    const FIRST_CONTENDED = 14335;
-    const LAST_CONTENDED = 14335 + 192 * 224 - 1; // 57406
+    const frameStart = (typeof this.cpu.frameStartTstates === 'number') ? this.cpu.frameStartTstates : 0;
+    let frameT = this.cpu.tstates - frameStart;
+    // normalise into positive modulo space
+    frameT = ((frameT % this._frameCycleCount) + this._frameCycleCount) % this._frameCycleCount;
 
-    if (frameT < FIRST_CONTENDED || frameT > LAST_CONTENDED) {
-      this._lastContention = 0;
-      return 0;
-    }
-
-    // Position within scanline (each line = 224 T-states)
-    const lineT = (frameT - FIRST_CONTENDED) % 224;
-
-    // Only the first 128 T-states of each line are contended (pixel fetch)
-    if (lineT >= 128) {
-      this._lastContention = 0;
-      return 0;
-    }
-
-    // Delay pattern: [6, 5, 4, 3, 2, 1, 0, 0]
-    const CONTENTION_PATTERN = [6, 5, 4, 3, 2, 1, 0, 0];
-    const extra = CONTENTION_PATTERN[lineT & 7];
-
-    if (extra > 0) {
-      this.cpu.tstates += extra;
-    }
+    const extra = this._contentionTable[frameT];
+    if (extra > 0) this.cpu.tstates += extra;
     this._lastContention = extra;
     return extra;
   }
@@ -399,8 +410,34 @@ export class Memory {
     const writeView = this.pages[page]; // Use pages directly, not writePages
     if (!writeView) { this._lastContention = 0; return false; }
     
-    writeView[offset] = value;
+    // Apply contention for the access first so the logged t-state reflects
+    // the actual time the access completes (contention delays are part of
+    // the memory access). This prevents mem-write events being recorded at
+    // a CPU tstate that omits contention (which can shift writes across
+    // frame boundaries and break deterministic traces).
     this._applyContention(addr);
+
+    writeView[offset] = value;
+
+    // --- TEST-HOOK: record screen/char writes in Memory itself so capture
+    // scripts don't need to monkey-patch mem.write. This guarantees every
+    // write in 0x4000..0x5AFF is captured deterministically for traces.
+    try {
+      this._memWrites = this._memWrites || [];
+      if (addr >= 0x4000 && addr <= 0x5AFF) {
+        const writeEvt = { type: 'write', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: (this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.PC : undefined };
+        this._memWrites.push(writeEvt);
+        if (this._memWrites.length > 5000) this._memWrites.shift();
+        // Mirror mem write into CPU microLog for tighter correlation when tracing
+        try {
+          if (this.cpu && this.cpu._microTraceEnabled && Array.isArray(this.cpu._microLog)) {
+            this.cpu._microLog.push({ type: 'MEMWRITE', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: (this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.PC : undefined });
+          }
+        } catch (e) { /* ignore */ }
+        try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
+      }
+    } catch (e) { /* best-effort only */ }
 
     // Track writes to CHARS (0x5C36/0x5C37) for test instrumentation only (no console output)
     if (addr === 0x5C36 || addr === 0x5C37) {
@@ -426,16 +463,32 @@ export class Memory {
       } catch (e) { /* ignore */ }
     }
 
-    // Instrument writes to screen bitmap (0x4000-0x57FF) for test tracking (sampled)
+    // Instrument writes to screen bitmap (0x4000-0x57FF) for test tracking
+    // When running under tests (window.__TEST__), always record writes so
+    // external trace/capture tooling can rely on deterministic logs. In
+    // non-test environments keep the lightweight sampling behaviour.
     if (addr >= 0x4000 && addr < 0x5800) {
       const pc = (typeof window !== 'undefined' && window.__LAST_PC__) ? window.__LAST_PC__ : (this.cpu ? this.cpu.PC : null);
       try {
         if (typeof window !== 'undefined' && window.__TEST__) {
+          // Deterministic logging for test harnesses
           window.__TEST__.screenBitmapWrites = window.__TEST__.screenBitmapWrites || [];
-          // Only log if it's not too frequent (sample every 100th write to avoid overflow)
-          if (window.__TEST__.screenBitmapWrites.length === 0 || 
-              (window.__TEST__.screenBitmapWrites.length < 1000 && Math.random() < 0.01)) {
-            window.__TEST__.screenBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
+          window.__TEST__.screenBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
+          // Keep log bounded
+          if (window.__TEST__.screenBitmapWrites.length > 2000) window.__TEST__.screenBitmapWrites.shift();
+        } else {
+          // Non-test environments: sample to avoid excessive memory use
+          window.__TEST__ = window.__TEST__ || undefined; // no-op to keep intent explicit
+          try {
+            if (typeof window !== 'undefined') {
+              window.__TEST__ = window.__TEST__ || null;
+            }
+          } catch (e) { /* ignore */ }
+          // Best-effort sampling (legacy behaviour)
+          if (typeof window !== 'undefined' && Math.random && Math.random() < 0.01) {
+            try {
+              window.__TEST__ = window.__TEST__ || {};
+            } catch (e) {}
           }
         }
       } catch (e) { /* ignore */ }

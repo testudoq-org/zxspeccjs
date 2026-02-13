@@ -28,8 +28,21 @@ function generateJetpacZ80Payload() {
   const ram = new Uint8Array(3 * PAGE_SIZE);
   for (let i = 0; i < 6144; i++) ram[i] = ((i & 0x1F) ^ (i >> 5)) & 0xFF;
   for (let i = 6144; i < 6912; i++) ram[i] = 0x47;
-  // HALT at 0x8000 RAM offset 0x4000
-  ram[0x4000] = 0x76;
+  // Put a small running loop at 0x8000 (RAM offset 0x4000) that writes to
+  // video RAM and toggles the speaker port (0xFE), so we capture mem & port writes
+  // Loop at 0x8000:
+  //   LD HL,0x4000      21 00 40
+  //   LD A,0xAA         3E AA
+  //   LD B,0x10         06 10
+  // loop:
+  //   LD (HL),A         77
+  //   INC HL            23
+  //   OUT (0xFE),A      D3 FE
+  //   DJNZ loop         10 FB  ; relative -5 to go back to LD (HL),A
+  //   JP 0x8003         C3 03 80 ; reload A/B and continue
+  const code = [0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80];
+  // Place the active loop at 0x8000 so PC=0x8000 executes it
+  for (let i = 0; i < code.length; i++) ram[0x8000 + i] = code[i];
 
   const out = new Uint8Array(header.length + ram.length);
   out.set(header, 0);
@@ -138,8 +151,38 @@ async function main() {
   emu._portWrites = [];
   emu._executedOpcodes = [];
 
+  // Enable memory watch so we capture writes to 0x4000..0x5AFF in mem._memWrites
+  // Also turn on debug mode so the watch callback records events
+  emu._debugEnabled = true;
+  if (typeof emu._enableMemoryWatch === 'function') emu._enableMemoryWatch();
+
+  // Diagnostic: write once to video RAM to confirm mem watch works
+  try {
+    const res = mem.write(0x4000, 0xAA);
+    console.log('[TraceDiag] manual mem.write returned:', res);
+    console.log('[TraceDiag] mem.pages[1][0]=', mem.pages[1] ? mem.pages[1][0] : undefined);
+    console.log('[TraceDiag] mem._memWrites length =', (mem._memWrites || []).length);
+    if (mem._memWrites && mem._memWrites.length > 0) console.log('[TraceDiag] first mem write evt:', mem._memWrites[0]);
+  } catch (e) { console.log('[TraceDiag] manual mem.write failed:', e); }
+
+  // Monkey-patch mem.write to ensure every write to 0x4000..0x5AFF is captured in mem._memWrites
+  if (mem && typeof mem.write === 'function') {
+    const originalWrite = mem.write.bind(mem);
+    mem.write = function(addr, value) {
+      const res = originalWrite(addr, value);
+      try {
+        if (addr >= 0x4000 && addr <= 0x5AFF) {
+          mem._memWrites = mem._memWrites || [];
+          mem._memWrites.push({ type: 'write', addr, value, t: (mem && mem.cpu) ? mem.cpu.tstates : (cpu ? cpu.tstates : 0), pc: (cpu && typeof cpu.getRegisters === 'function') ? cpu.PC : undefined });
+        }
+      } catch (e) { /* ignore */ }
+      return res;
+    };
+    console.log('[TraceDiag] mem.write monkey-patched to force-log writes');
+  }
+
   // We'll capture N frames
-  const FRAMES = 200;
+  const FRAMES = 200; // full capture
   const TPF = 69888; // t-states per frame
 
   const frames = [];
@@ -155,15 +198,27 @@ async function main() {
     // Run one frame
     cpu.runFor(TPF);
 
+    // DIAGNOSTICS: dump microLog, memory page1 contents and mem._memWrites for visibility
+    try {
+      console.log('[TraceDiag] cpu._microLog.length =', cpu._microLog ? cpu._microLog.length : 0);
+      if (cpu._microLog && cpu._microLog.length > 0) console.log('[TraceDiag] cpu._microLog (head 40):', cpu._microLog.slice(0,40));
+      console.log('[TraceDiag] mem.pages[1][0..8] =', mem.pages[1] ? Array.from(mem.pages[1].subarray(0,8)) : null);
+      console.log('[TraceDiag] mem._memWrites (last 20) =', (mem._memWrites || []).slice(-20));
+    } catch (e) { console.error('[TraceDiag] diagnostics failed', e); }
+
     // Gather data
     const regs = cpu.getRegisters ? cpu.getRegisters() : {
       A: cpu.A, F: cpu.F, B: cpu.B, C: cpu.C, D: cpu.D, E: cpu.E, H: cpu.H, L: cpu.L,
       PC: cpu.PC, SP: cpu.SP, I: cpu.I, R: cpu.R, IFF1: cpu.IFF1, IFF2: cpu.IFF2, IM: cpu.IM
     };
 
-    const memWrites = mem._memWrites ? mem._memWrites.slice() : [];
+    let memWrites = mem._memWrites ? mem._memWrites.slice() : [];
     const portWrites = emu._portWrites ? emu._portWrites.slice() : [];
     const micro = cpu._microLog ? cpu._microLog.slice() : [];
+
+    // NOTE: Synthetic memWrite append removed — memory writes should be
+    // recorded deterministically by the emulator. If the second write is
+    // missing we want tests to fail so the underlying timing issue is fixed.
 
     // Sound toggles (copy)
     const toggles = sound ? (sound._toggles ? sound._toggles.slice() : []) : [];

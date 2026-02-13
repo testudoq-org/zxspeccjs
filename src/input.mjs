@@ -69,6 +69,18 @@ const CODE_TO_KEYNAME = Object.assign(Object.create(null), {
   Backspace: null // Special handling needed - see _keydown
 });
 
+// Punctuation -> ZX key mapping (move here so _normalizeEvent stays small)
+const PUNCT_MAP = Object.create(null);
+PUNCT_MAP[';'] = 'o'; // semicolon -> O (symbol shifted in jsspeccy3)
+PUNCT_MAP[':'] = 'z';
+PUNCT_MAP[','] = 'n';
+PUNCT_MAP['<'] = 'r';
+PUNCT_MAP['.'] = 'm';
+PUNCT_MAP['>'] = 't';
+PUNCT_MAP['/'] = 'v';
+PUNCT_MAP['?'] = 'c';
+PUNCT_MAP['\''] = '7'; // apostrophe -> '7' (best-effort)
+
 // Special key combinations for PC keyboard convenience
 const SPECIAL_COMBOS = {
   'Backspace': ['shift', '0'],  // DELETE = Caps Shift + 0
@@ -130,63 +142,68 @@ export default class Input {
     this._debug = enabled;
   }
 
-  start() {
+  // --- listener attach/detach helpers (reduce complexity of start/stop) ---
+  _attachWindowListeners() {
     window.addEventListener('keydown', this._keydown, { passive: false });
     window.addEventListener('keyup', this._keyup, { passive: false });
-    // Also listen on document in capture phase to catch events from embedded contexts
+  }
+
+  _removeWindowListeners() {
+    window.removeEventListener('keydown', this._keydown);
+    window.removeEventListener('keyup', this._keyup);
+  }
+
+  _attachDocumentListeners() {
     try {
       if (typeof document !== 'undefined' && document.addEventListener) {
         document.addEventListener('keydown', this._keydown, { passive: false, capture: true });
         document.addEventListener('keyup', this._keyup, { passive: false, capture: true });
       }
-    } catch (e) { /* ignore */ }
-
-    // Attach canvas-level listeners so canvas can receive and forward keyboard events reliably
-    try {
-      const canvas = (typeof document !== 'undefined') ? document.getElementById('screen') : null;
-      if (canvas) {
-        canvas.addEventListener('keydown', this._keydown, { passive: false, capture: true });
-        canvas.addEventListener('keyup', this._keyup, { passive: false, capture: true });
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } catch { /* ignore */ }
-      }
-    } catch (e) { /* ignore */ }
-
-    // Emit listener status into test hook so E2E can assert they are attached
-    try {
-      if (typeof window !== 'undefined' && window.__TEST__) {
-        window.__TEST__.inputListeners = window.__TEST__.inputListeners || {};
-        window.__TEST__.inputListeners.window = true;
-        window.__TEST__.inputListeners.document = true;
-      }
-    } catch (e) { /* ignore */ }
-
-    // Ensure hidden input exists to capture IME / soft-keyboard events (best-effort)
-    try { this._ensureHiddenInput(); } catch (e) { /* ignore */ }
-
-    if (this._debug) console.log('[Input] Keyboard listeners started');
+    } catch (e) { void e; }
   }
 
-  stop() {
-    window.removeEventListener('keydown', this._keydown);
-    window.removeEventListener('keyup', this._keyup);
+  _removeDocumentListeners() {
     try {
       if (typeof document !== 'undefined' && document.removeEventListener) {
         document.removeEventListener('keydown', this._keydown, { capture: true });
         document.removeEventListener('keyup', this._keyup, { capture: true });
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { void e; }
+  }
 
-    // Remove canvas-level listeners
+  _attachCanvasListeners() {
+    try {
+      const canvas = (typeof document !== 'undefined') ? document.getElementById('screen') : null;
+      if (canvas) {
+        canvas.addEventListener('keydown', this._keydown, { passive: false, capture: true });
+        canvas.addEventListener('keyup', this._keyup, { passive: false, capture: true });
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.inputListeners = window.__TEST__.inputListeners || {}; window.__TEST__.inputListeners.canvas = true; } catch (err) { void err; }
+      }
+    } catch (e) { void e; }
+  }
+
+  _removeCanvasListeners() {
     try {
       const canvas = (typeof document !== 'undefined') ? document.getElementById('screen') : null;
       if (canvas) {
         canvas.removeEventListener('keydown', this._keydown, { capture: true });
         canvas.removeEventListener('keyup', this._keyup, { capture: true });
-        try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch { /* ignore */ }
+        try { if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) window.__TEST__.inputListeners.canvas = false; } catch (err) { void err; }
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { void e; }
+  }
 
-    // Remove hidden input and its listeners (best-effort)
+  _emitListenerStatus(attached) {
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.inputListeners = window.__TEST__.inputListeners || {};
+        window.__TEST__.inputListeners.window = !!attached;
+        window.__TEST__.inputListeners.document = !!attached;
+      }
+    } catch (e) { void e; }
+  }
+
+  _removeHiddenInput() {
     try {
       if (this._hiddenInput) {
         try { this._hiddenInput.removeEventListener('input', this._onHiddenInput); } catch { /* ignore */ }
@@ -194,20 +211,32 @@ export default class Input {
         try { this._hiddenInput.removeEventListener('compositionend', this._onCompositionEnd); } catch { /* ignore */ }
         try { if (this._hiddenInput.parentNode) this._hiddenInput.parentNode.removeChild(this._hiddenInput); } catch { /* ignore */ }
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { void e; } finally {
+      this._hiddenInput = null;
+      this._onHiddenInput = null;
+      this._onCompositionStart = null;
+      this._onCompositionEnd = null;
+    }
+  }
 
-    this._hiddenInput = null;
-    this._onHiddenInput = null;
-    this._onCompositionStart = null;
-    this._onCompositionEnd = null;
+  start() {
+    this._attachWindowListeners();
+    this._attachDocumentListeners();
+    this._attachCanvasListeners();
+    this._emitListenerStatus(true);
 
-    // Update test hook to reflect removed listeners
-    try {
-      if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.inputListeners) {
-        window.__TEST__.inputListeners.window = false;
-        window.__TEST__.inputListeners.document = false;
-      }
-    } catch (e) { /* ignore */ }
+    // Ensure hidden input exists to capture IME / soft-keyboard events (best-effort)
+    try { this._ensureHiddenInput(); } catch (e) { void e; }
+
+    if (this._debug) console.log('[Input] Keyboard listeners started');
+  }
+
+  stop() {
+    this._removeWindowListeners();
+    this._removeDocumentListeners();
+    this._removeCanvasListeners();
+    this._removeHiddenInput();
+    this._emitListenerStatus(false);
 
     if (this._debug) console.log('[Input] Keyboard listeners stopped');
   }
@@ -223,35 +252,43 @@ export default class Input {
   // Punctuation -> ZX key mapping for characters that map to spectrum keys via symbol-shift.
   // This is a small subset used for correct seenKeyCodes behavior in tests and IME cases.
   // Based on jsspeccy3 mappings (";" -> O, ":" -> Z, "," -> N, ">" -> T, etc.)
-  _normalizeEvent(e) {
-    // If a printable single-character key maps to a known ZX key, prefer that mapping
-    const ch = ('' + (e.key || ''));
-    const PUNCT_MAP = Object.create(null);
-    PUNCT_MAP[';'] = 'o'; // semicolon -> O (symbol shifted in jsspeccy3)
-    PUNCT_MAP[':'] = 'z';
-    PUNCT_MAP[','] = 'n';
-    PUNCT_MAP['<'] = 'r';
-    PUNCT_MAP['.'] = 'm';
-    PUNCT_MAP['>'] = 't';
-    PUNCT_MAP['/'] = 'v';
-    PUNCT_MAP['?'] = 'c';
-    PUNCT_MAP['\''] = '7'; // best-effort - map apostrophe to '7' behavior (rare)
+  _mapPunctuation(ch) {
+    if (!ch || ch.length !== 1) return null;
+    return PUNCT_MAP[ch] || null;
+  }
 
-    if (ch && ch.length === 1 && PUNCT_MAP[ch]) return PUNCT_MAP[ch];
+  _mapCode(code) {
+    if (!code) return null;
+    return CODE_TO_KEYNAME[code] !== undefined ? CODE_TO_KEYNAME[code] : null;
+  }
 
-    // Prefer code mapping, fallback to key
-    const code = e.code;
-    if (code && CODE_TO_KEYNAME[code] !== undefined) {
-      return CODE_TO_KEYNAME[code];
-    }
-    // Fallback to key value (lowercase)
-    const k = ('' + (e.key || '')).toLowerCase();
-    // Map common key names
+  _mapNamedKey(k) {
+    if (!k) return null;
     if (k === 'enter' || k === 'return') return 'enter';
     if (k === ' ') return 'space';
     if (k === 'shift') return 'shift';
     if (k === 'control' || k === 'ctrl') return 'symshift';
     if (k === 'alt') return 'symshift';
+    return null;
+  }
+
+  _normalizeEvent(e) {
+    const ch = String(e && e.key || '');
+
+    // 1) punctuation (single-char) mapping preferred
+    const p = this._mapPunctuation(ch);
+    if (p) return p;
+
+    // 2) code mapping (explicit)
+    const codeResult = this._mapCode(e && e.code);
+    if (codeResult !== null) return codeResult;
+
+    // 3) named-key fallbacks (enter/space/shift/symshift)
+    const k = String(e && e.key || '').toLowerCase();
+    const named = this._mapNamedKey(k);
+    if (named) return named;
+
+    // 4) final fallback to lowercase key value
     return k;
   }
 
@@ -401,33 +438,45 @@ export default class Input {
   }
 
   // Programmatically press a key (for virtual keyboard or testing)
+  // refactored pressKey: small helpers keep behavior identical but reduce complexity
   pressKey(name) {
-    const normalizedName = name.toLowerCase();
+    const normalizedName = String(name || '').toLowerCase();
     const pos = KEY_TO_POS.get(normalizedName);
     if (!pos) {
       if (this._debug) console.log(`[Input] pressKey: unknown key '${name}'`);
       return false;
     }
-    
+
+    // core state update
+    this._pressKey_updateState(normalizedName, pos);
+
+    // diagnostics / test hooks / DOM event
+    this._pressKey_emitDiagnostics(normalizedName, pos);
+
+    // propagate to ULA/UI (best-effort)
+    this._pressKey_applyToUlaAndUi(normalizedName, pos);
+
+    return true;
+  }
+
+  _pressKey_updateState(normalizedName, pos) {
     this.pressed.add(normalizedName);
     this.matrix[pos.row] &= ~pos.mask;
-    
+  }
+
+  _pressKey_emitDiagnostics(normalizedName, pos) {
     if (this._debug) {
       console.log(`[Input] pressKey: ${normalizedName} -> row ${pos.row}, mask 0x${pos.mask.toString(16)}`);
       try {
-        // Identity/integrity diagnostics to help e2e debugging
         const sameInstance = (typeof window !== 'undefined' && window.emulator && window.emulator.input === this);
         console.log('[Input] pressKey: same instance as window.emulator.input?', sameInstance);
-        // Show matrix snapshot (hex)
         console.log('[Input] pressKey: matrix snapshot:', Array.from(this.matrix).map(v => '0x' + v.toString(16)).join(','));
-        // Also show lastAppliedKeyMatrix snapshot when present (test hook)
         if (typeof window !== 'undefined' && window.__TEST__ && window.__TEST__.lastAppliedKeyMatrix) {
           console.log('[Input] lastAppliedKeyMatrix:', Array.from(window.__TEST__.lastAppliedKeyMatrix).map(v => '0x'+v.toString(16)).join(','));
         }
       } catch (err) { console.log('[Input] pressKey debug error', err); }
     }
 
-    // Record last captured key for diagnostics and emit key event to window.__TEST__ for diagnostics
     try {
       if (typeof window !== 'undefined') {
         try { if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {}; window.__ZX_DEBUG__.lastCapturedKey = normalizedName; } catch { /* ignore */ }
@@ -443,46 +492,37 @@ export default class Input {
       }
     } catch (e) { /* ignore */ }
 
-    // Test hook: count press hits so we can detect whether pressKey was actually invoked
     try { if (typeof window !== 'undefined') window.__EMU_PRESS_HITS = (window.__EMU_PRESS_HITS || 0) + 1; } catch { /* ignore */ }
+  }
 
-    // Best-effort: update ULA via API so the ROM polling path sees the change immediately
+  _pressKey_applyToUlaAndUi(normalizedName, pos) {
     try {
       if (typeof window !== 'undefined' && window.emulator && window.emulator.ula) {
         try {
           if (typeof window.emulator.ula.setKey === 'function') {
-            // Prefer the ULA API which encapsulates keyMatrix semantics
             window.emulator.ula.setKey(pos.row, pos.mask, true);
           } else if (window.emulator.ula.keyMatrix && (typeof window.emulator.ula.keyMatrix.length === 'number')) {
-            // Fallback to direct mutation if API not present
             window.emulator.ula.keyMatrix[pos.row] &= ~pos.mask;
           }
         } catch (e) { /* ignore per best-effort */ }
-        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
-        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
+        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) { void e; }
+        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) { void e; }
         try { if (typeof window !== 'undefined' && window.__TEST__ && window.emulator.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch { /* ignore */ }
       }
     } catch(e) { /* ignore */ }
 
-    // Also schedule ULA sync in microtask so test/API-driven presses take effect quickly
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') setTimeout(() => { try { window.emulator._applyInputToULA(); } catch(e) { void e; } }, 0); } catch (e) { void e; }
-
-    // Also sync immediately to emulator's ULA
     try { if (typeof window !== 'undefined' && window.emulator && typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch (e) { void e; }
 
-    // UI hook: reveal common BASIC keywords for quick visual feedback (robust across focus states)
     try {
       if (typeof window !== 'undefined') {
         const KEYWORD_MAP = { l: 'LIST', j: 'LOAD', '0': 'THEN' };
         const kw = KEYWORD_MAP[normalizedName];
         if (kw && window.__EMU_UI__ && typeof window.__EMU_UI__.showKeyword === 'function') {
-          // Use short timeout - UI module will auto-hide
           window.__EMU_UI__.showKeyword(kw, { timeout: 1800 });
         }
       }
     } catch (e) { /* ignore */ }
-
-    return true;
   }
 
   // Programmatically release a key
@@ -515,8 +555,8 @@ export default class Input {
       if (typeof window !== 'undefined' && window.emulator && window.emulator.ula && window.emulator.ula.keyMatrix && (typeof window.emulator.ula.keyMatrix.length === 'number')) {
         // set active-low bit to 1 for released key (mark released)
         window.emulator.ula.keyMatrix[pos.row] |= pos.mask;
-        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) {}
-        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) {}
+        try { if (typeof window.emulator._applyInputToULA === 'function') window.emulator._applyInputToULA(); } catch(e) { void e; }
+        try { if (typeof window.emulator.ula.render === 'function') window.emulator.ula.render(); } catch(e) { void e; }
         try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.lastAppliedKeyMatrix = Array.from(window.emulator.ula.keyMatrix); } catch { /* ignore */ }
       }
     } catch(e) { /* ignore */ }
@@ -768,7 +808,7 @@ export default class Input {
     // Hide overlay and persist visibility, also update controls toggle if present
     closeBtn.addEventListener('click', () => {
       overlay.style.display = 'none';
-      try { localStorage.setItem('__emu_kbd_visible', 'false'); } catch(e) {}
+      try { localStorage.setItem('__emu_kbd_visible', 'false'); } catch(e) { void e; }
       const t = document.getElementById('__emu_kbd_toggle'); if (t) t.checked = false;
     });
     header.appendChild(closeBtn);
@@ -784,12 +824,12 @@ export default class Input {
       };
 
       const onMouseMove = (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); };
-      const onMouseUp = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
+      const onMouseUp = () => { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('mousedown', (ev) => { dragging = true; startX = ev.clientX; startY = ev.clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); ev.preventDefault(); });
 
       // Touch support
       const onTouchMove = (ev) => { if (!dragging) return; if (ev.touches && ev.touches[0]) onMove(ev.touches[0].clientX, ev.touches[0].clientY); ev.preventDefault(); };
-      const onTouchEnd = (ev) => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
+      const onTouchEnd = () => { if (!dragging) return; dragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); try { localStorage.setItem('__emu_kbd_pos', JSON.stringify({ left: parseInt(overlay.style.left, 10) || 0, top: parseInt(overlay.style.top, 10) || 0 })); } catch { /* ignore */ } };
       header.addEventListener('touchstart', (ev) => { dragging = true; if (ev.touches && ev.touches[0]) { startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; const r = overlay.getBoundingClientRect(); startLeft = r.left; startTop = r.top; } document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); ev.preventDefault(); });
     } catch (e) { /* non-critical */ }
 

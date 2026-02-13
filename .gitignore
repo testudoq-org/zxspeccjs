@@ -219,3 +219,6 @@ tools/
 !tests/
 !tests/**
 !tests/**/*.mjs
+
+# Do not include shims and their contents
+tests/reference

@@ -55,7 +55,7 @@ describe('Floating bus read semantics', () => {
     expect(emu._readFloatingBus()).toBe(0x55);
   });
 
-  it('returns 0xFF outside active display', async () => {
+  it('returns 0xFF outside active display and at exact phase boundaries', async () => {
     const { emu, cpu } = await makeCore();
     cpu.frameStartTstates = 0;
 
@@ -63,11 +63,19 @@ describe('Floating bus read semantics', () => {
     cpu.tstates = 14334;
     expect(emu._readFloatingBus()).toBe(0xFF);
 
+    // exactly at first contended T-state - should be treated as active display (bitmap fetch)
+    cpu.tstates = 14335;
+    // pick a bitmap address for this line and ensure value is returned
+    const y = 0, cell = 0;
+    const bitmapAddr = 0x4000 | ((y & 0xC0) << 5) | ((y & 0x07) << 8) | ((y & 0x38) << 2) | cell;
+    emu.memory.write(bitmapAddr, 0x7A);
+    expect(emu._readFloatingBus()).toBe(0x7A);
+
     // after last scanline
     cpu.tstates = 57408;
     expect(emu._readFloatingBus()).toBe(0xFF);
 
-    // during border/retrace portion of line
+    // during border/retrace portion of line (first non-pixel tstate)
     cpu.tstates = 14335 + 128;
     expect(emu._readFloatingBus()).toBe(0xFF);
   });

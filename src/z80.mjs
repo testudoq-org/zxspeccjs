@@ -799,7 +799,14 @@ export class Z80 {
       const dest = (opcode >> 3) & 0x07;
       const src = opcode & 0x07;
       const readReg = (idx) => { switch (idx) { case 0: return this.B; case 1: return this.C; case 2: return this.D; case 3: return this.E; case 4: return this.H; case 5: return this.L; case 6: return this.readByte(this._getHL()); case 7: return this.A; } };
-      const writeReg = (idx, val) => { val &= 0xFF; switch (idx) { case 0: this.B = val; break; case 1: this.C = val; break; case 2: this.D = val; break; case 3: this.E = val; break; case 4: this.H = val; break; case 5: this.L = val; break; case 6: this.writeByte(this._getHL(), val); break; case 7: this.A = val; break; } };
+      const writeReg = (idx, val) => { val &= 0xFF; switch (idx) { case 0: this.B = val; break; case 1: this.C = val; break; case 2: this.D = val; break; case 3: this.E = val; break; case 4: this.H = val; break; case 5: this.L = val; break; case 6:
+          // LD (HL),r performed via quick handler — push microLog for consistency
+          this.writeByte(this._getHL(), val);
+          if (this._microTraceEnabled) {
+            this._microLog.push({ type: 'LD (HL),r', src: idx, addr: this._getHL(), value: val, t: this.tstates });
+          }
+          break;
+        case 7: this.A = val; break; } };
       const val = readReg(src);
       writeReg(dest, val);
       const cycles = (src === 6 || dest === 6) ? 7 : 4;
@@ -1084,9 +1091,13 @@ export class Z80 {
         if (this.B !== 0) {
           const signed = (offset & 0x80) ? offset - 0x100 : offset;
           this.PC = (this.PC + signed) & 0xffff;
-          this.tstates += 13; return 13;
+          this.tstates += 13;
+          if (this._microTraceEnabled) this._microLog.push({ type: 'DJNZ', taken: true, B: this.B, target: this.PC, t: this.tstates });
+          return 13;
         }
-        this.tstates += 8; return 8;
+        this.tstates += 8;
+        if (this._microTraceEnabled) this._microLog.push({ type: 'DJNZ', taken: false, B: this.B, t: this.tstates });
+        return 8;
       }
 
       // JR e (relative)
@@ -1574,7 +1585,7 @@ export class Z80 {
       case 0x73: this.writeByte(this._getHL(), this.E); this.tstates += 7; return 7; // LD (HL), E
       case 0x74: this.writeByte(this._getHL(), this.H); this.tstates += 7; return 7; // LD (HL), H
       case 0x75: this.writeByte(this._getHL(), this.L); this.tstates += 7; return 7; // LD (HL), L
-      case 0x77: this.writeByte(this._getHL(), this.A); this.tstates += 7; return 7; // LD (HL), A
+      case 0x77: this.writeByte(this._getHL(), this.A); this.tstates += 7; if (this._microTraceEnabled) this._microLog.push({ type: 'LD (HL),A', addr: this._getHL(), value: this.A, t: this.tstates }); return 7; // LD (HL), A
       case 0x35: {
         const addr = this._getHL();
         const before = this.readByte(addr);
@@ -1742,7 +1753,9 @@ export class Z80 {
         if (this.io && typeof this.io.write === 'function') {
           try { this.io.write(port, this.A & 0xff, this.tstates); } catch (e) { /* ignore */ }
         }
-        this.tstates += 11; return 11;
+        this.tstates += 11;
+        if (this._microTraceEnabled) this._microLog.push({ type: 'OUT (n),A', port, value: this.A & 0xff, t: this.tstates });
+        return 11;
       }
 
       // RST instructions - push PC and jump to restart address
@@ -1796,7 +1809,9 @@ export class Z80 {
       case 0x23: { // INC HL
         const hl = this._getHL();
         this._setHL((hl + 1) & 0xFFFF);
-        this.tstates += 6; return 6;
+        this.tstates += 6;
+        if (this._microTraceEnabled) this._microLog.push({ type: 'INC HL', value: this._getHL(), t: this.tstates });
+        return 6;
       }
       case 0x33: { // INC SP
         this.SP = (this.SP + 1) & 0xFFFF;
