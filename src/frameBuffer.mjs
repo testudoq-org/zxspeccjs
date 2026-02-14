@@ -134,11 +134,29 @@ export class FrameBuffer {
     const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
     const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
 
-    if (!bitmapView || !attrsView) return;
+    // Defensive: if memory exposes unexpected-sized views, fall back to
+    // the safe export helpers so we always operate on a full 6912/768 view.
+    let bitmap;
+    let attrs;
+    if (!bitmapView || bitmapView.length < 0x1800) {
+      if (this.mem && typeof this.mem.exportScreenBitmap === 'function') {
+        bitmap = new Uint8Array(this.mem.exportScreenBitmap());
+      } else {
+        return; // nothing we can do
+      }
+    } else {
+      bitmap = new Uint8Array(bitmapView);
+    }
 
-    // Make copies to avoid writing into the emulator memory (backfill must be local)
-    const bitmap = new Uint8Array(bitmapView);
-    const attrs = new Uint8Array(attrsView);
+    if (!attrsView || attrsView.length < 0x300) {
+      if (this.mem && typeof this.mem.getAttributeView === 'function') {
+        attrs = new Uint8Array(this.mem.getAttributeView());
+      } else {
+        return;
+      }
+    } else {
+      attrs = new Uint8Array(attrsView);
+    }
 
     // DEBUG: Optionally log a small sample of the bitmap for diagnostics
     this._debugBitmapSample(bitmap);
