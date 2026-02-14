@@ -258,8 +258,11 @@ export default class Input {
   }
 
   _mapCode(code) {
-    if (!code) return null;
-    return CODE_TO_KEYNAME[code] !== undefined ? CODE_TO_KEYNAME[code] : null;
+    // Return `undefined` when unknown so callers can distinguish between
+    // an explicit `null` mapping (e.g. Backspace -> null) and no mapping.
+    if (!code) return undefined;
+    if (Object.prototype.hasOwnProperty.call(CODE_TO_KEYNAME, code)) return CODE_TO_KEYNAME[code];
+    return undefined;
   }
 
   _mapNamedKey(k) {
@@ -281,7 +284,9 @@ export default class Input {
 
     // 2) code mapping (explicit)
     const codeResult = this._mapCode(e && e.code);
-    if (codeResult !== null) return codeResult;
+    // If the map contains an explicit null (sentinel) return it; if the
+    // code is unknown the function returns undefined and we fall through.
+    if (codeResult !== undefined) return codeResult;
 
     // 3) named-key fallbacks (enter/space/shift/symshift)
     const k = String(e && e.key || '').toLowerCase();

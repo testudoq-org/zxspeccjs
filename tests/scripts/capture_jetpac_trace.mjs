@@ -182,7 +182,7 @@ async function main() {
   }
 
   // We'll capture N frames
-  const FRAMES = 200; // full capture
+  const FRAMES = Number(process.env.FRAMES) || 200; // allow override from tests
   const TPF = 69888; // t-states per frame
 
   const frames = [];
