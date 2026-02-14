@@ -1,3 +1,7 @@
 # Ignore archived legacy diagnostic scripts
 archive/
 archive/**
+
+# Ignore generated bundles and third-party reference code that ESLint shouldn't check
+dist/
+tests/reference/**

@@ -1,24 +1,40 @@
 /* eslint-env browser */
 /* global window */
+
+/**
+ * ZX Spectrum beeper sound — sample-buffer approach.
+ *
+ * The Spectrum beeper is a 1-bit DAC driven by bit 4 of port 0xFE.
+ * Each frame (69888 T-states @ 3.5 MHz ≈ 20 ms) we record every speaker-bit
+ * toggle with its T-state timestamp. At end-of-frame we convert those
+ * timestamps into a PCM waveform and queue it via Web Audio.
+ */
+const TSTATES_PER_FRAME = 69888;
+const TSTATES_PER_SECOND = 3500000;
+const SAMPLE_RATE = 44100;
+const SAMPLES_PER_FRAME = Math.ceil(SAMPLE_RATE * TSTATES_PER_FRAME / TSTATES_PER_SECOND); // ~882
+
 export class Sound {
   constructor() {
     this.ctx = null;
     this.gain = null;
-    this.osc = null;
-    this.oscRunning = false;
-    this.lastSpeakerBit = 0;
-    this.lastTstates = null; // last tstate when speaker bit changed
-    this._tstatesPerSecond = 3500000; // ZX Spectrum ~3.5 MHz
-    this._minFreq = 40;
-    this._maxFreq = 8000;
-    this._muted = false; // Allow muting beeper
-    this._volume = 0.2;  // Master volume (0.0 - 1.0)
+    this._muted = false;
+    this._volume = 0.2;
 
-    // Lazy init audio context (many browsers require user gesture to resume)
+    // Current speaker level (+volume or -volume), toggled by bit 4
+    this._speakerBit = 0;
+    // Ring of {tstate, level} events within the current frame
+    this._toggles = [];
+    // T-state of the frame start (reset each endFrame)
+    this._frameStartTstates = 0;
+    // Next audio buffer scheduling time (seconds in AudioContext timeline)
+    this._nextPlayTime = 0;
+
     this._initContext();
   }
 
-  // Mute/unmute the beeper
+  // --- Public API (unchanged signatures) ---
+
   setMuted(muted) {
     this._muted = !!muted;
     if (this._muted && this.gain) {
@@ -26,135 +42,121 @@ export class Sound {
     }
   }
 
-  isMuted() {
-    return this._muted;
-  }
+  isMuted() { return this._muted; }
 
-  // Set volume (0.0 - 1.0)
   setVolume(vol) {
     this._volume = Math.max(0, Math.min(1, vol));
-  }
-
-  _initContext() {
-    try {
-      // Check if we're in a browser environment
-      if (typeof window === 'undefined') return;
-      const C = window.AudioContext || window.webkitAudioContext;
-      if (!C) {
-        // WebAudio not available - silent fail
-        return;
-      }
-      this.ctx = new C();
-
-      // master gain
-      this.gain = this.ctx.createGain();
-      this.gain.gain.value = 0.0; // start muted
-      this.gain.connect(this.ctx.destination);
-
-      // create oscillator but don't drive it until we have frequency
-      this.osc = this.ctx.createOscillator();
-      // use square wave to approximate Spectrum beeper
-      try {
-        this.osc.type = 'square';
-      } catch (e) {
-        // older implementations may not allow setting type before start
-      }
-      this.osc.connect(this.gain);
-      // start oscillator; keep it silent until needed
-      try {
-        this.osc.start();
-        this.oscRunning = true;
-      } catch (e) {
-        // if already started or not allowed yet, ignore
-        this.oscRunning = true;
-      }
-    } catch (e) {
-      // Audio initialization failed - silent fail (common in Node.js or restricted browsers)
-      this.ctx = null;
+    if (this.gain && !this._muted) {
+      this.gain.gain.setValueAtTime(this._volume, this.ctx ? this.ctx.currentTime : 0);
     }
   }
 
-  // External callers (e.g., ULA or main) should call this when writing to port 0xFE
-  // port: full 16-bit port address, value: 8-bit value written, tstates: optional CPU tstate counter
+  /**
+   * Called on every OUT to port 0xFE. Records speaker-bit toggles with
+   * their T-state timestamp so we can build a PCM buffer at end-of-frame.
+   */
   writePort(port, value, tstates = null) {
     if ((port & 0xff) !== 0xfe) return;
-    const bit = (value & 0x10) ? 1 : 0; // bit 4 = speaker
+    const bit = (value & 0x10) ? 1 : 0;
 
-    // Lazy resume context on first user interaction (browsers require gesture to start audio)
+    // Lazy-resume audio context (browsers require user gesture)
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => { /* expected until user gesture */ });
     }
 
-    // If bit didn't change, nothing to update
-    if (bit === this.lastSpeakerBit) return;
+    if (bit === this._speakerBit) return; // no change
+    this._speakerBit = bit;
 
-    // Compute frequency if we have tstates timing info
-    if (tstates != null && this.lastTstates != null && tstates !== this.lastTstates) {
-      const delta = Math.abs(tstates - this.lastTstates);
-      const seconds = delta / this._tstatesPerSecond;
-      // If software toggles speaker repeatedly, each toggle represents half period.
-      // The resulting square wave frequency is 1 / (2 * seconds)
-      if (seconds > 0) {
-        let freq = 1 / (2 * seconds);
-        // clamp frequency
-        freq = Math.max(this._minFreq, Math.min(this._maxFreq, freq));
-        this._setFrequency(freq);
+    // Record the toggle timestamp relative to frame start
+    const t = tstates != null ? tstates : 0;
+    this._toggles.push({ t, level: bit });
+  }
+
+  /**
+   * Kept for API compatibility — used by main loop's per-frame notify.
+   * We now use it as the end-of-frame trigger to flush the sample buffer.
+   */
+  notifyToggleAt(/* tstates */) {
+    // no-op: endFrame is called explicitly
+  }
+
+  /**
+   * Call once per emulated frame (after CPU has executed 69888 T-states).
+   * Converts the recorded speaker toggles into a PCM AudioBuffer and queues it.
+   */
+  endFrame(frameStartTstates) {
+    if (!this.ctx || this._muted) {
+      this._toggles.length = 0;
+      this._frameStartTstates = frameStartTstates || 0;
+      return;
+    }
+
+    const buf = this.ctx.createBuffer(1, SAMPLES_PER_FRAME, SAMPLE_RATE);
+    const data = buf.getChannelData(0);
+
+    this._fillSampleBuffer(data);
+    this._queueBuffer(buf);
+
+    // Reset for next frame
+    this._toggles.length = 0;
+    this._frameStartTstates = (frameStartTstates || 0) + TSTATES_PER_FRAME;
+  }
+
+  /** Fill PCM data array from recorded speaker toggles. */
+  _fillSampleBuffer(data) {
+    const vol = this._volume;
+    const toggles = this._toggles;
+    let toggleIdx = 0;
+
+    // Level before the first toggle this frame
+    let level = toggles.length > 0 ? (toggles[0].level ? 0 : 1) : this._speakerBit;
+    const origin = this._frameStartTstates || 0;
+
+    for (let i = 0; i < SAMPLES_PER_FRAME; i++) {
+      const sampleTstate = origin + Math.round(i * TSTATES_PER_FRAME / SAMPLES_PER_FRAME);
+
+      while (toggleIdx < toggles.length && toggles[toggleIdx].t <= sampleTstate) {
+        level = toggles[toggleIdx].level;
+        toggleIdx++;
       }
-    }
 
-    // Update amplitude to reflect speaker level (simple model)
-    if (this.gain && !this._muted) {
-      // when bit=1 we set audible level, bit=0 mute; use a short ramp for smoothing
-      const now = this.ctx ? this.ctx.currentTime : 0;
-      const target = bit ? this._volume : 0.0;
-      if (this.gain.gain.cancelScheduledValues) this.gain.gain.cancelScheduledValues(now);
-      this.gain.gain.setTargetAtTime(target, now, 0.01);
-    }
-
-    this.lastSpeakerBit = bit;
-    if (tstates != null) this.lastTstates = tstates;
-  }
-
-  _setFrequency(freq) {
-    if (!this.osc) return;
-    try {
-      this.osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    } catch (e) {
-      try {
-        this.osc.frequency.value = freq;
-      } catch { /* ignore */ }
+      data[i] = level ? vol : -vol;
     }
   }
 
-  // Optional: allow external ticking with tstates to estimate frequency when caller only signals toggle
-  notifyToggleAt(tstates) {
-    // record toggle time; if we have previous, compute frequency
-    if (this.lastTstates != null) {
-      const delta = Math.abs(tstates - this.lastTstates);
-      const seconds = delta / this._tstatesPerSecond;
-      if (seconds > 0) {
-        let freq = 1 / (2 * seconds);
-        freq = Math.max(this._minFreq, Math.min(this._maxFreq, freq));
-        this._setFrequency(freq);
-      }
-    }
-    this.lastTstates = tstates;
+  /** Queue a filled AudioBuffer for playback. */
+  _queueBuffer(buf) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(this.gain);
+
+    const now = this.ctx.currentTime;
+    if (this._nextPlayTime < now) this._nextPlayTime = now;
+    src.start(this._nextPlayTime);
+    this._nextPlayTime += buf.duration;
   }
 
-  // Clean up audio resources
   close() {
-    try {
-      if (this.osc && this.osc.stop) this.osc.stop();
-    } catch { /* ignore */ }
-    try {
-      if (this.gain) this.gain.disconnect();
-    } catch { /* ignore */ }
-    try {
-      if (this.ctx && this.ctx.close) this.ctx.close();
-    } catch { /* ignore */ }
+    try { if (this.gain) this.gain.disconnect(); } catch { /* ignore */ }
+    try { if (this.ctx && this.ctx.close) this.ctx.close(); } catch { /* ignore */ }
     this.ctx = null;
-    this.osc = null;
     this.gain = null;
-    this.oscRunning = false;
+  }
+
+  // --- Private ---
+
+  _initContext() {
+    try {
+      if (typeof window === 'undefined') return;
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return;
+      this.ctx = new C();
+
+      this.gain = this.ctx.createGain();
+      this.gain.gain.value = this._volume;
+      this.gain.connect(this.ctx.destination);
+    } catch (_e) {
+      this.ctx = null;
+    }
   }
 }

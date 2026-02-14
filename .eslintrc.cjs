@@ -40,6 +40,15 @@ module.exports = {
         'no-undef': 'off',
         'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
       }
+    },
+    {
+      files: ['src/**/*.mjs'],
+      env: { browser: true, es2021: true },
+      rules: {
+        // Enforce reasonable cognitive complexity across source files
+        complexity: ['warn', 12],
+        'no-inner-declarations': ['warn']
+      }
     }
   ]
 };
