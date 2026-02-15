@@ -128,15 +128,11 @@ export class Loader {
       // V1: raw or compressed 48K block starting at offset 30
       const raw = buf.subarray(30);
       if (v1Compressed) {
-        // Compressed: decompress up to 48K; stop at 00 ED ED 00 marker or end
-        let endIdx = raw.length;
-        for (let i = 0; i + 3 < raw.length; i++) {
-          if (raw[i] === 0x00 && raw[i + 1] === 0xED && raw[i + 2] === 0xED && raw[i + 3] === 0x00) {
-            endIdx = i;
-            break;
-          }
-        }
-        ramImage = this._z80Decompress(raw.subarray(0, endIdx), RAM_48K);
+        // Compressed: treat the entire data after header as compressed stream.
+        // Do NOT search for an internal terminator marker — some snapshots
+        // contain incidental 00 ED ED 00 sequences. Decompress the whole
+        // remainder to the expected 48K and pad with zeros if input runs out.
+        ramImage = this._z80Decompress(raw, RAM_48K);
       } else {
         // Uncompressed v1: take up to 48K from offset 30
         const available = Math.min(raw.length, RAM_48K);
@@ -191,6 +187,14 @@ export class Loader {
           ramImage.set(pageData.subarray(0, copyLen), ramOffset);
         }
       }
+    }
+
+    // Diagnostic logging (temporary): report non-zero counts when debug flag set
+    if (ramImage && ((typeof globalThis !== 'undefined' && globalThis.process && globalThis.process.env && globalThis.process.env.Z80_DEBUG) || (typeof window !== 'undefined' && window.__ZX_DEBUG__))) {
+      const totalNonZero = (() => { let c = 0; for (let i = 0; i < ramImage.length; i++) if (ramImage[i] !== 0) c++; return c; })();
+      const screenNonZero = (() => { let c = 0; const screenLen = Math.min(6912, ramImage.length); for (let i = 0; i < screenLen; i++) if (ramImage[i] !== 0) c++; return c; })();
+      console.log('Decompressed RAM non-zero bytes:', totalNonZero);
+      console.log('Screen RAM non-zero bytes:', screenNonZero);
     }
 
     return {

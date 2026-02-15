@@ -254,6 +254,65 @@ describe('Loader.parseZ80 — V1 compressed', () => {
     const parsed = Loader.parseZ80(generateV1Compressed({ pc: 0x8000 }));
     expect(parsed.snapshot.registers.PC).toBe(0x8000);
   });
+
+  test('does not truncate decompression when incidental 00 ED ED 00 appears in stream', () => {
+    // Build a compressed v1 stream that contains an incidental terminator-like
+    // sequence in the middle of the compressed payload. Previously the parser
+    // sliced at that sequence and lost the remainder; it must now decompress
+    // the entire remainder to 48K.
+    const header = new Uint8Array(30);
+    // mark as a v1 snapshot (non-zero PC) and set compressed flag
+    header[6] = 0x00; header[7] = 0x40; // PC = 0x4000
+    header[12] = 0x20; // compressed flag
+
+    const compressed = [];
+    const PAGE = 16384;
+    // Partially fill first page with 0xAA using RLE blocks
+    let filled = 0;
+    while (filled < PAGE / 2) {
+      const cnt = Math.min(255, (PAGE / 2) - filled);
+      compressed.push(0xED, 0xED, cnt, 0xAA);
+      filled += cnt;
+    }
+
+    // Insert incidental terminator-like sequence here (should be ignored by parser)
+    compressed.push(0x00, 0xED, 0xED, 0x00);
+
+    // Finish first page with more 0xAA
+    let rem = PAGE - filled;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0xAA);
+      rem -= cnt;
+    }
+
+    // Page 2: fill with 0xCC (must be preserved)
+    rem = PAGE;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0xCC);
+      rem -= cnt;
+    }
+
+    // Page 3: zeros
+    rem = PAGE;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0x00);
+      rem -= cnt;
+    }
+
+    const data = new Uint8Array(compressed);
+    const out = new Uint8Array(30 + data.length);
+    out.set(header, 0);
+    out.set(data, 30);
+
+    const parsed = Loader.parseZ80(out.buffer);
+    // First page should be 0xAA and second page should be 0xCC — i.e. the
+    // parser did not stop at the incidental marker.
+    expect(parsed.snapshot.ram[0]).toBe(0xAA);
+    expect(parsed.snapshot.ram[16384]).toBe(0xCC);
+  });
 });
 
 describe('Loader.parseZ80 — V2 compressed pages', () => {
