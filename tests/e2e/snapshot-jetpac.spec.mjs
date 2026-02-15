@@ -493,6 +493,54 @@ test.describe('Jetpac .z80 snapshot load @snapshot', () => {
     expect(anyKeyboard || anyKempston).toBeTruthy();
   });
 
+  test('jetpac: pressing 5 should start the game and produce visible sprite changes', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#screen', { timeout: 5000 });
+
+    const payload = generateJetpacZ80Payload();
+    await page.evaluate((p) => { window.emu.applySnapshot(new Uint8Array(p)); }, Array.from(payload));
+
+    await page.waitForFunction(() => !!(window.emu && window.emu._running), { timeout: 5000 });
+    await page.waitForTimeout(200);
+
+    // Count non-black pixels before pressing '5'
+    const beforeCount = await page.evaluate(() => {
+      const c = document.getElementById('screen');
+      const ctx = c.getContext('2d');
+      const img = ctx.getImageData(0, 0, c.width, c.height).data;
+      let cnt = 0;
+      for (let i = 0; i < img.length; i += 4) {
+        if (img[i] !== 0 || img[i + 1] !== 0 || img[i + 2] !== 0) cnt++;
+      }
+      return cnt;
+    });
+
+    // Press '5' (use debug helper to ensure emulator API path used)
+    await page.evaluate(() => { try { if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey('5'); } catch (e) {} });
+    // Hold briefly to allow ROM to detect the key and update screen
+    await page.waitForTimeout(800);
+
+    // Release '5'
+    await page.evaluate(() => { try { if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.releaseKey === 'function') window.__ZX_DEBUG__.releaseKey('5'); } catch (e) {} });
+    await page.waitForTimeout(300);
+
+    const afterCount = await page.evaluate(() => {
+      const c = document.getElementById('screen');
+      const ctx = c.getContext('2d');
+      const img = ctx.getImageData(0, 0, c.width, c.height).data;
+      let cnt = 0;
+      for (let i = 0; i < img.length; i += 4) {
+        if (img[i] !== 0 || img[i + 1] !== 0 || img[i + 2] !== 0) cnt++;
+      }
+      return cnt;
+    });
+
+    // Expect the visible framebuffer to change after the keypress (sprites/UI updated).
+    // We assert the framebuffer is different rather than assuming an increase in
+    // non-black pixel count (some transitions may clear areas first).
+    expect(afterCount).not.toBe(beforeCount);
+  });
+
   test('status text matches exact pattern after snapshot apply', async ({ page }) => {
     // Simpler focused test: just verify the status element text works
     await page.goto('/');

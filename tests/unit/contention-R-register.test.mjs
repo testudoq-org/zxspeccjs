@@ -272,6 +272,25 @@ describe('ULA memory contention', () => {
     mem._applyContention(0x4000);
     expect(cpu.tstates - before).toBe(6); // phase 0 → 6
   });
+
+  it('should apply contention during HALT (M1 fetch emulation) when PC is contended', () => {
+    const { cpu, mem } = makeCPUContended();
+    // Align to start of active display so contention table yields >0
+    cpu.frameStartTstates = 0;
+    cpu.tstates = 14335; // first contended t-state (phase 0)
+
+    // Place PC in contended region and enter HALT
+    cpu.PC = 0x4000;
+    cpu.halted = true;
+
+    // Reset lastContention and execute one HALT step
+    mem._lastContention = 0;
+    cpu.step();
+
+    // The HALT implementation should perform a dummy opcode read so memory
+    // contention is applied; assert that lastContention was recorded.
+    expect(mem.lastContention()).toBeGreaterThan(0);
+  });
 });
 
 // ── 3. Flash frame-counting ──

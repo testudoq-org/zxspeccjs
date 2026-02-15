@@ -761,6 +761,10 @@ export class Z80 {
 
     // If CPU is halted and no interrupt is pending, burn 4 tstates per check
     if (this.halted) {
+      // Emulate the repeated M1 opcode fetch that occurs during HALT so that
+      // memory contention and any read-side effects are exercised exactly as
+      // on real hardware. Do a non-advancing dummy read of the HALT opcode.
+      try { this.readByte(this.PC); } catch (e) { /* ignore */ }
       // R increments even during HALT (NOP is fetched repeatedly)
       this.R = (this.R & 0x80) | ((this.R + 1) & 0x7F);
       this.tstates += 4;
