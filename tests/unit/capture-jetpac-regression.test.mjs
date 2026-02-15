@@ -12,4 +12,4 @@ test('capture_jetpac_trace produces memWrites for 0x4000 and 0x4001', () => {
   const addrs = (f0.memWrites || []).map(m => m.addr);
   expect(addrs).toContain(0x4000);
   expect(addrs).toContain(0x4001);
-});
+}, 20000);

@@ -131,35 +131,55 @@ export class FrameBuffer {
 
     // Obtain views from memory but operate on local copies so we do NOT
     // mutate the emulator's live RAM when performing renderer backfills.
-    const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
-    const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
-
-    // Defensive: if memory exposes unexpected-sized views, fall back to
-    // the safe export helpers so we always operate on a full 6912/768 view.
+    // Prefer the export helpers which read directly from the memory pages
+    // (avoid relying on any cached/_flatRam views that may be stale).
     let bitmap;
     let attrs;
-    if (!bitmapView || bitmapView.length < 0x1800) {
+
+    // Prefer reading directly from the active RAM page (pages[1]) when available
+    // because it's the authoritative, up-to-date source. Fall back to the
+    // memory export helpers if pages[1] isn't present.
+    if (this.mem && this.mem.pages && this.mem.pages[1]) {
+      const page1 = this.mem.pages[1];
+      if (page1.length >= 0x1800) {
+        bitmap = new Uint8Array(page1.subarray(0x0000, 0x1800));
+      }
+      if (page1.length >= 0x1800 + 0x300) {
+        attrs = new Uint8Array(page1.subarray(0x1800, 0x1800 + 0x300));
+      }
+    }
+
+    // Fallback to export helpers when direct page view isn't available
+    if (!bitmap) {
       if (this.mem && typeof this.mem.exportScreenBitmap === 'function') {
         bitmap = new Uint8Array(this.mem.exportScreenBitmap());
       } else {
-        return; // nothing we can do
+        const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+        if (!bitmapView || bitmapView.length < 0x1800) return;
+        bitmap = new Uint8Array(bitmapView);
       }
-    } else {
-      bitmap = new Uint8Array(bitmapView);
     }
 
-    if (!attrsView || attrsView.length < 0x300) {
+    if (!attrs) {
       if (this.mem && typeof this.mem.getAttributeView === 'function') {
         attrs = new Uint8Array(this.mem.getAttributeView());
       } else {
-        return;
+        const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+        if (!attrsView || attrsView.length < 0x300) return;
+        attrs = new Uint8Array(attrsView);
       }
-    } else {
-      attrs = new Uint8Array(attrsView);
     }
 
     // DEBUG: Optionally log a small sample of the bitmap for diagnostics
     this._debugBitmapSample(bitmap);
+
+    // Diagnostic: surface a bitmap sample at the Jetpac test marker coordinates
+    try {
+      const MARKER_Y = 80;
+      const xByte = 120 >> 3;
+      const bitmapAddr = ((MARKER_Y & 0x07) << 8) | (((MARKER_Y & 0x38) >> 3) << 5) | (((MARKER_Y & 0xC0) >> 6) << 11) | xByte;
+      try { console.log('[FB-DIAG] generateFromMemory bitmapAddr=', bitmapAddr, 'bitmapVal=', bitmap[bitmapAddr], 'mem.pages[1]=', (this.mem && this.mem.pages && this.mem.pages[1] ? this.mem.pages[1][bitmapAddr] : null)); } catch (e) { /* ignore */ }
+    } catch (e) { /* ignore */ }
 
     let ptr = 0;
     ptr = this._fillTopBorder(ptr);
@@ -225,6 +245,10 @@ export class FrameBuffer {
       for (let xByte = 0; xByte < 32; xByte++) {
         const bitmapAddr = (y0 << 8) | (y1 << 5) | (y2 << 11) | xByte;
         const attrAddr = (Math.floor(y / 8) * 32) + xByte;
+        // Diagnostic: log the marker cell write for deeper inspection
+        if (y === 80 && xByte === (120 >> 3)) {
+          try { console.log('[FB-FILL] writing marker cell: y,xByte,bitmapAddr,bitmapVal,attrVal,ptr =', y, xByte, bitmapAddr, bitmap[bitmapAddr], attrs[attrAddr], ptr); } catch (e) { /* ignore */ }
+        }
         this.buffer[ptr++] = bitmap[bitmapAddr];
         this.buffer[ptr++] = attrs[attrAddr];
       }
@@ -331,8 +355,12 @@ export class FrameRenderer {
     ({ bufferPtr, pixelPtr } = this._renderMainScreen(frameBuffer, buffer, bufferPtr, pixelPtr, palette, pixels, flashPhase));
     ({ bufferPtr, pixelPtr } = this._renderBottomBorder(buffer, bufferPtr, pixelPtr, palette, pixels));
 
-    // Draw to canvas
+    // Draw to canvas (measure render duration for diagnostics)
+    const _start = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
     this.ctx.putImageData(this.imageData, 0, 0);
+    const _end = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
+    try { this._lastRenderDuration = (_end - _start); } catch (e) { /* ignore */ }
+    try { if (typeof globalThis !== 'undefined' && globalThis.__TEST__) globalThis.__TEST__.lastRenderDuration = this._lastRenderDuration; } catch (e) { /* ignore */ }
 
     // Test hook: notify tests that a render finished
     try {

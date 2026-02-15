@@ -68,6 +68,24 @@ const MOCK_METADATA_RESPONSE = {
  * Fills the screen bitmap area (0x4000-0x57FF) and attributes (0x5800-0x5AFF)
  * so the emulator renders visible content after loading.
  */
+function _injectJetpacMarker(ram, markerX, markerY) {
+  // 2 character-cells wide × 8 pixel rows marker
+  for (let dy = 0; dy < 8; dy++) {
+    const y = markerY + dy;
+    const byteRowBase = ((y & 0xC0) << 5) | ((y & 0x07) << 8) | ((y & 0x38) << 2);
+    for (let bx = 0; bx < 2; bx++) {
+      const xByte = (markerX >> 3) + bx;
+      const idx = byteRowBase | xByte;
+      if (idx >= 0 && idx < 6144) ram[idx] = 0xFF;
+    }
+  }
+  const attrBase = 6144 + (Math.floor(markerY / 8) * 32) + (markerX >> 3);
+  for (let col = 0; col < 2; col++) {
+    const ai = attrBase + col;
+    if (ai >= 6144 && ai < 6144 + 768) ram[ai] = 0x47;
+  }
+}
+
 function generateJetpacZ80Payload() {
   const PAGE_SIZE = 16384;
   const header = new Uint8Array(30);
@@ -101,6 +119,9 @@ function generateJetpacZ80Payload() {
 
   // Put a HALT at 0x8000 (RAM offset 0x4000) so emulator doesn't run into garbage
   ram[0x4000] = 0x76; // HALT
+
+  // Add small deterministic marker for pixel/assertion tests
+  _injectJetpacMarker(ram, 120, 80);
 
   const out = new Uint8Array(header.length + ram.length);
   out.set(header, 0);
@@ -261,6 +282,215 @@ test.describe('Jetpac .z80 snapshot load @snapshot', () => {
     // 13. Log console output for debugging
     console.log(`--- Browser console (${consoleLogs.length} lines) ---`);
     consoleLogs.slice(-20).forEach((l) => console.log(l));
+  });
+
+  test('renders Jetpac marker sprite pixels on canvas', async ({ page }) => {
+    // Load the same synthetic snapshot (stubbed). The payload injects a deterministic
+    // 16x8 pixel marker starting at ZX pixel coords (120,80). Assert memory + canvas.
+    await page.goto('/');
+    await expect(page.locator('[data-testid="screen"]')).toBeVisible({ timeout: UI_TIMEOUT });
+
+    // Open Tape Library → Search → Details → Load (condensed)
+    await page.locator('[data-testid="tape-library-btn"]').click();
+    const input = page.locator('[data-testid="tape-search-input"]');
+    await expect(input).toBeVisible({ timeout: UI_TIMEOUT });
+    await input.fill('Jetpac');
+    await page.locator('[data-testid="tape-search-btn"]').click();
+    await expect(page.locator('[data-testid="tape-results"]')).toBeVisible({ timeout: UI_TIMEOUT });
+
+    await page.locator('[data-testid="tape-result-details-btn"]').first().evaluate((b) => b.click());
+    await expect(page.locator('[data-testid="tape-detail"]')).toBeVisible({ timeout: UI_TIMEOUT });
+
+    const loadBtn = page.locator('[data-testid="tape-load-btn"]').first();
+    const loaded = page.evaluate(() => new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('timeout')), 15000);
+      window.addEventListener('tape-loaded', () => { clearTimeout(t); res(true); }, { once: true });
+      window.addEventListener('tape-load-error', (e) => { clearTimeout(t); rej(new Error(e.detail?.message)); }, { once: true });
+    }));
+    await loadBtn.evaluate((b) => b.click());
+    await loaded;
+
+    // Ensure emulator loop actually started (applySnapshot may autoStart)
+    await page.waitForFunction(() => !!(window.emu && window.emu._running), null, { timeout: 2000 });
+
+    // Wait a couple frames for deferred rendering
+    await page.waitForTimeout(300);
+
+    const MARKER = { x: 120, y: 80 };
+    const res = await page.evaluate((MARKER) => {
+      const mem = window.emu && window.emu.memory;
+      const bitmapIndex = ((MARKER.y & 0xC0) << 5) | ((MARKER.y & 0x07) << 8) | ((MARKER.y & 0x38) << 2) | (MARKER.x >> 3);
+      const attrIndex = 6144 + (Math.floor(MARKER.y / 8) * 32) + (MARKER.x >> 3);
+      const memByte = mem.pages[1][bitmapIndex];
+      const attrByte = mem.pages[1][attrIndex];
+
+      // Inspect frameBuffer backing store
+      const fb = window.emu && window.emu.ula && window.emu.ula.frameBuffer ? window.emu.ula.frameBuffer.getBuffer() : null;
+    const FB_BASE = 24 * 160; // top border bytes
+    const LINE_STRIDE = 96; // bytes per main-screen pixel row in the framebuffer
+    const lineOffset = FB_BASE + MARKER.y * LINE_STRIDE;
+      const cellStart = lineOffset + 16 + (MARKER.x >> 3) * 2; // bitmap byte then attr byte
+      const fbBitmap = fb ? fb[cellStart] : null;
+      const fbAttr = fb ? fb[cellStart + 1] : null;
+
+      const canvasX = 32 + MARKER.x; // frameRenderer offset
+      const canvasY = 24 + MARKER.y;
+      const c = document.querySelector('#screen');
+      const ctx = c.getContext('2d');
+      const data = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+      return { memByte, attrByte, fbBitmap, fbAttr, px: [data[0], data[1], data[2]] };
+    }, MARKER);
+
+    // Debug: surface-check
+    console.log('marker-check', res);
+
+    // Additional diagnostic: snapshot a small fb and mem neighborhood for analysis
+    const fbSlice = await page.evaluate((MARKER) => {
+      const fb = window.emu.ula.frameBuffer.getBuffer();
+      const FB_BASE = 24 * 160;
+    const LINE_STRIDE = 96;
+    const start = FB_BASE + MARKER.y * LINE_STRIDE + 16 + (MARKER.x >> 3) * 2 - 8;
+      return Array.from(fb.slice(Math.max(0, start), start + 32));
+    }, { x: 120, y: 80 });
+    const memSlice = await page.evaluate((MARKER) => {
+      const mem = window.emu.memory && window.emu.memory.pages ? window.emu.memory.pages[1] : null;
+      const bitmapIndex = ((MARKER.y & 0xC0) << 5) | ((MARKER.y & 0x07) << 8) | ((MARKER.y & 0x38) << 2) | (MARKER.x >> 3);
+      return mem ? Array.from(mem.slice(Math.max(0, bitmapIndex - 8), bitmapIndex + 8)) : null;
+    }, { x: 120, y: 80 });
+    console.log('fb-slice', fbSlice);
+    console.log('mem-slice', memSlice);
+
+    // Diagnostic: see if re-running generateFromMemory() will correct the backing-store
+    const fbBeforeGen = await page.evaluate((MARKER) => {
+      const FB_BASE = 24 * 160;
+      const cellStart = FB_BASE + MARKER.y * 160 + 16 + (MARKER.x >> 3) * 2;
+      return window.emu.ula.frameBuffer.getBuffer()[cellStart];
+    }, { x: 120, y: 80 });
+    const fbAfterGen = await page.evaluate((MARKER) => {
+      const FB_BASE = 24 * 160;
+      const cellStart = FB_BASE + MARKER.y * 160 + 16 + (MARKER.x >> 3) * 2;
+      try { window.emu.ula.frameBuffer.generateFromMemory(); } catch (e) { /* ignore */ }
+      return window.emu.ula.frameBuffer.getBuffer()[cellStart];
+    }, { x: 120, y: 80 });
+    console.log('fb-before-generateFromMemory:', fbBeforeGen, 'fb-after-generateFromMemory:', fbAfterGen);
+
+    // Diagnostic: locate nearby 0xFF bytes in the frameBuffer backing-store
+    const fbFFOffsets = await page.evaluate(() => {
+      const FB_BASE = 24 * 160;
+      const LINE_STRIDE = 96;
+      const fb = window.emu.ula.frameBuffer.getBuffer();
+      const found = [];
+      for (let i = FB_BASE; i < FB_BASE + (192 * LINE_STRIDE) && found.length < 12; i += 2) {
+        if (fb[i] === 0xFF) found.push(i);
+      }
+      return found;
+    });
+    console.log('fb-0xFF-offsets', fbFFOffsets);
+
+    // Diagnostic: inspect memory bytes near early-screen and marker-screen indices
+    const memDiag = await page.evaluate(() => {
+      const mem = window.emu.memory.pages[1];
+      const out = {};
+      out.lowRange = Array.from(mem.slice(180, 220));
+      out.markerRange = Array.from(mem.slice(2100, 2136));
+      return out;
+    });
+    console.log('mem-diag', memDiag);
+
+    expect(res.memByte).toBe(0xFF);
+    expect(res.attrByte & 0x47).toBe(0x47);
+    // FrameBuffer should reflect the same bitmap/attr bytes
+    expect(res.fbBitmap).toBe(res.memByte);
+    expect(res.fbAttr).toBe(res.attrByte);
+
+    // Finally assert canvas pixel is rendered (ink colour expected)
+    expect(res.px[0]).toBeGreaterThan(128);
+    expect(res.px[1]).toBeGreaterThan(128);
+    expect(res.px[2]).toBeGreaterThan(128);
+  });
+
+  test('jetpac: detect in-game input polling (keyboard vs Kempston) and validate fire-key candidates', async ({ page }) => {
+    // Apply the same deterministic Jetpac payload directly (faster than UI flow)
+    await page.goto('/');
+    await page.waitForSelector('#screen', { timeout: 5000 });
+
+    const payload = generateJetpacZ80Payload();
+    // Apply snapshot in-page
+    await page.evaluate((p) => { window.__TEST__.portReads = []; window.emu.applySnapshot(new Uint8Array(p)); }, Array.from(payload));
+
+    // Wait for emulator to be running and rendering
+    await page.waitForFunction(() => !!(window.emu && window.emu._running), { timeout: 5000 });
+    await page.waitForTimeout(200);
+
+    // Helper executed in-page to press a key, hold, release and collect portReads
+    const candidates = ['a','s','d','f','g','h','j','k','l','space','m','z','x'];
+    const summary = await page.evaluate(async (cands) => {
+      const holdMs = 700;
+      const results = [];
+      // Ensure debug helpers are enabled so portReads are recorded
+      try { if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.enableKeyboardDebug === 'function') window.__ZX_DEBUG__.enableKeyboardDebug(); } catch (e) { /* ignore */ }
+      window.__TEST__.portReads = [];
+
+      // Small helper to sleep
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      for (const key of cands) {
+        // press and hold using emulator API where possible
+        try {
+          if (window.emu && window.emu.input && typeof window.emu.input.pressKey === 'function') {
+            window.emu.input.pressKey(key);
+            window.emu._applyInputToULA();
+          } else {
+            const ev = new KeyboardEvent('keydown', { key }); window.dispatchEvent(ev);
+          }
+        } catch (err) { /* ignore */ }
+
+        // record portReads snapshot during the hold
+        await sleep(holdMs);
+
+        try {
+          if (window.emu && window.emu.input && typeof window.emu.input.releaseKey === 'function') {
+            window.emu.input.releaseKey(key);
+            window.emu._applyInputToULA();
+          } else {
+            const ev = new KeyboardEvent('keyup', { key }); window.dispatchEvent(ev);
+          }
+        } catch (err) { /* ignore */ }
+
+        await sleep(200);
+        const reads = (window.__TEST__.portReads || []).slice(-500);
+
+        // Analyze reads for: Kempston (port 0x1F) and keyboard port (0xFE) selecting the key's row
+        const sawKempston = reads.some(r => (r.port & 0xFF) === 0x1F);
+        const keyboardReads = reads.filter(r => (r.port & 0xFF) === 0xFE);
+
+        // Map key -> expected ZX row/mask (best-effort using input.KEY_TO_POS mapping available in-page)
+        let expected = null;
+        try {
+          const pos = (window.emu && window.emu.input && typeof window.emu.input._mapCode === 'function') ? null : null;
+          // fallback basic map for candidate keys
+          const keyMap = {
+            'a': { row:1, mask:0x01 }, 's': { row:1, mask:0x02 }, 'd': { row:1, mask:0x04 }, 'f': { row:1, mask:0x08 }, 'g': { row:1, mask:0x10 },
+            'h': { row:6, mask:0x10 }, 'j': { row:6, mask:0x08 }, 'k': { row:6, mask:0x04 }, 'l': { row:6, mask:0x02 },
+            'space': { row:7, mask:0x01 }, 'm': { row:7, mask:0x04 }, 'z': { row:0, mask:0x02 }, 'x': { row:0, mask:0x04 }
+          };
+          expected = keyMap[key] || null;
+        } catch (e) { expected = null; }
+
+        const sawKeyboardPollForKey = expected ? keyboardReads.some(r => ((r.result & expected.mask) === 0)) : false;
+
+        results.push({ key, sawKempston, sawKeyboardPollForKey, keyboardReadCount: keyboardReads.length, sampleTail: reads.slice(-20) });
+      }
+      return results;
+    }, candidates);
+
+    console.log('jetpac input summary:', summary);
+
+    // Basic assertions: at least one candidate should show keyboard polling and/or Kempston polling
+    const anyKeyboard = summary.some(s => s.sawKeyboardPollForKey);
+    const anyKempston = summary.some(s => s.sawKempston);
+
+    expect(anyKeyboard || anyKempston).toBeTruthy();
   });
 
   test('status text matches exact pattern after snapshot apply', async ({ page }) => {

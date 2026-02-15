@@ -65,4 +65,161 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     expect(ok).toBe(true);
     expect(emu.memory._syncFlatRamFromBanks).toHaveBeenCalled();
   });
+
+  it('updates FrameBuffer immediately after snapshot apply (deferred rendering)', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+
+    // Build a minimal 48K RAM snapshot and inject a visible marker
+    const ram = new Uint8Array(0xC000);
+    // Choose ZX pixel coordinate and compute bitmap/attr offsets
+    const MARKER_X = 120; const MARKER_Y = 80;
+    const xByte = MARKER_X >> 3;
+    const bitmapIdx = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
+    const attrIdx = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
+    ram[bitmapIdx] = 0xFF;           // solid 8 pixels
+    ram[attrIdx] = 0x47;             // bright white ink
+
+    const parsed = { snapshot: { ram } };
+    const ok = await emu.applySnapshot(parsed, { fileName: 'marker', autoStart: false });
+    expect(ok).toBe(true);
+
+    // FrameBuffer should have been updated by applySnapshot() (deferred path)
+    expect(emu.memory.pages[1][bitmapIdx]).toBe(0xFF);
+
+    // Compute frameBuffer buffer offsets and assert bytes present
+    const FB_BASE = 24 * 160;
+    // main-screen line stride in framebuffer (bytes per line in main area)
+    const LINE_STRIDE = 96;
+    const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
+    const cellStart = lineOffset + 16 + xByte * 2; // bitmap byte then attr byte
+    const fb = emu.ula.frameBuffer.getBuffer();
+    expect(fb[cellStart]).toBe(0xFF);
+    expect(fb[cellStart + 1]).toBe(0x47);
+  });
+
+  // TDD regression: ensure applySnapshot does not rely on fallback manual copy
+  it('does not set _applySnapshotFallbackUsed when generator updated buffer', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+
+    const MARKER_X = 120; const MARKER_Y = 80;
+    const xByte = MARKER_X >> 3;
+    const ram = new Uint8Array(0xC000);
+    const bitmapIdx = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
+    const attrIdx = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
+    ram[bitmapIdx] = 0xFF;
+    ram[attrIdx] = 0x47;
+
+    const parsed = { snapshot: { ram } };
+
+    // Ensure fallback is enabled (default) so we detect if it's ever used
+    delete emu._disableApplySnapshotFallback;
+
+    const ok = await emu.applySnapshot(parsed, { fileName: 'regression', autoStart: false });
+    expect(ok).toBe(true);
+
+    // The frame buffer must match memory
+    const FB_BASE = 24 * 160;
+    const LINE_STRIDE = 96;
+    const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
+    const cellStart = lineOffset + 16 + xByte * 2;
+    const fb = emu.ula.frameBuffer.getBuffer();
+
+    expect(fb[cellStart]).toBe(0xFF);
+    expect(fb[cellStart + 1]).toBe(0x47);
+
+    // Regression assertion: fallback path MUST NOT have been executed
+    expect(!!emu._applySnapshotFallbackUsed).toBe(false);
+  });
+
+  it('does not trigger applySnapshot fallback copy (regression - disabled flag)', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+
+    const MARKER_X = 120; const MARKER_Y = 80;
+    const xByte = MARKER_X >> 3;
+    const ram = new Uint8Array(0xC000);
+    const bitmapIdx = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
+    const attrIdx = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
+    ram[bitmapIdx] = 0xFF;
+    ram[attrIdx] = 0x47;
+
+    const parsed = { snapshot: { ram } };
+
+    // Test toggle: tell applySnapshot to skip fallback if implemented
+    emu._disableApplySnapshotFallback = true;
+
+    const ok = await emu.applySnapshot(parsed, { fileName: 'no-fallback', autoStart: false });
+    expect(ok).toBe(true);
+
+    // The frame buffer must match memory immediately even when the fallback is disabled
+    const FB_BASE = 24 * 160;
+    const LINE_STRIDE = 96;
+    const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
+    const cellStart = lineOffset + 16 + xByte * 2;
+    const fb = emu.ula.frameBuffer.getBuffer();
+
+    expect(fb[cellStart]).toBe(0xFF);
+    expect(fb[cellStart + 1]).toBe(0x47);
+  });
+
+  it('records applySnapshot timing trace and renderer duration', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+
+    const ram = new Uint8Array(0xC000);
+    const MARKER_X = 120; const MARKER_Y = 80;
+    const xByte = MARKER_X >> 3;
+    const bitmapIdx = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
+    const attrIdx = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
+    ram[bitmapIdx] = 0xFF;           // solid 8 pixels
+    ram[attrIdx] = 0x47;             // bright white ink
+
+    const parsed = { snapshot: { ram } };
+    const ok = await emu.applySnapshot(parsed, { fileName: 'timing', autoStart: false });
+    expect(ok).toBe(true);
+
+    // trace recorded and ordered
+    expect(Array.isArray(emu._applySnapshotTrace)).toBe(true);
+    const steps = emu._applySnapshotTrace.map(e => e.step);
+    expect(steps[0]).toBe('applySnapshot:start');
+    expect(steps).toContain('fb.generateFromMemory:start');
+    expect(steps).toContain('frameRenderer.render:start');
+    expect(steps[steps.length - 1]).toBe('applySnapshot:end');
+
+    const fbIdx = steps.indexOf('fb.generateFromMemory:start');
+    const renderIdx = steps.indexOf('frameRenderer.render:start');
+    expect(fbIdx).toBeGreaterThan(0);
+    expect(renderIdx).toBeGreaterThan(fbIdx);
+
+    // renderer duration was recorded on the renderer instance
+    expect(typeof emu.ula.frameRenderer._lastRenderDuration).toBe('number');
+    expect(emu.ula.frameRenderer._lastRenderDuration).toBeGreaterThanOrEqual(0);
+  });
+
+  it('generateFromMemory is applied before render and framebuffer matches memory immediately', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+
+    const ram = new Uint8Array(0xC000);
+    const MARKER_X = 120; const MARKER_Y = 80;
+    const xByte = MARKER_X >> 3;
+    const bitmapIdx = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
+    const attrIdx = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
+    ram[bitmapIdx] = 0xFF;           // solid 8 pixels
+    ram[attrIdx] = 0x47;             // bright white ink
+
+    const parsed = { snapshot: { ram } };
+    const ok = await emu.applySnapshot(parsed, { fileName: 'timing-2', autoStart: false });
+    expect(ok).toBe(true);
+
+    const FB_BASE = 24 * 160;
+    const LINE_STRIDE = 96;
+    const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
+    const cellStart = lineOffset + 16 + xByte * 2;
+    const fb = emu.ula.frameBuffer.getBuffer();
+    expect(fb[cellStart]).toBe(0xFF);
+    expect(fb[cellStart + 1]).toBe(0x47);
+  });
 });
