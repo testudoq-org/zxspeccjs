@@ -485,6 +485,46 @@ export class Z80 {
     this.F = f;
   }
 
+  // Apply port I/O contention *inside the Z80* when the io adapter does NOT already apply it.
+  // This mirrors the Emulator._applyIOContention pattern but keeps the CPU correct even when
+  // a test/mock `cpu.io` is used that doesn't apply contention.
+  _applyPortContention(port) {
+    try {
+      if (!this.mem || !this.mem._isContended || !this.mem.contentionEnabled) return;
+      const isULAPort = (port & 0x01) === 0;
+      const highContended = this.mem._isContended(port & 0xFF00);
+      if (typeof this.mem._buildContentionTableIfNeeded === 'function') this.mem._buildContentionTableIfNeeded();
+      const table = this.mem._contentionTable || new Uint8Array(this.mem._frameCycleCount || 69888);
+      const frameStart = (typeof this.frameStartTstates === 'number') ? this.frameStartTstates : 0;
+      const frameCycle = this.mem._frameCycleCount || 69888;
+      let base = ((this.tstates - frameStart) % frameCycle + frameCycle) % frameCycle;
+
+      if (highContended && isULAPort) {
+        // C:1, C:3
+        if (typeof this.mem._applyContention === 'function') { const saved = this.tstates; try { this.mem._applyContention(0x4000); } catch (e) {} this.tstates = saved; }
+        this.tstates += (table[base] || 0);
+        this.tstates += 1;
+        base = (base + 1) % frameCycle;
+        if (typeof this.mem._applyContention === 'function') { const saved = this.tstates; try { this.mem._applyContention(0x4000); } catch (e) {} this.tstates = saved; }
+        this.tstates += (table[base] || 0);
+        this.tstates += 3;
+      } else if (highContended && !isULAPort) {
+        // 4 × C:1
+        for (let i = 0; i < 4; i++) {
+          if (typeof this.mem._applyContention === 'function') { const saved = this.tstates; try { this.mem._applyContention(0x4000); } catch (e) {} this.tstates = saved; }
+          this.tstates += (table[(base + i) % frameCycle] || 0) + 1;
+        }
+      } else if (!highContended && isULAPort) {
+        // N:1, C:3 (only late contention)
+        this.tstates += 1;
+        if (typeof this.mem._applyContention === 'function') { const saved = this.tstates; try { this.mem._applyContention(0x4000); } catch (e) {} this.tstates = saved; }
+        base = (base + 1) % frameCycle;
+        this.tstates += (table[base] || 0);
+        this.tstates += 3;
+      }
+    } catch (err) { /* best-effort only */ }
+  }
+
   // Basic arithmetic helpers (add / adc / sub / sbc) to centralise flag updates
   _addA(n) {
     const before = this.A;
@@ -1737,6 +1777,8 @@ export class Z80 {
       case 0xDB: { // IN A,(n) - read port using A as high byte, immediate low byte
         const portLo = this.readByte(this.PC++);
         const port = ((this.A & 0xff) << 8) | (portLo & 0xff);
+        // If CPU-level IO adapter does not apply contention, apply it here
+        if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
         let val = 0xff;
         if (this.io && typeof this.io.read === 'function') {
           try { val = this.io.read(port) & 0xff; } catch (e) { val = 0xff; }
@@ -1754,6 +1796,8 @@ export class Z80 {
       case 0xD3: { // OUT (n),A - write A to port (A as high byte, imm low byte)
         const portLo = this.readByte(this.PC++);
         const port = ((this.A & 0xff) << 8) | (portLo & 0xff);
+        // If CPU-level IO adapter does not apply contention, apply it here
+        if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
         if (this.io && typeof this.io.write === 'function') {
           try { this.io.write(port, this.A & 0xff, this.tstates); } catch (e) { /* ignore */ }
         }
@@ -2541,6 +2585,7 @@ export class Z80 {
           // IN/OUT (C) instructions — full set (ED 40..7B)
           case 0x40: { // IN B,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2551,6 +2596,7 @@ export class Z80 {
           }
           case 0x41: { // OUT (C),B
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.B & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2558,6 +2604,7 @@ export class Z80 {
           }
           case 0x48: { // IN C,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2568,6 +2615,7 @@ export class Z80 {
           }
           case 0x49: { // OUT (C),C
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.C & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2575,6 +2623,7 @@ export class Z80 {
           }
           case 0x50: { // IN D,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2585,6 +2634,7 @@ export class Z80 {
           }
           case 0x51: { // OUT (C),D
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.D & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2592,6 +2642,7 @@ export class Z80 {
           }
           case 0x58: { // IN E,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2602,6 +2653,7 @@ export class Z80 {
           }
           case 0x59: { // OUT (C),E
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.E & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2609,6 +2661,7 @@ export class Z80 {
           }
           case 0x60: { // IN H,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2619,6 +2672,7 @@ export class Z80 {
           }
           case 0x61: { // OUT (C),H
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.H & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2626,6 +2680,7 @@ export class Z80 {
           }
           case 0x68: { // IN L,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2636,6 +2691,7 @@ export class Z80 {
           }
           case 0x69: { // OUT (C),L
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.L & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2643,6 +2699,7 @@ export class Z80 {
           }
           case 0x70: { // IN (C) — undocumented: affects flags only, result discarded
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2653,6 +2710,7 @@ export class Z80 {
           }
           case 0x71: { // OUT (C),0 — undocumented: outputs 0
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, 0, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2660,6 +2718,7 @@ export class Z80 {
           }
           case 0x78: { // IN A,(C)
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2677,6 +2736,7 @@ export class Z80 {
           }
           case 0x79: { // OUT (C),A
             const port = this._getBC();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.A & 0xFF, this.tstates); } catch(e) { /* ignore */ }
             }

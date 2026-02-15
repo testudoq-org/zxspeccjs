@@ -1201,6 +1201,9 @@ export class Emulator {
     // Create IO adapter via helper to keep this method focused
     const ioAdapter = this._createIOAdapter();
 
+    // Mark adapter as applying I/O contention itself (Z80 will skip duplicate application)
+    ioAdapter._appliesContention = true;
+
     // Install debug helpers and expose useful testing API
     this._installDebugHelpers(ioAdapter);
 
