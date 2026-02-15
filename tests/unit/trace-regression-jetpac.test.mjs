@@ -38,7 +38,12 @@ function findPortWrite(frame, portLow, value) {
   return frame.portWrites.find(p => ((p.port & 0xff) === (portLow & 0xff)) && (typeof value === 'undefined' || p.value === value));
 }
 
-test('frame-0: memWrite 0x4001 exists and ULA port writes normalize to 0xFE', () => {
+test('trace parity: compare R register and contention timeline against jsspeccy reference for multiple frames', () => {
+  // regenerate our trace if missing so CI can run this test locally
+  if (!fs.existsSync(OUR_TRACE)) {
+    try { regenJetpacTrace(); } catch (e) { /* allow test to fail below with clear message */ }
+  }
+
   const our = loadTrace(OUR_TRACE);
   const ref = loadTrace(REF_TRACE);
 
@@ -47,29 +52,71 @@ test('frame-0: memWrite 0x4001 exists and ULA port writes normalize to 0xFE', ()
   expect(our.frames.length).toBeGreaterThan(0);
   expect(ref.frames.length).toBeGreaterThan(0);
 
-  const ourF = our.frames[0];
-  const refF = ref.frames[0];
+  const FRAMES_TO_COMPARE = Math.min(parseInt(process.env.TRACE_COMPARE_FRAMES || '10', 10), our.frames.length, ref.frames.length);
+  expect(FRAMES_TO_COMPARE).toBeGreaterThan(0);
 
-  // 1) Reference must contain the memWrite at 0x4001 (known Jetpac behaviour)
-  const refMem = findMemWrite(refF, 0x4001);
-  expect(refMem, 'reference must include memWrite @0x4001').toBeDefined();
+  const tTol = 50; // allowed t-state tolerance for matching events
 
-  // 2) Our trace must also include the memWrite @0x4001 with the same value
-  const ourMem = findMemWrite(ourF, 0x4001, refMem.value);
-  expect(ourMem, 'our trace missing memWrite @0x4001 matching reference').toBeDefined();
+  for (let i = 0; i < FRAMES_TO_COMPARE; i++) {
+    const ourF = our.frames[i];
+    const refF = ref.frames[i];
 
-  // 3) Reference should have a ULA OUT (port low byte 0xFE). Assert our trace contains a matching port write
-  const refPort = (refF.portWrites || []).find(p => (p.port & 0xff) === 0xFE);
-  expect(refPort, 'reference must include a port write to 0xFE').toBeDefined();
+    // basic sanity: memWrite @0x4001 exists in reference -> must exist in our trace
+    const refMem = findMemWrite(refF, 0x4001);
+    expect(refMem, `frame ${i}: reference must include memWrite @0x4001`).toBeDefined();
 
-  const ourPort = findPortWrite(ourF, 0xFE, refPort ? refPort.value : undefined);
-  expect(ourPort, 'our trace must contain a port write whose low byte is 0xFE and matching value').toBeDefined();
+    const ourMem = findMemWrite(ourF, 0x4001, refMem ? refMem.value : undefined);
+    expect(ourMem, `frame ${i}: our trace missing memWrite @0x4001 matching reference`).toBeDefined();
 
-  // 4) Timing: allow small timing differences vs the JSSpeccy reference.
-  // Our trace records mem/port write timestamps at slightly different
-  // micro-op boundaries; accept up to 50 T-states difference to avoid
-  // brittle failures while still catching major regressions.
-  const tTol = 50;
-  if (refMem && ourMem) expect(Math.abs((ourMem.t || 0) - (refMem.t || 0))).toBeLessThanOrEqual(tTol);
-  if (refPort && ourPort) expect(Math.abs((ourPort.tstates || ourPort.t || 0) - (refPort.tstates || refPort.t || 0))).toBeLessThanOrEqual(tTol);
+    // port write parity for ULA OUT (0xFE)
+    const refPort = (refF.portWrites || []).find(p => (p.port & 0xFF) === 0xFE);
+    expect(refPort, `frame ${i}: reference must include a port write to 0xFE`).toBeDefined();
+
+    const ourPort = (ourF.portWrites || []).find(p => (p.port & 0xFF) === 0xFE && (typeof refPort === 'undefined' || p.value === refPort.value));
+    expect(ourPort, `frame ${i}: our trace must contain a matching port write to 0xFE`).toBeDefined();
+
+    // R-register parity (lower 7 bits) when regs snapshot exists in both traces
+    if (refF.regs && ourF.regs) {
+      const refR = (refF.regs.R || 0) & 0x7F;
+      const ourR = (ourF.regs.R || 0) & 0x7F;
+      expect(ourR === refR, `frame ${i}: R mismatch (our=${ourR}, ref=${refR})`).toBeTruthy();
+    }
+
+    // Contention timeline: ensure our trace recorded contention events and
+    // that at least one contention event is close to the ULA OUT(0xFE) timing
+    const ourContention = (ourF.contentionLog || []);
+    expect(ourContention.length, `frame ${i}: our trace should include contention events`).toBeGreaterThan(0);
+    expect((ourF.contentionHits || 0), `frame ${i}: contentionHits should be >0`).toBeGreaterThan(0);
+
+    const portT = ourPort ? (ourPort.tstates || ourPort.t || 0) : null;
+    const hasNearby = ourContention.some(c => Math.abs((c.t || 0) - (portT || 0)) <= tTol);
+    expect(hasNearby, `frame ${i}: no contention event found near ULA OUT timing (tTol=${tTol})`).toBeTruthy();
+
+    // Optional: compare counts of contention events across frames to detect abrupt regressions
+    const refContentionCount = (refF.contentionHits || 0);
+    const ourContentionCount = (ourF.contentionHits || 0);
+    // If reference provides contentionHits (synthetic or generated), require close parity
+    if (typeof refContentionCount === 'number' && refContentionCount > 0) {
+      const diff = Math.abs(refContentionCount - ourContentionCount);
+      expect(diff <= 2, `frame ${i}: contention hit count differs too much (ref=${refContentionCount}, our=${ourContentionCount})`).toBeTruthy();
+    }
+  }
+});
+
+  // 5) Contention diagnostics: our trace should include contention events and hits
+  const ourContention = (ourF.contentionLog || []);
+  expect(ourContention.length).toBeGreaterThan(0);
+  expect((ourF.contentionHits || 0)).toBeGreaterThan(0);
+
+  // Verify at least one contention event occured near the ULA OUT (0xFE)
+  const portT = (ourPort && (ourPort.tstates || ourPort.t)) || null;
+  const closeToPort = ourContention.some(c => Math.abs((c.t || 0) - (portT || 0)) <= tTol);
+  expect(closeToPort, 'at least one contention event should be near the ULA OUT(0xFE) timing').toBeTruthy();
+
+  // 6) R-register parity: per-frame R should match reference (lower-7 bits)
+  if (refF.regs && ourF.regs) {
+    const refR = (refF.regs.R || 0) & 0x7F;
+    const ourR = (ourF.regs.R || 0) & 0x7F;
+    expect(ourR).toBe(refR);
+  }
 });

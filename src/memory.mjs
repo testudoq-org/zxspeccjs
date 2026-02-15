@@ -39,6 +39,10 @@ export class Memory {
 
     // last contention applied
     this._lastContention = 0;
+    // total contention event counter (useful for diagnostics/tests)
+    this._contentionHits = 0;
+    // recent contention event log (bounded)
+    this._contentionLog = [];
 
     // optional CPU reference for applying tstate delays
     this.cpu = null;
@@ -335,12 +339,30 @@ export class Memory {
     frameT = ((frameT % this._frameCycleCount) + this._frameCycleCount) % this._frameCycleCount;
 
     const extra = this._contentionTable[frameT];
-    if (extra > 0) this.cpu.tstates += extra;
+    // Diagnostic: record contention events so tests / traces can assert against them
+    if (extra > 0) {
+      this._contentionHits = (this._contentionHits || 0) + 1;
+      try {
+        // record absolute CPU tstate at which contention was applied and current R
+        const cpuT = this.cpu ? this.cpu.tstates : null;
+        const rVal = this.cpu ? (this.cpu.R & 0xFF) : null;
+        this._contentionLog.push({ t: cpuT, addr, extra, R: rVal });
+        if (this._contentionLog.length > 5000) this._contentionLog.shift();
+        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.contentionLog = this._contentionLog; } catch (e) { /* ignore */ }
+      } catch (e) { /* best-effort only */ }
+      this.cpu.tstates += extra;
+    }
     this._lastContention = extra;
     return extra;
   }
 
   lastContention() { return this._lastContention; }
+
+  /** Return total contention hit count (diagnostic) */
+  contentionHits() { return this._contentionHits || 0; }
+
+  /** Return a copy of recent contention events (diagnostic) */
+  getContentionLog() { return (this._contentionLog || []).slice(); }
 
   /** Read a byte taking into account the current page mapping */
   read(addr) {

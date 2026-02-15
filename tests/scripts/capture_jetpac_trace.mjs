@@ -193,7 +193,9 @@ async function main() {
     cpu._microTraceEnabled = true;
     cpu._microLog = [];
     mem._memWrites = [];
-    emu._portWrites = [];
+    // reset per-frame contention log so trace frames include only this-frame events
+    mem._contentionLog = [];
+    emu._portWrites = [];    
 
     // Run one frame
     cpu.runFor(TPF);
@@ -223,7 +225,11 @@ async function main() {
     // Sound toggles (copy)
     const toggles = sound ? (sound._toggles ? sound._toggles.slice() : []) : [];
 
-    frames.push({ frame: f, startT: cpu.frameStartTstates, tstates: cpu.tstates, regs, memWrites, portWrites, micro, toggles });
+    // Include contention diagnostics so tests can compare against reference
+    const contentionLog = (mem._contentionLog || []).slice();
+    const contentionHits = mem._contentionHits || 0;
+
+    frames.push({ frame: f, startT: cpu.frameStartTstates, tstates: cpu.tstates, regs, memWrites, portWrites, micro, toggles, contentionLog, contentionHits });
 
     // Periodic flush to disk to limit memory
     if ((f + 1) % 20 === 0) {
