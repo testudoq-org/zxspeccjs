@@ -55,31 +55,40 @@ async function main() {
   const workerPath = path.join(OUT, 'worker.js');
   let workerSrc = fs.readFileSync(workerPath, 'utf-8');
 
-  // Insert patch after `core = results.instance.exports;`
-  const needle = "core =\nresults.instance.exports;";
-  if (workerSrc.indexOf(needle) === -1) {
+  // Insert patch after the core instantiation point. The worker layout may
+  // vary between releases, so accept either `core = results.instance.exports;`
+  // or `core =\nresults.instance.exports;` spacing.
+  const coreRe = /core\s*=\s*results\.instance\.exports\s*;/;
+  if (!coreRe.test(workerSrc)) {
     throw new Error('Unexpected worker.js layout: cannot find core instantiation point');
   }
 
-  const patch = `core =\nresults.instance.exports;
+  const patchBody = `
     // Instrumentation: wrap poke and writePort to emit events for tracing
     try {
       const _origPoke = core.poke;
       if (typeof _origPoke === 'function') {
         core.poke = function(addr, val) {
-          try { postMessage({ message: 'memWrite', addr, value: val, t: (core.getTStates ? core.getTStates() : 0) }); } catch(e){}
+          try {
+            let pc = 0;
+            try { if (typeof core.getPC === 'function') pc = core.getPC(); else { const regs = new Uint16Array(core.memory.buffer, core.REGISTERS, 12); pc = regs[8] || 0; } } catch(e){}
+            postMessage({ message: 'memWrite', addr, value: val, t: (core.getTStates ? core.getTStates() : 0), pc });
+          } catch(e){}
           return _origPoke(addr, val);
         };
       }
       const _origWritePort = core.writePort;
       if (typeof _origWritePort === 'function') {
         core.writePort = function(port, val) {
-          try { postMessage({ message: 'portWrite', port, value: val, t: (core.getTStates ? core.getTStates() : 0) }); } catch(e){}
+          try {
+            let pc = 0;
+            try { if (typeof core.getPC === 'function') pc = core.getPC(); else { const regs = new Uint16Array(core.memory.buffer, core.REGISTERS, 12); pc = regs[8] || 0; } } catch(e){}
+            postMessage({ message: 'portWrite', port, value: val, t: (core.getTStates ? core.getTStates() : 0), pc });
+          } catch(e){}
           return _origWritePort(port, val);
         };
       }
       // Provide a helper to snapshot registers
-      const _origRunFrame = core.runFrame;
       core._snapshotRegisters = function() {
         try {
           const regs = new Uint16Array(core.memory.buffer, core.REGISTERS, 12);
@@ -90,7 +99,9 @@ async function main() {
     } catch (e) { }
   `;
 
-  workerSrc = workerSrc.replace(needle, patch);
+  // Replace the first occurrence of the core instantiation with the same line
+  // followed by our instrumentation patch.
+  workerSrc = workerSrc.replace(coreRe, match => match + patchBody);
   fs.writeFileSync(workerPath, workerSrc, 'utf-8');
   console.log('[generate_jsspeccy_reference] Patched worker.js with instrumentation');
 

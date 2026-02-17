@@ -447,17 +447,33 @@ export class Memory {
     try {
       this._memWrites = this._memWrites || [];
       if (addr >= 0x4000 && addr <= 0x5AFF) {
-        const writeEvt = { type: 'write', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: (this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.PC : undefined };
+        const pcVal = (this.cpu && typeof this.cpu.PC === 'number') ? this.cpu.PC : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().PC : undefined);
+        const Rval = (this.cpu && typeof this.cpu.R === 'number') ? this.cpu.R : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().R : undefined);
+        const writeEvt = { type: 'write', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: pcVal, R: Rval };
         this._memWrites.push(writeEvt);
         if (this._memWrites.length > 5000) this._memWrites.shift();
         // Mirror mem write into CPU microLog for tighter correlation when tracing
         try {
           if (this.cpu && this.cpu._microTraceEnabled && Array.isArray(this.cpu._microLog)) {
-            this.cpu._microLog.push({ type: 'MEMWRITE', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: (this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.PC : undefined });
+            this.cpu._microLog.push({ type: 'MEMWRITE', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: pcVal, R: Rval });
           }
         } catch (e) { /* ignore */ }
         try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
         try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
+
+        // TEST-ONLY: extra rocket-area watch (0x4800..0x49FF)
+        try {
+          if (addr >= 0x4800 && addr < 0x4A00) {
+            if (typeof window !== 'undefined') {
+              window.__ZX_DEBUG__ = window.__ZX_DEBUG__ || {};
+              window.__ZX_DEBUG__.rocketWrites = window.__ZX_DEBUG__.rocketWrites || [];
+              window.__ZX_DEBUG__.rocketWrites.push(writeEvt);
+              // also surface to console for immediate visibility during E2E/manual runs
+              console.log('[ROCKET-WRITE]', writeEvt);
+              if (window.__ZX_DEBUG__.rocketWrites.length > 512) window.__ZX_DEBUG__.rocketWrites.shift();
+            }
+          }
+        } catch (e) { /* ignore */ }
       }
     } catch (e) { /* best-effort only */ }
 

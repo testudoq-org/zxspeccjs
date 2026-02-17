@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* global fetch, Buffer */
+/* eslint no-console: 0 */
 // Capture per-frame traces for Jetpac .z80 snapshot
 import fs from 'fs';
 import path from 'path';
@@ -55,7 +58,18 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   // Parse the snapshot using Loader
-  const payloadBuf = generateJetpacZ80Payload();
+  // Allow using the real Jetpac .z80 from Archive.org when REFERENCE_JETPAC=1
+  let payloadBuf;
+  if (process.env.REFERENCE_JETPAC === '1') {
+    console.log('[TraceDiag] fetching real Jetpac .z80 from Archive.org');
+    const jetpacUrl = 'https://cors.archive.org/cors/zx_Jetpac_1983_Ultimate_Play_The_Game_a_16K/Jetpac_1983_Ultimate_Play_The_Game_a_16K.z80';
+    const res = await fetch(jetpacUrl);
+    if (!res.ok) throw new Error('Failed to fetch Jetpac .z80: ' + res.status);
+    // Loader.parseZ80 expects an ArrayBuffer (not a Node Buffer)
+    payloadBuf = await res.arrayBuffer();
+  } else {
+    payloadBuf = generateJetpacZ80Payload();
+  }
   const parsed = Loader.parseZ80(payloadBuf);
 
   // Create an emulator instance with minimal options
@@ -185,6 +199,12 @@ async function main() {
   const FRAMES = 200; // full capture
   const TPF = 69888; // t-states per frame
 
+  // Optional: inject a keypress during capture to exercise in-game logic
+  // Configure via env: PRESS_FRAME (frame index) and PRESS_DURATION (frames)
+  const PRESS_FRAME = Math.max(-1, parseInt(process.env.PRESS_FRAME || '-1', 10));
+  const PRESS_DURATION = Math.max(1, parseInt(process.env.PRESS_DURATION || '2', 10));
+  if (PRESS_FRAME >= 0) console.log('[TraceDiag] will press key "5" at frame', PRESS_FRAME, 'for', PRESS_DURATION, 'frames');
+
   const frames = [];
 
   for (let f = 0; f < FRAMES; f++) {
@@ -196,6 +216,16 @@ async function main() {
     // reset per-frame contention log so trace frames include only this-frame events
     mem._contentionLog = [];
     emu._portWrites = [];    
+
+    // optionally press/release key around this frame
+    try {
+      if (PRESS_FRAME >= 0 && f === PRESS_FRAME) {
+        try { if (emu && emu.input && typeof emu.input.pressKey === 'function') { emu.input.pressKey('5'); console.log('[TraceDiag] injected pressKey("5") at frame', f); } } catch (e) { }
+      }
+      if (PRESS_FRAME >= 0 && f === (PRESS_FRAME + PRESS_DURATION - 1)) {
+        try { if (emu && emu.input && typeof emu.input.releaseKey === 'function') { emu.input.releaseKey('5'); console.log('[TraceDiag] injected releaseKey("5") at frame', f); } } catch (e) { }
+      }
+    } catch (e) { /* ignore */ }
 
     // Run one frame
     cpu.runFor(TPF);

@@ -26,6 +26,9 @@ const ourPath = argv[0] || path.resolve(process.cwd(), 'traces', 'jetpac_trace.j
 const refPath = argv[1] || path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
 const framesToCompare = Math.max(1, Math.min(100, parseInt(argv[2] || process.env.TRACE_COMPARE_FRAMES || '10', 10)));
 const TOL = 120; // t-state tolerance for "nearby" checks (increased to allow small timing skew)
+// Optional rocket-area per-write diff: set --rocket-diff or ROCKET_DIFF=1
+const rocketDiff = argv.includes('--rocket-diff') || process.env.ROCKET_DIFF === '1';
+
 
 function load(p) {
   if (!fs.existsSync(p)) return null;
@@ -97,6 +100,28 @@ for (let i = 0; i < totalFrames; i++) {
   const nearbyLabel = (nearby === 'N/A') ? 'N/A' : (nearby ? 'yes' : 'no (FAIL)');
   const expectedNote = (nearby === 'N/A') ? '' : (' — expected at least one event within ±' + TOL + ' t-states');
   console.log(`  contentionNearPort?: ${nearbyLabel}${expectedNote}`);
+
+  // Optional: per-write diffs for the rocket area (0x4800..0x49FF)
+  if (rocketDiff) {
+    const ourRocket = (of.memWrites || []).filter(w => w.addr >= 0x4800 && w.addr < 0x4A00);
+    const refRocket = (rf.memWrites || []).filter(w => w.addr >= 0x4800 && w.addr < 0x4A00);
+    console.log(`  rocketWrites: our=${ourRocket.length} ref=${refRocket.length}`);
+    const maxLen = Math.max(ourRocket.length, refRocket.length);
+    for (let j = 0; j < maxLen; j++) {
+      const ou = ourRocket[j];
+      const rfw = refRocket[j];
+      if (!ou) { console.log(`    [MISSING-OUR] ref[${j}] addr=0x${(rfw.addr||0).toString(16)} t=${rfw.t||rfw.tstates||'?'}`); mismatch = true; continue; }
+      if (!rfw) { console.log(`    [MISSING-REF] our[${j}] addr=0x${(ou.addr||0).toString(16)} t=${ou.t||ou.tstates||'?'}`); mismatch = true; continue; }
+      const addrMatch = (ou.addr === rfw.addr);
+      const valMatch = (ou.value === rfw.value);
+      const tDiff = Math.abs((ou.t || ou.tstates || 0) - (rfw.t || rfw.tstates || 0));
+      const pcMatch = ((ou.pc || 0) === (rfw.pc || 0));
+      const rMatchWrite = (addrMatch && valMatch && tDiff <= TOL && pcMatch);
+      console.log(`    [${rMatchWrite ? 'OK' : 'DIFF'}] idx=${j} addr=0x${(ou.addr||0).toString(16)} our(t=${ou.t||ou.tstates||'?'},pc=${ou.pc||'?'},R=${ou.R!=null?('0x'+(ou.R&0xFF).toString(16)):'?'}) ref(t=${rfw.t||rfw.tstates||'?'},pc=${rfw.pc||'?'}) td=${tDiff} val(our=${ou.value} ref=${rfw.value})`);
+      if (!rMatchWrite) mismatch = true;
+    }
+  }
+
   console.log('-'.repeat(80));
 }
 

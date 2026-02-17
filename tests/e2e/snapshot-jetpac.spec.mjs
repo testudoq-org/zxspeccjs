@@ -535,6 +535,23 @@ test.describe('Jetpac .z80 snapshot load @snapshot', () => {
       return cnt;
     });
 
+    // Diagnostic: surface any memory writes to the Jetpac rocket area (0x4800..0x49FF)
+    // recorded by the emulator watchpoint added in src/memory.mjs. This does NOT
+    // assert (non-deterministic) — it only logs data to help debugging.
+    const rocketWrites = await page.evaluate(() => {
+      try {
+        if (window.__ZX_DEBUG__ && Array.isArray(window.__ZX_DEBUG__.rocketWrites)) {
+          return window.__ZX_DEBUG__.rocketWrites.slice(-64);
+        }
+        // Fallback: filter mem._memWrites captured by the emulator
+        if (window.emu && Array.isArray(window.emu.memory._memWrites)) {
+          return window.emu.memory._memWrites.filter(w => w.addr >= 0x4800 && w.addr < 0x4A00).slice(-64);
+        }
+      } catch (e) { /* ignore */ }
+      return [];
+    });
+    if (rocketWrites && rocketWrites.length > 0) console.log('ROCKET-WRITES:', rocketWrites);
+
     // Expect the visible framebuffer to change after the keypress (sprites/UI updated).
     // We assert the framebuffer is different rather than assuming an increase in
     // non-black pixel count (some transitions may clear areas first).
