@@ -848,6 +848,48 @@ export class Emulator {
             } catch (e) { /* ignore diagnostic errors */ }
           }
         } catch (e) { /* ignore */ }
+
+        // === JETPAC-SPECIFIC DIAGNOSTICS ===
+        try {
+          // Non-zero byte counts for each 16KB RAM page (diagnostic)
+          const pageNonZero = (p) => { if (!p) return 0; let c = 0; for (let i = 0; i < p.length; i++) if (p[i] !== 0) c++; return c; };
+          const p1 = this.memory && this.memory.pages ? this.memory.pages[1] : null;
+          const p2 = this.memory && this.memory.pages ? this.memory.pages[2] : null;
+          const p3 = this.memory && this.memory.pages ? this.memory.pages[3] : null;
+
+          const nz1 = pageNonZero(p1);
+          const nz2 = pageNonZero(p2);
+          const nz3 = pageNonZero(p3);
+          console.log(`[SNAP-DIAG] non-zero bytes per 16KB page: page1=${nz1}, page2=${nz2}, page3=${nz3}`);
+
+          // Screen vs game-data areas in page1 (0x4000..0x5AFF vs 0x5B00..0x7FFF)
+          const screenNonZero = (() => { if (!p1) return 0; let c = 0; for (let i = 0; i < 0x1800; i++) if (p1[i] !== 0) c++; return c; })();
+          const gameAreaNonZero = (() => { if (!p1) return 0; let c = 0; for (let i = 0x1B00; i < 0x4000; i++) if (p1[i] !== 0) c++; return c; })();
+          const page2NonZero = pageNonZero(p2);
+          console.log(`[SNAP-DIAG] page1: screen(0x4000-0x57FF) non-zero=${screenNonZero}, page1 game-data(0x5B00-0x7FFF) non-zero=${gameAreaNonZero}, page2(0x8000+) non-zero=${page2NonZero}`);
+
+          // Hex-dump small regions useful for Jetpac diagnostics
+          const hexDump = (memView, addr, len) => { if (!memView) return null; const out = []; const base = addr - 0x4000; for (let i = 0; i < len; i++) out.push((memView[base + i] || 0).toString(16).padStart(2, '0')); return out.join(' '); };
+
+          // Rocket tile area (0x4800..0x49FF), marker offsets near 120,80, and a few candidate tables
+          const rocketDump = p1 ? Array.from(p1.slice(0x0800, 0x0A00)).slice(0, 32).map(b => b.toString(16).padStart(2,'0')).join(' ') : null;
+          const table5B00 = p1 ? Array.from(p1.slice(0x1B00, 0x1B20)).map(b => b.toString(16).padStart(2,'0')).join(' ') : null;
+          const table6000 = p2 ? Array.from(p2.slice(0x2000 % 0x4000, (0x2000 % 0x4000) + 0x20)).map(b => b.toString(16).padStart(2,'0')).join(' ') : null; // 0xA000 absolute -> page2 offset
+          console.log('[SNAP-DIAG] rocket area sample (0x4800..0x483F):', rocketDump);
+          console.log('[SNAP-DIAG] table @0x5B00..0x5B1F:', table5B00);
+          console.log('[SNAP-DIAG] page2 sample @0xA000..0xA01F (page2 offsets):', table6000);
+
+          // Expose diagnostics to test harness for assertions
+          try { if (typeof window !== 'undefined' && window.__TEST__) {
+            window.__TEST__.snapshotDiag = window.__TEST__.snapshotDiag || {};
+            window.__TEST__.snapshotDiag.pageNonZero = { p1: nz1, p2: nz2, p3: nz3 };
+            window.__TEST__.snapshotDiag.screenNonZero = screenNonZero;
+            window.__TEST__.snapshotDiag.page1GameNonZero = gameAreaNonZero;
+            window.__TEST__.snapshotDiag.rocketSample = rocketDump;
+            window.__TEST__.snapshotDiag.table5B00 = table5B00;
+            window.__TEST__.snapshotDiag.table6000 = table6000;
+          } } catch (e) { /* ignore */ }
+        } catch (e) { /* ignore snapshot diagnostics */ }
       } catch (e) { void e; }
 
       // Initialize peripherals and input

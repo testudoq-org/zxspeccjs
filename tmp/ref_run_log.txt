@@ -27,3 +27,7 @@
 [PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
 [run_reference_capture] snapshot injection attempt 5 => false
 [PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 6 => false
+failed to load Jetpac snapshot into reference page page.waitForTimeout: Target page, context or browser has been closed
+Reference capture failed page.evaluate: Target page, context or browser has been closed
+    at main (D:\Code\GitHub\zxspeccjs\tests\reference\jsspeccy\run_reference_capture.mjs:280:14)

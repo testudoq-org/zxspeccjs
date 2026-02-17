@@ -245,9 +245,15 @@ export class FrameBuffer {
       for (let xByte = 0; xByte < 32; xByte++) {
         const bitmapAddr = (y0 << 8) | (y1 << 5) | (y2 << 11) | xByte;
         const attrAddr = (Math.floor(y / 8) * 32) + xByte;
-        // Diagnostic: log the marker cell write for deeper inspection
+        // Diagnostic: log the marker cell write for deeper inspection (throttled)
         if (y === 80 && xByte === (120 >> 3)) {
-          try { console.log('[FB-FILL] writing marker cell: y,xByte,bitmapAddr,bitmapVal,attrVal,ptr =', y, xByte, bitmapAddr, bitmap[bitmapAddr], attrs[attrAddr], ptr); } catch (e) { /* ignore */ }
+          try {
+            // Only emit verbose marker logs when the FrameBuffer debug counter is small
+            // or when explicit test diagnostics are enabled to avoid flooding the
+            // browser console during heavy test activity.
+            const shouldLog = (this._debugCount <= 3) || (typeof globalThis !== 'undefined' && globalThis.__TEST__ && globalThis.__TEST__.frameBufferVerbose);
+            if (shouldLog) console.log('[FB-FILL] writing marker cell: y,xByte,bitmapAddr,bitmapVal,attrVal,ptr =', y, xByte, bitmapAddr, bitmap[bitmapAddr], attrs[attrAddr], ptr);
+          } catch (e) { /* ignore */ }
         }
         this.buffer[ptr++] = bitmap[bitmapAddr];
         this.buffer[ptr++] = attrs[attrAddr];

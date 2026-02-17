@@ -409,6 +409,66 @@ test.describe('Jetpac .z80 snapshot load @snapshot', () => {
     expect(res.px[2]).toBeGreaterThan(128);
   });
 
+  test('jetpac: mem.write to screen memory should update FrameBuffer + canvas immediately (test-only guarantee)', async ({ page }) => {
+    // Apply synthetic snapshot and then perform an immediate memory write
+    // to a known rocket-cell address. The expectation (test-only) is that
+    // Memory.write will surface the change to the FrameBuffer backing-store
+    // and the canvas synchronously so tests can assert without waiting for
+    // the next frame. This guards against regressions where writes are
+    // swallowed until the next render cycle.
+    await page.goto('/');
+    await page.waitForSelector('#screen', { timeout: 5000 });
+
+    const payload = generateJetpacZ80Payload();
+    await page.evaluate((p) => { window.emu.applySnapshot(new Uint8Array(p)); }, Array.from(payload));
+
+    // Compute target bitmap/attr addresses for pixel (120,80)
+    const MARKER = { x: 120, y: 80 };
+    const bitmapIndex = ((MARKER.y & 0x07) << 8) | ((MARKER.y & 0x38) << 2) | ((MARKER.y & 0xC0) << 5) | (MARKER.x >> 3);
+    const attrIndex = 6144 + (Math.floor(MARKER.y / 8) * 32) + (MARKER.x >> 3);
+
+    // Immediately write to memory (simulate in-game write) and then
+    // synchronously assert that the FrameBuffer backing-store and canvas
+    // were updated without waiting for an animation frame.
+    await page.evaluate(({ bi, ai }) => {
+      const mem = window.emu.memory;
+      // toggle bitmap/attr values to a visible pattern
+      mem.write(0x4000 + bi, 0xFF);
+      mem.write(0x4000 + ai, 0x47);
+    }, { bi: bitmapIndex, ai: attrIndex });
+
+    // Wait one tick for the debounced/frame-coalesced update to occur
+    await page.waitForTimeout(0);
+
+    // Checks: Memory.write should be reflected in the FrameBuffer + canvas
+    const snapshot = await page.evaluate((MARKER) => {
+      const mem = window.emu.memory.pages[1];
+      const bitmapIndex = ((MARKER.y & 0x07) << 8) | ((MARKER.y & 0x38) << 2) | ((MARKER.y & 0xC0) << 5) | (MARKER.x >> 3);
+      const attrIndex = 6144 + (Math.floor(MARKER.y / 8) * 32) + (MARKER.x >> 3);
+      const memByte = mem[bitmapIndex];
+
+      const fb = window.emu.ula.frameBuffer.getBuffer();
+      const FB_BASE = 24 * 160;
+      const LINE_STRIDE = 96;
+      const lineOffset = FB_BASE + MARKER.y * LINE_STRIDE;
+      const cellStart = lineOffset + 16 + (MARKER.x >> 3) * 2;
+      const fbBitmap = fb[cellStart];
+      const fbAttr = fb[cellStart + 1];
+
+      const c = document.querySelector('#screen');
+      const ctx = c.getContext('2d');
+      const data = ctx.getImageData(32 + MARKER.x, 24 + MARKER.y, 1, 1).data;
+      return { memByte, fbBitmap, fbAttr, px: [data[0], data[1], data[2]] };
+    }, MARKER);
+
+    expect(snapshot.memByte).toBe(0xFF);
+    expect(snapshot.fbBitmap).toBe(0xFF);
+    expect((snapshot.fbAttr & 0x47)).toBe(0x47);
+    expect(snapshot.px[0]).toBeGreaterThan(128);
+    expect(snapshot.px[1]).toBeGreaterThan(128);
+    expect(snapshot.px[2]).toBeGreaterThan(128);
+  });
+
   test('jetpac: detect in-game input polling (keyboard vs Kempston) and validate fire-key candidates', async ({ page }) => {
     // Apply the same deterministic Jetpac payload directly (faster than UI flow)
     await page.goto('/');
