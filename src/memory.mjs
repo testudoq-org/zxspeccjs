@@ -332,14 +332,17 @@ export class Memory {
     this._contentionTable = table;
   }
 
-  _applyContention(addr) {
+  _applyContention(addr, tstates) {
     if (!this._isContended(addr)) { this._lastContention = 0; return 0; }
     if (!this.cpu || typeof this.cpu.tstates !== 'number') { this._lastContention = 0; return 0; }
 
     this._buildContentionTableIfNeeded();
 
     const frameStart = (typeof this.cpu.frameStartTstates === 'number') ? this.cpu.frameStartTstates : 0;
-    let frameT = this.cpu.tstates - frameStart;
+    // If caller supplied a tstates snapshot, use it to compute the contention slot;
+    // otherwise fall back to the canonical CPU tstates value.
+    const baseT = (typeof tstates === 'number') ? tstates : this.cpu.tstates;
+    let frameT = baseT - frameStart;
     // normalise into positive modulo space
     frameT = ((frameT % this._frameCycleCount) + this._frameCycleCount) % this._frameCycleCount;
 
@@ -355,6 +358,7 @@ export class Memory {
         if (this._contentionLog.length > 5000) this._contentionLog.shift();
         try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.contentionLog = this._contentionLog; } catch (e) { /* ignore */ }
       } catch (e) { /* best-effort only */ }
+      // apply contention delay to canonical CPU tstates (memory mutates CPU tstates)
       this.cpu.tstates += extra;
     }
     this._lastContention = extra;
@@ -369,8 +373,10 @@ export class Memory {
   /** Return a copy of recent contention events (diagnostic) */
   getContentionLog() { return (this._contentionLog || []).slice(); }
 
-  /** Read a byte taking into account the current page mapping */
-  read(addr) {
+  /** Read a byte taking into account the current page mapping
+   *  Optional second arg tstates is the CPU tstate at the moment of access.
+   */
+  read(addr, tstates) {
     addr = this._mask(addr);
     const page = addr >>> 14; // 0..3
     const offset = addr & (Memory.PAGE_SIZE - 1);
@@ -404,8 +410,8 @@ export class Memory {
       }
     } catch (e) { /* ignore */ }
 
-    // Apply contention for accesses in 0x4000..0x7fff
-    this._applyContention(addr);
+    // Apply contention for accesses in 0x4000..0x7fff (passes caller tstates)
+    this._applyContention(addr, tstates);
     // If stack watch enabled and access falls in range, invoke callback
     if (this._stackWatch) {
       const s = this._stackWatch;
@@ -416,8 +422,10 @@ export class Memory {
     return value;
   }
 
-  /** Write a byte - on ZX Spectrum 48K, writes to ROM area are ignored */
-  write(addr, value) {
+  /** Write a byte - on ZX Spectrum 48K, writes to ROM area are ignored
+   *  Optional third arg tstates is the CPU tstate at the moment of access.
+   */
+  write(addr, value, tstates) {
     addr = this._mask(addr);
     value = value & 0xff;
     const page = addr >>> 14;
@@ -428,8 +436,8 @@ export class Memory {
     // because it allowed stack operations to corrupt the scratch page which was
     // then being read for code execution.
     if (page === 0) {
-      // ROM area - ignore write but still apply contention
-      this._applyContention(addr);
+      // ROM area - ignore write but still apply contention (pass tstates)
+      this._applyContention(addr, tstates);
       return false;
     }
     
@@ -438,12 +446,8 @@ export class Memory {
     if (!writeView) { this._lastContention = 0; return false; }
     
     // Apply contention for the access first so the logged t-state reflects
-    // the actual time the access completes (contention delays are part of
-    // the memory access). This prevents mem-write events being recorded at
-    // a CPU tstate that omits contention (which can shift writes across
-    // frame boundaries and break deterministic traces).
-    this._applyContention(addr);
-
+    // the actual time the access completes (pass caller tstates).
+    this._applyContention(addr, tstates);
     writeView[offset] = value;
 
     // --- TEST-HOOK: record screen/char writes in Memory itself so capture

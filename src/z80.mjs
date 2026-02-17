@@ -696,8 +696,8 @@ export class Z80 {
       // Channel 0 points to screen channel at 0x5C39; set CURCHL at 0x5C51/0x5C52 to point to it
       if (this.mem && typeof this.mem.write === 'function') {
         // Store low byte then high byte for address 0x5C39 into CURCHL (0x5C51/0x5C52)
-        this.mem.write(0x5C51, 0x39);
-        this.mem.write(0x5C52, 0x5C);
+        this.mem.write(0x5C51, 0x39, this.tstates);
+        this.mem.write(0x5C52, 0x5C, this.tstates);
       } else if (this.mem && this.mem.mem instanceof Uint8Array) {
         // Use flat memory if available
         this.mem.mem[0x5C51 & 0xFFFF] = 0x39;
@@ -736,13 +736,13 @@ export class Z80 {
 
   // Memory access helpers
   readByte(addr) {
-    if (this.mem && typeof this.mem.read === 'function') return this.mem.read(addr & 0xFFFF);
+    if (this.mem && typeof this.mem.read === 'function') return this.mem.read(addr & 0xFFFF, this.tstates);
     if (this.mem && this.mem.mem && this.mem.mem instanceof Uint8Array) return this.mem.mem[addr & 0xFFFF];
     return 0;
   }
 
   writeByte(addr, value) {
-    if (this.mem && typeof this.mem.write === 'function') return this.mem.write(addr & 0xFFFF, value & 0xFF);
+    if (this.mem && typeof this.mem.write === 'function') return this.mem.write(addr & 0xFFFF, value & 0xFF, this.tstates);
     if (this.mem && this.mem.mem && this.mem.mem instanceof Uint8Array) this.mem.mem[addr & 0xFFFF] = value & 0xFF;
   }
 

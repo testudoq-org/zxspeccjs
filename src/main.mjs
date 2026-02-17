@@ -879,6 +879,23 @@ export class Emulator {
           console.log('[SNAP-DIAG] table @0x5B00..0x5B1F:', table5B00);
           console.log('[SNAP-DIAG] page2 sample @0xA000..0xA01F (page2 offsets):', table6000);
 
+          // Jetpac: extra quick diagnostics (non-zero counts + small hex dumps)
+          try {
+            console.log('DIAG: pages[1] (0x4000-0x7FFF) non-zero:',
+              Array.from(this.memory.pages[1]).filter(b => b !== 0).length);
+            console.log('DIAG: pages[2] (0x8000-0xBFFF) non-zero:',
+              Array.from(this.memory.pages[2]).filter(b => b !== 0).length);
+            console.log('DIAG: pages[3] (0xC000-0xFFFF) non-zero:',
+              Array.from(this.memory.pages[3]).filter(b => b !== 0).length);
+            const dumpHex = arr => Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join(' ');
+            console.log('DIAG: Enemy pointers (0x6A50-0x6A5F):',
+              dumpHex(this.memory.pages[1].subarray(0x2A50, 0x2A60)));
+            console.log('DIAG: Rocket parts (0x68E0-0x68EF):',
+              dumpHex(this.memory.pages[1].subarray(0x28E0, 0x28F0)));
+            console.log('DIAG: Bullet code (0x6C00-0x6C0F):',
+              dumpHex(this.memory.pages[1].subarray(0x2C00, 0x2C10)));
+          } catch (e) { /* ignore */ }
+
           // Expose diagnostics to test harness for assertions
           try { if (typeof window !== 'undefined' && window.__TEST__) {
             window.__TEST__.snapshotDiag = window.__TEST__.snapshotDiag || {};
