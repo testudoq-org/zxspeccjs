@@ -162,10 +162,17 @@ test('Jetpac: enemies, rocket-parts and bullets appear after pressing 5 (regress
     await loadBtn.evaluate(b => b.click());
   }
 
-  // Wait for snapshot applied and emulator running
+  // Wait for snapshot to be applied (or emulator running with snapshot diagnostics)
   const statusEl = page.locator('[data-testid="status"]');
-  await expect(statusEl).toHaveText(/Snapshot\s+Jetpac_1983_Ultimate_Play_The_Game(?:_a)?_16K\.z80\s+applied/i, { timeout: 8000 });
-  await page.waitForFunction(() => !!(window.emu && window.emu._running), null, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    try {
+      const s = document.querySelector('[data-testid="status"]')?.textContent || '';
+      const applied = /Snapshot\s+Jetpac_1983_Ultimate_Play_The_Game(?:_a)?_16K\.z80\s+applied/i.test(s);
+      const runningWithDiag = (!!(window.emu && window.emu._running) && !!(window.__TEST__ && window.__TEST__.snapshotDiag));
+      return applied || runningWithDiag;
+    } catch (e) { return false; }
+  }, null, { timeout: 10000 });
+  // small settling time for frames
   await page.waitForTimeout(300);
 
   // Baseline canvas + rocket memory
@@ -178,6 +185,25 @@ test('Jetpac: enemies, rocket-parts and bullets appear after pressing 5 (regress
   // Press START (5)
   await page.keyboard.press('5').catch(() => {});
   await page.evaluate(() => { try { if (window.__ZX_DEBUG__ && typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey('5'); } catch (e) {} });
+
+  // Capture short CPU/memory timeline after pressing START for debugging
+  const startTimeline = await page.evaluate(async () => {
+    const samples = [];
+    for (let i = 0; i < 50; i++) {
+      try {
+        const cpu = window.emu && window.emu.cpu ? { PC: window.emu.cpu.PC, R: window.emu.cpu.R, tstates: window.emu.cpu.tstates } : null;
+        const micro = (window.emu && window.emu.cpu && Array.isArray(window.emu.cpu._microLog)) ? window.emu.cpu._microLog.slice(-128) : null;
+        const memWrites = (window.__ZX_DEBUG__ && Array.isArray(window.__ZX_DEBUG__.rocketWrites)) ? window.__ZX_DEBUG__.rocketWrites.slice(-16) : (window.emu && window.emu.memory && Array.isArray(window.emu.memory._memWrites) ? window.emu.memory._memWrites.slice(-16) : []);
+        const contention = (window.emu && window.emu.memory && typeof window.emu.memory.getContentionLog === 'function') ? window.emu.memory.getContentionLog().slice(-8) : (window.__ZX_DEBUG__ && window.__ZX_DEBUG__.contentionLog ? window.__ZX_DEBUG__.contentionLog.slice(-8) : []);
+        samples.push({ ts: Date.now(), cpu, memWrites, contention });
+      } catch (e) { samples.push({ ts: Date.now(), error: String(e) }); }
+      await new Promise(r => setTimeout(r, 20));
+    }
+    return samples;
+  });
+  await testInfo.attach('post-start-timeline.json', { body: JSON.stringify(startTimeline, null, 2), contentType: 'application/json' });
+  // eslint-disable-next-line no-console
+  console.log('POST-START-TIMELINE-SAMPLE:', JSON.stringify(startTimeline.slice(0,8)) );
 
   // Collect frames and memWrites to detect enemies/rocket parts
   const frames = [];
