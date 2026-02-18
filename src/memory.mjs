@@ -490,6 +490,16 @@ export class Memory {
         // fallback so this works in both browser (window) and Node (vitest/jsdom).
         try {
           const env = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+
+          // DO NOT perform synchronous render on every rocket-area write —
+          // synchronous generate+render during large write loops (snapshot apply)
+          // blocks the main thread and can drop DOM events (breaks START key).
+          // The coalesced update below will perform a single fast update per tick.
+          // (Previously this was an immediate-path; removing it fixes UI stalls.)
+          if (addr >= 0x4800 && addr < 0x4A00) {
+            // keep going — the coalesced updater below will handle the visual update
+          }
+
           if (env && env.__TEST__ && env.emu && env.emu.ula && env.emu.ula.useDeferredRendering && env.emu.ula.frameBuffer && env.emu.ula.frameRenderer) {
             if (!this._pendingFrameUpdate) {
               this._pendingFrameUpdate = true;
@@ -500,25 +510,24 @@ export class Memory {
                 } catch (e) { /* ignore */ }
                 this._pendingFrameUpdate = false;
               };
+
               // TEST-HACK (IMPROVED): when running under the test harness, schedule a
               // synchronous *coalesced* update so unit/E2E tests observing memWrites get
               // a reliably-updated FrameBuffer but heavy write loops (snapshot apply)
               // do NOT trigger thousands of full regenerations and renders.
               try {
                 if (env && env.__TEST__) {
-                  // Coalesce updates within the same tick: set pending flag and
-                  // schedule update on microtask so multiple writes in one tick
-                  // produce a single generate+render.
-                  if (!this._pendingFrameUpdate) {
-                    this._pendingFrameUpdate = true;
-                    Promise.resolve().then(() => {
-                      try {
-                        env.emu.ula.frameBuffer.generateFromMemory();
-                        env.emu.ula.frameRenderer.render(env.emu.ula.frameBuffer, env.emu.ula.frameBuffer.getFlashPhase());
-                      } catch (e) { /* ignore */ }
-                      this._pendingFrameUpdate = false;
-                    });
-                  }
+                  // Coalesce updates within the same tick: schedule the update on a
+                  // microtask so multiple writes in one tick produce a single
+                  // generate+render. Do NOT re-check the pending flag here because
+                  // it was already set above when entering this block.
+                  Promise.resolve().then(() => {
+                    try {
+                      env.emu.ula.frameBuffer.generateFromMemory();
+                      env.emu.ula.frameRenderer.render(env.emu.ula.frameBuffer, env.emu.ula.frameBuffer.getFlashPhase());
+                    } catch (e) { /* ignore */ }
+                    this._pendingFrameUpdate = false;
+                  });
                 } else if (env && typeof env.requestAnimationFrame === 'function') {
                   env.requestAnimationFrame(doUpdate);
                 } else {

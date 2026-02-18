@@ -222,3 +222,5 @@ tools/
 
 # Do not include shims and their contents
 tests/reference
+tmp/
+compare-traces.out

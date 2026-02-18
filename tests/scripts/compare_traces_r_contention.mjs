@@ -36,7 +36,19 @@ function load(p) {
 }
 
 const our = load(ourPath);
-const ref = load(refPath);
+let ref = load(refPath);
+// If the standard reference JSON doesn't contain a `frames` array, allow a
+// fallback to the `.frames.json` file produced by the JSSpeccy capture helper.
+if (ref && !Array.isArray(ref.frames)) {
+  const alt = refPath.replace(/\.json$/, '.frames.json');
+  if (alt && typeof alt === 'string') {
+    const loadedAlt = load(alt);
+    if (loadedAlt && Array.isArray(loadedAlt.frames)) {
+      console.log(`[compare_traces] using fallback reference frames file: ${alt}`);
+      ref = loadedAlt;
+    }
+  }
+}
 if (!our) { console.error('ERROR: our trace not found or invalid:', ourPath); process.exit(1); }
 if (!ref) { console.error('ERROR: reference trace not found or invalid:', refPath); process.exit(1); }
 
