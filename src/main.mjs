@@ -1587,6 +1587,17 @@ export class Emulator {
       }
     };
 
+    // Jetpac/start diagnostics: snapshot of CPU tstates and rocket-area memory (0x4800..0x49FF)
+    window.__ZX_DEBUG__.postStartDiagnostics = () => {
+      try {
+        const cpuT = this.cpu ? this.cpu.tstates : null;
+        const mem = this.memory && this.memory.pages ? this.memory.pages[1] : null;
+        if (!mem) return { tstates: cpuT, rocket: null };
+        const start = 0x4800 - 0x4000; const end = 0x49FF - 0x4000;
+        return { tstates: cpuT, rocket: Array.from(mem.slice(start, end + 1)) };
+      } catch (e) { return { tstates: (this.cpu ? this.cpu.tstates : null), rocket: null }; }
+    };
+
     window.__ZX_DEBUG__.getKeyMatrix = () => ({
       input: this.input?.matrix ? Array.from(this.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
       ula: this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
