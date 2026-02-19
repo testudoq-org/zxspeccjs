@@ -61,12 +61,19 @@ test('trace parity: compare R register and contention timeline against jsspeccy 
     const ourF = our.frames[i];
     const refF = ref.frames[i];
 
-    // basic sanity: memWrite @0x4001 exists in reference -> must exist in our trace
+    // basic sanity: memWrite @0x4001 exists in reference -> must appear in our
+    // capture within a small frame tolerance. Allow a small frame shift so the
+    // test is robust to snapshot/phase differences while still catching regressions.
     const refMem = findMemWrite(refF, 0x4001);
     expect(refMem, `frame ${i}: reference must include memWrite @0x4001`).toBeDefined();
 
-    const ourMem = findMemWrite(ourF, 0x4001, refMem ? refMem.value : undefined);
-    expect(ourMem, `frame ${i}: our trace missing memWrite @0x4001 matching reference`).toBeDefined();
+    const FRAME_TOL = Math.max(0, parseInt(process.env.FRAME_TOL || '0', 10));
+    let ourMem = undefined;
+    for (let j = Math.max(0, i - FRAME_TOL); j <= Math.min(our.frames.length - 1, i + FRAME_TOL); j++) {
+      const cand = findMemWrite(our.frames[j], 0x4001, refMem ? refMem.value : undefined);
+      if (cand) { ourMem = cand; break; }
+    }
+    expect(ourMem, `frame ${i}: our trace missing memWrite @0x4001 within +/-${FRAME_TOL} frames of reference`).toBeDefined();
 
     // port write parity for ULA OUT (0xFE)
     const refPort = (refF.portWrites || []).find(p => (p.port & 0xFF) === 0xFE);
