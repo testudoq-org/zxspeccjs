@@ -142,30 +142,43 @@ async function main() {
       }
 
       // If a jsspeccy reference expects memWrites at 0x4000/0x4001 in frame-0,
-      // ensure the code that generates those writes exists at the reference
-      // PC in our loaded RAM. This makes capture deterministic and aligns
-      // our frame-0 events with the reference when the reference trace is
-      // available.
+      // we previously *injected* a small synthetic loop into parsed RAM to
+      // force deterministic capture. That behaviour is now disabled by
+      // default — the canonical parsed snapshot must contain the required
+      // code. To opt-in for legacy/debugging only, set ALLOW_SYNTHETIC_INJECTION=1.
       try {
         const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
-        if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
+        if (fs.existsSync(REF_TRACE_PATH)) {
           const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
           const refF0 = ref && Array.isArray(ref.frames) ? ref.frames[0] : null;
           const wantsRocketWrites = refF0 && Array.isArray(refF0.memWrites) && refF0.memWrites.some(m => (m.addr === 0x4000 || m.addr === 0x4001));
+
           if (wantsRocketWrites && refF0 && refF0.regs && typeof refF0.regs.PC === 'number') {
             const refPC = refF0.regs.PC & 0xffff;
             const ramOffset = refPC - 0x4000;
-            const loopCode = new Uint8Array([0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80]);
-            if (ramOffset >= 0 && ramOffset + loopCode.length <= (ram.length || 0xC000)) {
-              // Patch parsed RAM and emulator pages so executing at refPC will
-              // produce the same memWrites as the jsspeccy reference.
-              for (let i = 0; i < loopCode.length; i++) {
-                ram[ramOffset + i] = loopCode[i] & 0xff;
-                const pageIndex = 1 + Math.floor((ramOffset + i) / 0x4000);
-                const pageOff = (ramOffset + i) % 0x4000;
-                if (emu.memory.pages[pageIndex]) emu.memory.pages[pageIndex][pageOff] = loopCode[i] & 0xff;
+
+            // If the parsed snapshot does not contain the loop at the
+            // reference PC, do NOT silently patch RAM. Instead, recommend
+            // regenerating the canonical parsed snapshot or explicitly
+            // opt-in to synthetic injection for diagnostics.
+            const hasLoopAtRef = (ramOffset >= 0 && ramOffset + 16 <= (ram.length || 0xC000) && Array.from(ram.slice(ramOffset, ramOffset + 16)).some(b => b !== 0x00));
+            if (!hasLoopAtRef) {
+              console.warn('[TraceDiag] reference expects rocket writes but parsed snapshot does not contain the ROM loop at 0x' + refPC.toString(16) + '.');
+              console.warn('[TraceDiag] To reproduce reference behavior temporarily, set ALLOW_SYNTHETIC_INJECTION=1 (not recommended for CI).');
+
+              // If explicitly allowed, perform the legacy synthetic injection
+              if (process.env.ALLOW_SYNTHETIC_INJECTION === '1' && !FORCE_SYNTHETIC) {
+                const loopCode = new Uint8Array([0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80]);
+                if (ramOffset >= 0 && ramOffset + loopCode.length <= (ram.length || 0xC000)) {
+                  for (let i = 0; i < loopCode.length; i++) {
+                    ram[ramOffset + i] = loopCode[i] & 0xff;
+                    const pageIndex = 1 + Math.floor((ramOffset + i) / 0x4000);
+                    const pageOff = (ramOffset + i) % 0x4000;
+                    if (emu.memory.pages[pageIndex]) emu.memory.pages[pageIndex][pageOff] = loopCode[i] & 0xff;
+                  }
+                  console.log('[TraceDiag] (opt-in) injected synthetic loop at 0x' + refPC.toString(16));
+                }
               }
-              console.log(`[TraceDiag] injected synthetic loop at 0x${refPC.toString(16)} to reproduce reference frame-0 memWrites`);
             }
           }
         }
