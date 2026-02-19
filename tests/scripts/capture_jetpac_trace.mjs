@@ -65,6 +65,7 @@ async function main() {
   const LOCAL_PARSED = path.resolve(process.cwd(), 'traces', 'parsed_jetpac_snapshot.json');
   let parsed = null;
   const FORCE_SYNTHETIC = process.env.FORCE_SYNTHETIC === '1';
+  console.log('[TraceDiag] env FORCE_SYNTHETIC=', process.env.FORCE_SYNTHETIC, 'const FORCE_SYNTHETIC=', FORCE_SYNTHETIC);
 
   if (process.env.REFERENCE_JETPAC === '1') {
     console.log('[TraceDiag] fetching real Jetpac .z80 from Archive.org');
