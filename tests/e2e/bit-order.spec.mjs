@@ -10,7 +10,8 @@ import { setupDiagnostics, ensureStarted, safeGoto } from '../_helpers/bootHelpe
 test('ULA bit-order: 0x80 renders as left-most pixel', async ({ page }) => {
   await setupDiagnostics(page);
   // Use resilient navigation helper to avoid transient Playwright storage/navigation race
-  await safeGoto(page, '/');
+  // increase tries/timeout to harden against sporadic frame/storage races
+  await safeGoto(page, '/', { tries: 5, timeout: 15000 });
   try {
     await page.waitForSelector('#screen', { timeout: 10000 });
   } catch (e) {

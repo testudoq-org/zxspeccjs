@@ -254,6 +254,144 @@ export class Emulator {
     return this.memory.read(address & 0xffff);
   }
 
+  // --- Inspect glyph/frame helpers (used by window.__ZX_DEBUG__) ---
+  _inspect_getCharsPointer() {
+    const lo = this.peekMemory ? (this.peekMemory(0x5C36, 1)[0]) : this.readRAM(0x5C36);
+    const hi = this.peekMemory ? (this.peekMemory(0x5C37, 1)[0]) : this.readRAM(0x5C37);
+    return ((hi << 8) | lo) || 0x3C00;
+  }
+
+  _inspect_readColumnRows(topRow, col) {
+    const rows = [];
+    for (let r = 0; r < 8; r++) {
+      const y = topRow + r;
+      const rel = ((y & 0xC0) << 5) + ((y & 0x07) << 8) + ((y & 0x38) << 2) + col;
+      const addr = 0x4000 + rel;
+      const val = this.readRAM(addr);
+      rows.push({ y, addr, val });
+    }
+    return rows;
+  }
+
+  _inspect_readAttributeByte(topRow, col) {
+    const attrAddr = 0x5800 + (Math.floor(topRow / 8) * 32) + col;
+    const attrByte = this.readRAM(attrAddr);
+    return { attrAddr, attrByte };
+  }
+
+  _inspect_readGlyphBytesAtChars(charsPtr, code) {
+    const out = [];
+    for (let i = 0; i < 8; i++) out.push(this.readRAM((charsPtr + code * 8 + i) & 0xffff));
+    return out;
+  }
+
+  _inspect_readGlyphBytesAtRom(code) {
+    const out = [];
+    for (let i = 0; i < 8; i++) out.push(this.readROM((0x3C00 + code * 8 + i) & 0xffff));
+    return out;
+  }
+
+  _inspect_glyphsEqual(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  _inspect_sampleFrameBufferColumn(topRow, col) {
+    try {
+      const fb = (this.ula && this.ula.frameBuffer) ? this.ula.frameBuffer : null;
+      if (!fb || !fb.buffer) return null;
+      const buf = fb.buffer;
+      const topBorderBytes = 24 * 160;
+      const lineStride = 16 + 64 + 16;
+      const out = [];
+      for (let i = 0; i < 8; i++) {
+        const y = topRow + i;
+        const bufferPtr = topBorderBytes + y * lineStride + 16 + col * 2;
+        out.push(buf[bufferPtr]);
+      }
+      return out;
+    } catch (e) { return null; }
+  }
+
+  // Read the 8 bitmap bytes (and addresses) for a character column at a given topRow/col.
+  // Uses the same addressing logic as the on-screen bitmap (0x4000+rel).
+  _snapshot_readBitmapBytes(topRow, col) {
+    const rows = this._inspect_readColumnRows(topRow, col);
+    const bitmapAddrs = rows.map(r => r.addr);
+    const bitmapBytes = rows.map(r => r.val);
+    return { bitmapAddrs, bitmapBytes };
+  }
+
+  // Search the ROM charset area for a glyph that matches the provided 8-byte bitmap.
+  // Returns the ROM address if found, otherwise null.
+  _snapshot_findRomMatch(bitmapBytes) {
+    if (!Array.isArray(bitmapBytes) || bitmapBytes.length !== 8) return null;
+    for (let a = 0x3C00; a <= 0x3FFF; a += 8) {
+      let ok = true;
+      for (let j = 0; j < 8; j++) {
+        const b = this.readROM(a + j);
+        if (b !== bitmapBytes[j]) { ok = false; break; }
+      }
+      if (ok) return a;
+    }
+    return null;
+  }
+
+  // Public helper: snapshot a single character column's bitmap/attr and try to
+  // match it to the ROM charset. Returns the same result shape used by the
+  // debug API so tests can call `emu.snapshotGlyph(...)` directly.
+  snapshotGlyph(col, topRow) {
+    try {
+      const result = { col, topRow, bitmapAddrs: [], bitmapBytes: [], attrAddr: null, attrByte: null, fbBytes: [], romMatchAddr: null, matchToRom: false, lastPC: this.getLastPC ? this.getLastPC() : (this.getPC ? this.getPC() : 0) };
+      if (!this || !this.peekMemory || typeof this.readRAM !== 'function' || typeof this.readROM !== 'function') return result;
+
+      // Read bitmap bytes/addresses using helper
+      const { bitmapAddrs, bitmapBytes } = this._snapshot_readBitmapBytes(topRow, col);
+      result.bitmapAddrs = bitmapAddrs;
+      result.bitmapBytes = bitmapBytes;
+
+      // Attribute byte
+      const { attrAddr, attrByte } = this._inspect_readAttributeByte(topRow, col);
+      result.attrAddr = attrAddr;
+      result.attrByte = attrByte;
+
+      // FrameBuffer sample if available
+      const fb = this._inspect_sampleFrameBufferColumn(topRow, col);
+      if (Array.isArray(fb)) result.fbBytes = fb.slice();
+
+      // ROM match
+      const found = this._snapshot_findRomMatch(result.bitmapBytes);
+      if (found) {
+        result.romMatchAddr = found;
+        result.matchToRom = true;
+      }
+      return result;
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  _inspect_canvasColumnNonBg(topRow, col) {
+    try {
+      if (typeof document === 'undefined') return null;
+      const canvas = document.getElementById('screen');
+      if (!canvas || !canvas.getContext) return null;
+      const ctx = canvas.getContext('2d');
+      const xStart = 16 * 2 + col * 8; // matches FrameRenderer coordinates
+      const yStart = 24 + topRow;
+      const base = ctx.getImageData(xStart, yStart, 1, 1).data;
+      let allSame = true;
+      for (let ry = 0; ry < 8 && allSame; ry++) {
+        for (let rx = 0; rx < 8; rx++) {
+          const d = ctx.getImageData(xStart + rx, yStart + ry, 1, 1).data;
+          if (d[0] !== base[0] || d[1] !== base[1] || d[2] !== base[2]) { allSame = false; break; }
+        }
+      }
+      return !allSame;
+    } catch (e) { return 'error'; }
+  }
+
   getPortWrites() {
     return this._portWrites;
   }
@@ -751,54 +889,8 @@ export class Emulator {
       // make local copy of restored regs for UI hints (border colour etc.)
       const regs = (parsed && parsed.snapshot && parsed.snapshot.registers) ? parsed.snapshot.registers : null;
 
-      // Restore border colour if ULA is available
-      try {
-        if (regs && typeof regs.borderColor === 'number' && this.ula) {
-          this.ula.border = regs.borderColor & 0x07;
-          if (typeof this.ula._updateCanvasBorder === 'function') {
-            this.ula._updateCanvasBorder();
-          }
-        }
-      } catch (e) { void e; }
-
-      // Force a visual refresh from the snapshot when ULA uses deferred rendering.
-      // This ensures the UI / framebuffer immediately reflects the applied RAM
-      // (prevents a race where RAM is restored but the frame buffer is stale).
-      try {
-        // Debug: surface ULA state when applying snapshots
-        try { console.log('[Emulator] applySnapshot: ula?', !!this.ula, 'useDeferred=', this.ula && this.ula.useDeferredRendering, 'frameBuffer=', !!(this.ula && this.ula.frameBuffer)); } catch (e) { /* ignore */ }
-        if (this.ula && this.ula.useDeferredRendering && this.ula.frameBuffer && this.ula.frameRenderer) {
-          try {
-            try { this._applySnapshotTrace.push({ step: 'fb.generateFromMemory:start', t: _now() }); } catch (e) { /* ignore */ }
-            this.ula.frameBuffer.generateFromMemory();
-            try { this._applySnapshotTrace.push({ step: 'fb.generateFromMemory:end', t: _now() }); } catch (e) { /* ignore */ }
-
-            this.ula.frameBuffer.endFrame(this.tstatesPerFrame);
-
-            try { this._applySnapshotTrace.push({ step: 'frameRenderer.render:start', t: _now() }); } catch (e) { /* ignore */ }
-            this.ula.frameRenderer.render(this.ula.frameBuffer, this.ula.frameBuffer.getFlashPhase());
-            try { this._applySnapshotTrace.push({ step: 'frameRenderer.render:end', t: _now() }); } catch (e) { /* ignore */ }
-
-            this.ula.frameBuffer.startFrame();
-          } catch (e) { /* best-effort; don't block snapshot apply */ }
-        }
-
-        // HARD GUARANTEE: regardless of deferred-rendering mode, if a FrameBuffer
-        // exists ensure its backing-store matches memory right after snapshot
-        // apply. Use the authoritative generator (generateFromMemory) rather than
-        // performing manual writes here — that centralises the logic and avoids
-        // subtle copy/mapping mismatches.
-        try {
-          if (this.ula && this.ula.frameBuffer && typeof this.ula.frameBuffer.getBuffer === 'function') {
-            try {
-              // Regenerate backing-store from the authoritative memory view
-              this.ula.frameBuffer.generateFromMemory();
-              // Re-render so the UI immediately reflects the regenerated buffer
-              if (this.ula.frameRenderer && typeof this.ula.frameRenderer.render === 'function') {
-                this.ula.frameRenderer.render(this.ula.frameBuffer, this.ula.frameBuffer.getFlashPhase());
-              }
-
-              // Sanity-check: ensure a known marker cell matches memory; if not,
+      // Restore border, init peripherals, resume audio, focus canvas and optionally start
+      try { this._applySnapshot_restorePeripherals(parsed, autoStart); } catch (e) { void e; }
               // fall back to a manual copy to guarantee backing-store correctness.
               try {
                 const MARKER_X = 120, MARKER_Y = 80;
@@ -927,6 +1019,10 @@ export class Emulator {
 
       // Start emulation loop
       try { if (autoStart && typeof this.start === 'function') this.start(); } catch (e) { void e; }
+=======
+      // Restore border, init peripherals, resume audio, focus canvas and optionally start
+      try { this._applySnapshot_restorePeripherals(parsed, autoStart); } catch (e) { void e; }
+>>>>>>> origin/main
 
       try { this._applySnapshotTrace.push({ step: 'applySnapshot:end', t: (typeof performance !== 'undefined' ? performance.now() : Date.now()) }); } catch (e) { /* ignore */ }
       this.status(`Snapshot ${fileName} applied`);
@@ -941,58 +1037,126 @@ export class Emulator {
   // Helper: restore RAM from a snapshot into mapped pages (pages[1..3])
   _applySnapshot_ramRestore(ram) {
     if (!ram || ram.length === 0) return;
-
-    // Prefer full 48K copy when available
     if (ram.length >= 0xC000) {
-      if (this.memory.pages[1]) this.memory.pages[1].set(ram.subarray(0x0000, 0x4000));
-      if (this.memory.pages[2]) this.memory.pages[2].set(ram.subarray(0x4000, 0x8000));
-      if (this.memory.pages[3]) this.memory.pages[3].set(ram.subarray(0x8000, 0xC000));
+      this._applySnapshot_ramRestore_full(ram);
     } else {
-      // Partial RAM: fill pages sequentially
-      let off = 0;
-      for (let p = 1; p <= 3 && off < ram.length; p++) {
-        const len = Math.min(0x4000, ram.length - off);
-        if (this.memory.pages[p]) this.memory.pages[p].set(ram.subarray(off, off + len));
-        off += len;
-      }
+      this._applySnapshot_ramRestore_partial(ram);
     }
 
-    // Sync flat linear view if present
+    // Sync flat linear view if present (best-effort)
     try { if (this.memory._flatRam && typeof this.memory._syncFlatRamFromBanks === 'function') this.memory._syncFlatRamFromBanks(); } catch (e) { void 0; }
   }
 
   _applySnapshot_registerRestore(regs) {
     // Ensure CPU exists
     if (!this.cpu) this.cpu = new Z80(this.memory);
+    this._applySnapshot_restorePrimaryRegisters(regs);
+    this._applySnapshot_restoreAlternateRegisters(regs);
+  }
 
-    const r = regs || {};
-    if (typeof r.PC === 'number') this.cpu.PC = r.PC & 0xffff;
-    if (typeof r.SP === 'number') this.cpu.SP = r.SP & 0xffff;
-    if (typeof r.A === 'number') this.cpu.A = r.A & 0xff;
-    if (typeof r.F === 'number') this.cpu.F = r.F & 0xff;
-    if (typeof r.B === 'number') this.cpu.B = r.B & 0xff;
-    if (typeof r.C === 'number') this.cpu.C = r.C & 0xff;
-    if (typeof r.D === 'number') this.cpu.D = r.D & 0xff;
-    if (typeof r.E === 'number') this.cpu.E = r.E & 0xff;
-    if (typeof r.H === 'number') this.cpu.H = r.H & 0xff;
-    if (typeof r.L === 'number') this.cpu.L = r.L & 0xff;
-    if (typeof r.IX === 'number') this.cpu.IX = r.IX & 0xffff;
-    if (typeof r.IY === 'number') this.cpu.IY = r.IY & 0xffff;
-    if (typeof r.I === 'number') this.cpu.I = r.I & 0xff;
-    if (typeof r.R === 'number') this.cpu.R = r.R & 0xff;
-    if (typeof r.IFF1 !== 'undefined') this.cpu.IFF1 = !!r.IFF1;
-    if (typeof r.IFF2 !== 'undefined') this.cpu.IFF2 = !!r.IFF2;
-    if (typeof r.IM === 'number') this.cpu.IM = r.IM & 0xff;
+  // --- New finer-grained helpers for snapshot restore (keeps behaviour identical) ---
+  // Restore peripheral-state + resume/focus/start (delegates to focused helpers)
+  async _applySnapshot_restorePeripherals(parsed, autoStart) {
+    try { this._applySnapshot_restoreBorder(parsed); } catch (e) { /* best-effort */ }
+    try { this._applySnapshot_initializeInput(); } catch (e) { /* best-effort */ }
+    try { await this._applySnapshot_resumeAudioIfNeeded(); } catch (e) { /* best-effort */ }
+    try { this._applySnapshot_focusCanvas(); } catch (e) { /* best-effort */ }
+    try { this._applySnapshot_maybeAutoStart(autoStart); } catch (e) { /* best-effort */ }
+  }
 
-    // Restore alternate register set if present
-    if (typeof r.A2 === 'number') this.cpu.A_ = r.A2 & 0xff;
-    if (typeof r.F2 === 'number') this.cpu.F_ = r.F2 & 0xff;
-    if (typeof r.B2 === 'number') this.cpu.B_ = r.B2 & 0xff;
-    if (typeof r.C2 === 'number') this.cpu.C_ = r.C2 & 0xff;
-    if (typeof r.D2 === 'number') this.cpu.D_ = r.D2 & 0xff;
-    if (typeof r.E2 === 'number') this.cpu.E_ = r.E2 & 0xff;
-    if (typeof r.H2 === 'number') this.cpu.H_ = r.H2 & 0xff;
-    if (typeof r.L2 === 'number') this.cpu.L_ = r.L2 & 0xff;
+  _applySnapshot_restoreBorder(parsed) {
+    const regs = (parsed && parsed.snapshot && parsed.snapshot.registers) ? parsed.snapshot.registers : {};
+    try {
+      if (typeof regs.borderColor === 'number' && this.ula) {
+        this.ula.border = regs.borderColor & 0x07;
+        if (typeof this.ula._updateCanvasBorder === 'function') this.ula._updateCanvasBorder();
+      }
+    } catch (e) { /* best-effort */ }
+  }
+
+  _applySnapshot_initializeInput() {
+    try { if (this.input && typeof this.input.start === 'function') this.input.start(); } catch (e) { /* best-effort */ }
+  }
+
+  async _applySnapshot_resumeAudioIfNeeded() {
+    try {
+      if (this.sound && this.sound.ctx && typeof this.sound.ctx.resume === 'function' && this.sound.ctx.state === 'suspended') {
+        await this.sound.ctx.resume();
+      }
+    } catch (e) { /* best-effort */ }
+  }
+
+  _applySnapshot_focusCanvas() {
+    try { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); } catch (e) { /* best-effort */ }
+  }
+
+  _applySnapshot_maybeAutoStart(autoStart) {
+    try { if (autoStart && typeof this.start === 'function') this.start(); } catch (e) { /* best-effort */ }
+  }
+
+  _applySnapshot_ramRestore_full(ram) {
+    if (!ram || ram.length < 0xC000) return;
+    if (this.memory.pages[1]) this.memory.pages[1].set(ram.subarray(0x0000, 0x4000));
+    if (this.memory.pages[2]) this.memory.pages[2].set(ram.subarray(0x4000, 0x8000));
+    if (this.memory.pages[3]) this.memory.pages[3].set(ram.subarray(0x8000, 0xC000));
+  }
+
+  _applySnapshot_ramRestore_partial(ram) {
+    if (!ram || ram.length === 0) return;
+    let off = 0;
+    for (let p = 1; p <= 3 && off < ram.length; p++) {
+      const len = Math.min(0x4000, ram.length - off);
+      if (this.memory.pages[p]) this.memory.pages[p].set(ram.subarray(off, off + len));
+      off += len;
+    }
+  }
+
+  _applySnapshot_restorePrimaryRegisters(r) {
+    // Delegate to smaller helpers for clarity & lower cyclomatic complexity
+    this._applySnapshot_restorePcAndSp(r);
+    this._applySnapshot_restore8bitRegisters(r);
+    this._applySnapshot_restoreIndexAndFlags(r);
+  }
+
+  _applySnapshot_restorePcAndSp(r) {
+    const regs = r || {};
+    if (typeof regs.PC === 'number') this.cpu.PC = regs.PC & 0xffff;
+    if (typeof regs.SP === 'number') this.cpu.SP = regs.SP & 0xffff;
+  }
+
+  _applySnapshot_restore8bitRegisters(r) {
+    const regs = r || {};
+    if (typeof regs.A === 'number') this.cpu.A = regs.A & 0xff;
+    if (typeof regs.F === 'number') this.cpu.F = regs.F & 0xff;
+    if (typeof regs.B === 'number') this.cpu.B = regs.B & 0xff;
+    if (typeof regs.C === 'number') this.cpu.C = regs.C & 0xff;
+    if (typeof regs.D === 'number') this.cpu.D = regs.D & 0xff;
+    if (typeof regs.E === 'number') this.cpu.E = regs.E & 0xff;
+    if (typeof regs.H === 'number') this.cpu.H = regs.H & 0xff;
+    if (typeof regs.L === 'number') this.cpu.L = regs.L & 0xff;
+  }
+
+  _applySnapshot_restoreIndexAndFlags(r) {
+    const regs = r || {};
+    if (typeof regs.IX === 'number') this.cpu.IX = regs.IX & 0xffff;
+    if (typeof regs.IY === 'number') this.cpu.IY = regs.IY & 0xffff;
+    if (typeof regs.I === 'number') this.cpu.I = regs.I & 0xff;
+    if (typeof regs.R === 'number') this.cpu.R = regs.R & 0xff;
+    if (typeof regs.IFF1 !== 'undefined') this.cpu.IFF1 = !!regs.IFF1;
+    if (typeof regs.IFF2 !== 'undefined') this.cpu.IFF2 = !!regs.IFF2;
+    if (typeof regs.IM === 'number') this.cpu.IM = regs.IM & 0xff;
+  }
+
+  _applySnapshot_restoreAlternateRegisters(r) {
+    const regs = r || {};
+    if (typeof regs.A2 === 'number') this.cpu.A_ = regs.A2 & 0xff;
+    if (typeof regs.F2 === 'number') this.cpu.F_ = regs.F2 & 0xff;
+    if (typeof regs.B2 === 'number') this.cpu.B_ = regs.B2 & 0xff;
+    if (typeof regs.C2 === 'number') this.cpu.C_ = regs.C2 & 0xff;
+    if (typeof regs.D2 === 'number') this.cpu.D_ = regs.D2 & 0xff;
+    if (typeof regs.E2 === 'number') this.cpu.E_ = regs.E2 & 0xff;
+    if (typeof regs.H2 === 'number') this.cpu.H_ = regs.H2 & 0xff;
+    if (typeof regs.L2 === 'number') this.cpu.L_ = regs.L2 & 0xff;
   }
 
   /**
@@ -1420,58 +1584,65 @@ export class Emulator {
     const isULAPort = (port & 0x01) === 0;
     const highContended = this.memory._isContended(port & 0xFF00);
 
-    // Ensure contention table exists
-    if (typeof this.memory._buildContentionTableIfNeeded === 'function') this.memory._buildContentionTableIfNeeded();
-    const table = this.memory._contentionTable || new Uint8Array(this.memory._frameCycleCount || 69888);
+    // Ensure contention table is available for deterministic sampling
+    try { if (typeof this.memory._buildContentionTableIfNeeded === 'function') this.memory._buildContentionTableIfNeeded(); } catch (e) { /* ignore */ }
+
+    // Compute frame-relative base tstate (do NOT mutate cpu.tstates while sampling)
     const frameStart = (typeof this.cpu.frameStartTstates === 'number') ? this.cpu.frameStartTstates : 0;
-    const frameCycle = this.memory._frameCycleCount || 69888;
-    // Normalise base offset into 0..frameCycle-1
-    let base = ((this.cpu.tstates - frameStart) % frameCycle + frameCycle) % frameCycle;
+    const baseFrame = (((this.cpu.tstates - frameStart) % this.memory._frameCycleCount) + this.memory._frameCycleCount) % this.memory._frameCycleCount;
 
     if (highContended && isULAPort) {
-      // C:1, C:3 -> read table at base and base+1 (don't let intermediate _applyContention side-effects
-      // shift the phase for the second check)
-      // Call memory._applyContention for test-side-effects (e.g. stubs that count calls)
-      if (typeof this.memory._applyContention === 'function') {
-        const saved = this.cpu.tstates;
-        try { this.memory._applyContention(0x4000); } catch (e) { /* ignore */ }
-        this.cpu.tstates = saved;
-      }
-
-      const extra0 = table[base] || 0;
-      this.cpu.tstates += extra0;               // apply contention seen at this phase
-      this.memory._lastContention = extra0;
-
-      this.cpu.tstates += 1;                    // explicit :1
-      base = (base + 1) % frameCycle;          // advance one t-state for next check
-
-      // Call applyContention again for test-side-effects before computing timing
-      if (typeof this.memory._applyContention === 'function') {
-        const saved = this.cpu.tstates;
-        try { this.memory._applyContention(0x4000); } catch (e) { /* ignore */ }
-        this.cpu.tstates = saved;
-      }
-
-      const extra1 = table[base] || 0;
-      this.cpu.tstates += extra1;               // apply contention for next phase
-      this.memory._lastContention = extra1;
-
-      this.cpu.tstates += 3;                    // explicit :3
+      // C:1, C:3 — sample contention at baseFrame and baseFrame+1 and then apply totals
+      const firstC = (this.memory._contentionTable && this.memory._contentionTable[baseFrame]) ? this.memory._contentionTable[baseFrame] : 0;
+      const secondC = (this.memory._contentionTable && this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount]) ? this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount] : 0;
+      const totalExtra = firstC + 1 + secondC + 3;
+      this.cpu.tstates += totalExtra;
+      // invoke _applyContention twice for side-effects / observability, then remove their tstate deltas
+      let applied = 0;
+      try {
+        applied += (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0;
+        applied += (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0;
+      } catch (e) { /* ignore */ }
+      // subtract extras added by the two _applyContention calls so cpu.tstates reflects only totalExtra once
+      this.cpu.tstates -= applied;
+      // record lastContention state (best-effort)
+      try { this.memory._lastContention = secondC; } catch (e) { /* ignore */ }
     } else if (highContended && !isULAPort) {
-      // C:1, C:1, C:1, C:1 -> perform four checks at base..base+3
+      // C:1, C:1, C:1, C:1 — sum four sampled contention slots + four explicit +1s
+      let sum = 0;
       for (let i = 0; i < 4; i++) {
-        // invoke memory._applyContention for test-side-effects (stubs count calls)
-        if (typeof this.memory._applyContention === 'function') {
-          const saved = this.cpu.tstates;
-          try { this.memory._applyContention(0x4000); } catch (e) { /* ignore */ }
-          this.cpu.tstates = saved;
-        }
-        const extra = table[(base + i) % frameCycle] || 0;
-        this.cpu.tstates += extra;               // contention for this phase
-        this.memory._lastContention = extra;
-        this.cpu.tstates += 1;                   // explicit :1
+        const v = (this.memory._contentionTable && this.memory._contentionTable[(baseFrame + i) % this.memory._frameCycleCount]) ? this.memory._contentionTable[(baseFrame + i) % this.memory._frameCycleCount] : 0;
+        sum += v + 1;
       }
+      this.cpu.tstates += sum;
+      // call _applyContention four times for side-effects, then remove their tstate additions
+      let applied = 0;
+      try {
+        for (let i = 0; i < 4; i++) applied += (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0;
+      } catch (e) { /* ignore */ }
+      this.cpu.tstates -= applied;
     } else if (!highContended && isULAPort) {
+      // N:1, C:3 — sample contention at baseFrame+1
+      const lateC = (this.memory._contentionTable && this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount]) ? this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount] : 0;
+      const totalExtra = 1 + lateC + 3;
+      this.cpu.tstates += totalExtra;
+      // call _applyContention once for observability then subtract its tstate delta
+      let applied = 0;
+      try { applied = (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0; } catch (e) { /* ignore */ }
+      this.cpu.tstates -= applied;
+    }
+    // else: uncontended + non-ULA → N:4 (no extra delays; base I/O timing in CPU)
+  }
+      }
+      this.cpu.tstates += sum;
+      // call _applyContention four times for side-effects, then remove their tstate additions
+      let applied = 0;
+      try {
+        for (let i = 0; i < 4; i++) applied += (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0;
+      } catch (e) { /* ignore */ }
+      this.cpu.tstates -= applied;
+    } else if (!highContended && isULAPort) {
+<<<<<<< HEAD
       // N:1, C:3 -> no contention at base, then check at base+1
       this.cpu.tstates += 1;                    // N:1
       base = (base + 1) % frameCycle;
@@ -1485,6 +1656,16 @@ export class Emulator {
       this.cpu.tstates += extra;               // apply contention for this phase
       this.memory._lastContention = extra;
       this.cpu.tstates += 3;                   // explicit :3
+=======
+      // N:1, C:3 — sample contention at baseFrame+1
+      const lateC = (this.memory._contentionTable && this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount]) ? this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount] : 0;
+      const totalExtra = 1 + lateC + 3;
+      this.cpu.tstates += totalExtra;
+      // call _applyContention once for observability then subtract its tstate delta
+      let applied = 0;
+      try { applied = (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0; } catch (e) { /* ignore */ }
+      this.cpu.tstates -= applied;
+>>>>>>> origin/main
     }
     // else: uncontended + non-ULA → N:4 (no extra delays; base I/O timing in CPU)
   }
@@ -1817,38 +1998,45 @@ export class Emulator {
     this._applyInputToULA();
   }
 
+  // Convert a 5-bit input row value into the ULA 8-bit key-matrix row
+  _inputMatrixRowToUlaRow(rowVal) {
+    return (rowVal & 0x1f) | 0b11100000; // set bits 5..7 to 1
+  }
+
+  _setUlaKeyMatrixRow(r, full) {
+    if (this.ula && this.ula.keyMatrix) this.ula.keyMatrix[r] = full;
+  }
+
+  _logAppliedKeyMatrix() {
+    const pressed = [];
+    const inputRows = [];
+    const ulaRows = [];
+    for (let r = 0; r < 8; r++) {
+      const inputVal = (this.input.matrix && this.input.matrix[r] != null) ? this.input.matrix[r] : 0x1f;
+      const ulaVal = (this.ula && this.ula.keyMatrix) ? this.ula.keyMatrix[r] : 0xff;
+      inputRows.push(`0x${inputVal.toString(16).padStart(2,'0')}`);
+      ulaRows.push(`0x${ulaVal.toString(16).padStart(2,'0')}`);
+      if (ulaVal !== 0xff) pressed.push(`row${r}=0x${ulaVal.toString(16)}`);
+    }
+    if (pressed.length > 0) {
+      console.log(`[Emulator] _applyInputToULA: ${pressed.join(', ')}`);
+      console.log(`[Emulator]   input.matrix: [${inputRows.join(',')}]`);
+      console.log(`[Emulator]   ula.keyMatrix: [${ulaRows.join(',')}]`);
+    }
+  }
+
   _applyInputToULA() {
-    // ULA expects 8 bytes, active-low; Input.matrix uses 5-bit rows (1=up). Merge into 8-bit rows.
+    // Apply mapping from Input.matrix (5-bit) -> ULA keyMatrix (8-bit)
     for (let r = 0; r < 8; r++) {
       const rowVal = (this.input.matrix && this.input.matrix[r] != null) ? this.input.matrix[r] & 0x1f : 0x1f;
-      // place into low 5 bits; set upper bits to 1 (bits 5-7 = 1)
-      const full = (rowVal & 0x1f) | 0b11100000;
-      if (this.ula && this.ula.keyMatrix) this.ula.keyMatrix[r] = full;
+      const full = this._inputMatrixRowToUlaRow(rowVal);
+      this._setUlaKeyMatrixRow(r, full);
     }
 
     // Test hook: record last applied key matrix for diagnostics
     try { if (typeof window !== 'undefined' && window.__TEST__ && this.ula && this.ula.keyMatrix) window.__TEST__.lastAppliedKeyMatrix = Array.from(this.ula.keyMatrix); } catch { /* ignore */ }
-    
-    // Enhanced debug logging: show both input.matrix and resulting ula.keyMatrix
-    if (this._keyboardDebug) {
-      const pressed = [];
-      const inputRows = [];
-      const ulaRows = [];
-      for (let r = 0; r < 8; r++) {
-        const inputVal = (this.input.matrix && this.input.matrix[r] != null) ? this.input.matrix[r] : 0x1f;
-        const ulaVal = (this.ula && this.ula.keyMatrix) ? this.ula.keyMatrix[r] : 0xff;
-        inputRows.push(`0x${inputVal.toString(16).padStart(2,'0')}`);
-        ulaRows.push(`0x${ulaVal.toString(16).padStart(2,'0')}`);
-        if (ulaVal !== 0xff) {
-          pressed.push(`row${r}=0x${ulaVal.toString(16)}`);
-        }
-      }
-      if (pressed.length > 0) {
-        console.log(`[Emulator] _applyInputToULA: ${pressed.join(', ')}`);
-        console.log(`[Emulator]   input.matrix: [${inputRows.join(',')}]`);
-        console.log(`[Emulator]   ula.keyMatrix: [${ulaRows.join(',')}]`);
-      }
-    }
+
+    if (this._keyboardDebug) this._logAppliedKeyMatrix();
   }
 
   start() {
@@ -2603,79 +2791,33 @@ if (typeof window !== 'undefined') {
     inspectBottomGlyphs: (topRow = 184) => {
       try {
         if (!emu || typeof emu.readRAM !== 'function') return { error: 'emu-not-ready' };
+        const charsPtr = emu._inspect_getCharsPointer();
         const cols = [];
-        // read CHARS pointer (0x5C36/0x5C37)
-        const lo = emu.peekMemory ? (emu.peekMemory(0x5C36,1)[0]) : emu.readRAM(0x5C36);
-        const hi = emu.peekMemory ? (emu.peekMemory(0x5C37,1)[0]) : emu.readRAM(0x5C37);
-        const charsPtr = ((hi << 8) | lo) || 0x3C00;
 
         for (let col = 0; col < 32; col++) {
-          const colInfo = { col, rows: [], attrAddr: null, attrByte: null, glyphBytesAtChars: [], glyphBytesAtRom: [], glyphMatchesRom: false, canvasShowsNonBg: null };
+          const rows = emu._inspect_readColumnRows(topRow, col);
+          const { attrAddr, attrByte } = emu._inspect_readAttributeByte(topRow, col);
+          const glyphBytesAtChars = emu._inspect_readGlyphBytesAtChars(charsPtr, 0x7F);
+          const glyphBytesAtRom = emu._inspect_readGlyphBytesAtRom(0x7F);
+          const glyphMatchesRom = emu._inspect_glyphsEqual(glyphBytesAtChars, glyphBytesAtRom);
+          const fbBytes = emu._inspect_sampleFrameBufferColumn(topRow, col);
+          const fbMatchesRom = (Array.isArray(fbBytes) && fbBytes.length === 8) ? emu._inspect_glyphsEqual(fbBytes, glyphBytesAtRom) : false;
+          const canvasShowsNonBg = emu._inspect_canvasColumnNonBg(topRow, col);
 
-          // collect character codes for the vertical 8 rows
-          for (let r = 0; r < 8; r++) {
-            const y = topRow + r;
-            const rel = ((y & 0xC0) << 5) + ((y & 0x07) << 8) + ((y & 0x38) << 2) + col;
-            const val = emu.readRAM(0x4000 + rel);
-            colInfo.rows.push({ y, addr: (0x4000 + rel), val });
-          }
-
-          // attribute byte
-          const attrAddr = 0x5800 + (Math.floor(topRow / 8) * 32) + col;
-          colInfo.attrAddr = attrAddr;
-          colInfo.attrByte = emu.readRAM(attrAddr);
-
-          // glyph bytes at current CHARS pointer for code 0x7F
-          for (let i = 0; i < 8; i++) colInfo.glyphBytesAtChars.push(emu.readRAM((charsPtr + 0x7F * 8 + i) & 0xffff));
-
-          // glyph bytes at ROM 0x3C00 for reference
-          for (let i = 0; i < 8; i++) colInfo.glyphBytesAtRom.push(emu.readROM((0x3C00 + 0x7F * 8 + i) & 0xffff));
-
-          // compare
-          colInfo.glyphMatchesRom = colInfo.glyphBytesAtChars.every((b, idx) => b === colInfo.glyphBytesAtRom[idx]);
-
-          // FrameBuffer sample if available (gives rendered framebuffer bytes for the 8 rows)
-          try {
-            const fb = (window.emulator && window.emulator.ula && window.emulator.ula.frameBuffer) ? window.emulator.ula.frameBuffer : null;
-            colInfo.fbBytes = [];
-            colInfo.fbMatchesRom = false;
-            if (fb && fb.buffer) {
-              const buf = fb.buffer;
-              const topBorderBytes = 24 * 160;
-              const lineStride = 16 + 64 + 16;
-              for (let i = 0; i < 8; i++) {
-                const y = topRow + i;
-                const bufferPtr = topBorderBytes + y * lineStride + 16 + col * 2;
-                colInfo.fbBytes.push(buf[bufferPtr]);
-              }
-              // if fbBytes present and rom glyph bytes are available, compare
-              if (colInfo.fbBytes.length === 8 && colInfo.glyphBytesAtRom && colInfo.glyphBytesAtRom.length === 8) {
-                colInfo.fbMatchesRom = colInfo.fbBytes.every((b, idx) => b === colInfo.glyphBytesAtRom[idx]);
-              }
-            }
-          } catch (e) { colInfo.fbBytes = 'error'; colInfo.fbMatchesRom = 'error'; }
-
-          // light-weight canvas check: sample the 8x8 area and see if all pixels equal the top-left sample (i.e., blank area)
-          try {
-            const canvas = document.getElementById('screen');
-            if (canvas && canvas.getContext) {
-              const ctx = canvas.getContext('2d');
-              const xStart = 16 * 2 + col * 8; // matches FrameRenderer coordinates
-              const yStart = 24 + topRow;
-              const base = ctx.getImageData(xStart, yStart, 1, 1).data;
-              let allSame = true;
-              for (let ry = 0; ry < 8 && allSame; ry++) {
-                for (let rx = 0; rx < 8; rx++) {
-                  const d = ctx.getImageData(xStart + rx, yStart + ry, 1, 1).data;
-                  if (d[0] !== base[0] || d[1] !== base[1] || d[2] !== base[2]) { allSame = false; break; }
-                }
-              }
-              colInfo.canvasShowsNonBg = !allSame;
-            }
-          } catch (e) { colInfo.canvasShowsNonBg = 'error'; }
-
-          cols.push(colInfo);
+          cols.push({
+            col,
+            rows,
+            attrAddr,
+            attrByte,
+            glyphBytesAtChars,
+            glyphBytesAtRom,
+            glyphMatchesRom,
+            fbBytes: fbBytes || [],
+            fbMatchesRom,
+            canvasShowsNonBg
+          });
         }
+
         return { charsPtr, cols };
       } catch (e) { return { error: String(e) }; }
     },
@@ -2686,48 +2828,22 @@ if (typeof window !== 'undefined') {
         const result = { col, topRow, bitmapAddrs: [], bitmapBytes: [], attrAddr: null, attrByte: null, fbBytes: [], romMatchAddr: null, matchToRom: false, lastPC: emu.getLastPC ? emu.getLastPC() : (emu.getPC ? emu.getPC() : 0) };
         if (!emu || !emu.peekMemory || typeof emu.readRAM !== 'function' || typeof emu.readROM !== 'function') return result;
 
-        // Read the 8 bitmap bytes for the character vertical (8 rows)
-        for (let i = 0; i < 8; i++) {
-          const y = topRow + i;
-          const y0 = y & 0x07;
-          const y1 = (y & 0x38) >> 3;
-          const y2 = (y & 0xC0) >> 6;
-          const bitmapIndex = (y0 << 8) | (y1 << 5) | (y2 << 11) | col;
-          const addr = 0x4000 + bitmapIndex;
-          result.bitmapAddrs.push(addr);
-          result.bitmapBytes.push(emu.readRAM(addr));
-        }
+        // Read bitmap bytes/addresses using helper
+        const { bitmapAddrs, bitmapBytes } = emu._snapshot_readBitmapBytes(topRow, col);
+        result.bitmapAddrs = bitmapAddrs;
+        result.bitmapBytes = bitmapBytes;
 
         // Attribute byte for the character cell
-        const attrAddr = 0x5800 + (Math.floor(topRow / 8) * 32) + col;
+        const { attrAddr, attrByte } = emu._inspect_readAttributeByte(topRow, col);
         result.attrAddr = attrAddr;
-        result.attrByte = emu.readRAM(attrAddr);
+        result.attrByte = attrByte;
 
-        // FrameBuffer sample if available
-        try {
-          const emuWindow = window.emulator || window.emu;
-          if (emuWindow && emuWindow.ula && emuWindow.ula.frameBuffer && emuWindow.ula.frameBuffer.buffer) {
-            const buf = emuWindow.ula.frameBuffer.buffer;
-            const topBorderBytes = 24 * 160;
-            const lineStride = 16 + 64 + 16;
-            for (let i = 0; i < 8; i++) {
-              const y = topRow + i;
-              const bufferPtr = topBorderBytes + y * lineStride + 16 + col * 2;
-              result.fbBytes.push(buf[bufferPtr]);
-            }
-          }
-        } catch (e) { /* ignore */ }
+        // FrameBuffer sample if available (reuse inspect helper)
+        const fb = emu._inspect_sampleFrameBufferColumn(topRow, col);
+        if (Array.isArray(fb)) result.fbBytes = fb.slice();
 
-        // Try to find a matching glyph in ROM charset area 0x3C00..0x3FFF (256 bytes = 32 glyphs? actually 0x400 bytes = 512 glyphs? we search whole 0x3C00..0x3FFF by 8-byte steps)
-        let found = null;
-        for (let a = 0x3C00; a <= 0x3FFF; a += 8) {
-          let ok = true;
-          for (let j = 0; j < 8; j++) {
-            const b = emu.readROM(a + j);
-            if (b !== result.bitmapBytes[j]) { ok = false; break; }
-          }
-          if (ok) { found = a; break; }
-        }
+        // Search ROM for a matching glyph using helper
+        const found = emu._snapshot_findRomMatch(result.bitmapBytes);
         if (found) {
           result.romMatchAddr = found;
           result.matchToRom = true;
