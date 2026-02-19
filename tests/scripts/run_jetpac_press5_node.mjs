@@ -35,8 +35,8 @@ async function main() {
   emu.memory.pages[3].set(ram.subarray(0x8000, 0xC000));
   if (typeof emu.memory._syncFlatRamFromBanks === 'function') emu.memory._syncFlatRamFromBanks();
 
-  // CPU regs
-  emu.cpu = new Z80(emu.memory);
+  // CPU regs — reuse emulator's CPU instance created by _createCore so its IO adapter is attached
+  if (!emu.cpu) emu.cpu = new Z80(emu.memory);
   const regs = parsed.snapshot.registers || {};
   console.log('Parsed snapshot registers (sample):', { PC: regs.PC, I: regs.I, R: regs.R, IFF1: regs.IFF1, IFF2: regs.IFF2, IM: regs.IM });
   if (typeof regs.PC === 'number') emu.cpu.PC = regs.PC & 0xffff;
@@ -68,6 +68,10 @@ async function main() {
 
   // Step 5 frames to let ROM settle
   console.log('Stepping 5 frames (no input)');
+  // Enable frame tracing so port reads are captured into emu._tracePortReads
+  emu.setTracing(true);
+  // Enable CPU micro-tracing to capture IN/OUT at opcode level for diagnosis
+  if (emu.cpu && typeof emu.cpu.enableMicroTrace === 'function') emu.cpu.enableMicroTrace();
   for (let i = 0; i < 5; i++) {
     emu._runCpuForFrame();
   }
@@ -108,6 +112,11 @@ async function main() {
 
   console.log('Collected portReads (0xFE) after pressing 5:');
   console.log(JSON.stringify(reads.slice(0,40), null, 2));
+
+  // Also surface any CPU micro-log IN events (DB/ED variants) for diagnosis
+  const micro = (emu.cpu && Array.isArray(emu.cpu._microLog)) ? emu.cpu._microLog.filter(m => m.type && m.type.startsWith('IN')) : [];
+  console.log('Collected CPU micro IN events (for diagnosis):');
+  console.log(JSON.stringify(micro.slice(0,40), null, 2));
 
   console.log('Collected rocket-area memWrites (sample):');
   console.log(JSON.stringify(memWrites.slice(0,40), null, 2));

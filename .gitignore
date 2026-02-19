@@ -224,3 +224,4 @@ tools/
 tests/reference
 tmp/
 compare-traces.out
+tests/e2e/_artifacts/

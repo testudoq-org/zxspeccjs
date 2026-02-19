@@ -8,7 +8,7 @@ test('capture_jetpac_trace captures rocket/part memWrites and contention after S
   if (!fs.existsSync(script)) throw new Error('capture_jetpac_trace.mjs missing');
 
   // Run capture with injected START key at frame 5 for 2 frames
-  child.execFileSync(process.execPath, [script], { stdio: 'inherit', env: { ...process.env, PRESS_FRAME: '5', PRESS_DURATION: '2' } });
+  child.execFileSync(process.execPath, [script], { stdio: 'inherit', env: { ...process.env, PRESS_FRAME: '5', PRESS_DURATION: '2', USE_PARSED_JETPAC: '1' } });
 
   const tracePath = path.resolve(process.cwd(), 'traces', 'jetpac_trace.json');
   if (!fs.existsSync(tracePath)) throw new Error('jetpac_trace.json not produced');

@@ -4,6 +4,14 @@ This file provides a high-level overview of the ZX Spectrum emulator project for
 
 ---
 
+## 2026-02-19 — Jetpac R-register & contention fixes
+
+### Critical Fix: R-register parity and centralised contention model
+- **Problem**: Rare timing drift in indexed-CB opcode paths and CPU-side ad-hoc port-contention handling caused Jetpac to skip rocket/part writes and produced trace parity failures.
+- **Fix**: (1) Ensure `R` increments for DDCB/FDCB CB fetchs in `src/z80.mjs`. (2) Make `memory._applyContention()` the authoritative API for contention — CPU delegates I/O contention to Memory and uses a safe fallback when needed.
+- **Result**: Jetpac rocket memWrites are observed after START; unit & trace-regression tests pass locally; contention logs now align with ULA OUT timing.
+- **Next**: Stabilize Playwright E2E Jetpac smoke tests and open PR with trace artifacts.
+
 ## 2026-02-08 — Z80 Parser Rewrite & Snapshot Loading Fixed
 
 ### Critical Fix: Z80 Snapshot Parser

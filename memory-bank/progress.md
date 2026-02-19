@@ -2,6 +2,31 @@
 
 ---
 
+## [2026-02-19] — Jetpac R-register & contention fixes (status)
+
+### Summary
+Small, targeted fixes in the Z80 core and contention handling restored Jetpac in-game updates (rocket parts, enemies, bullets) when the START key is pressed. Changes were test-driven and include trace regeneration; unit and trace‑regression tests now pass locally.
+
+### Key fixes & outcomes
+- Fixed missing `R` increment for **DDCB/FDCB** CB opcode fetch paths in `src/z80.mjs`.
+- Centralised contention timing: CPU now **delegates** port-contention to `memory._applyContention(...)` with a safe fallback (`src/z80.mjs`, `src/memory.mjs`).
+- Capture tooling improved; regenerated `traces/jetpac_trace.json` and `traces/jsspeccy_reference_jetpac_trace.json`.
+- **Validation:** Jetpac rocket memWrites (0x4800..0x49FF) observed after injected START; trace‑parity tests passing against synthetic reference.
+- **Tests:** Unit suite green locally (65 files / 267 tests). Jetpac-related unit regressions fixed; Playwright E2E stabilization ongoing.
+
+### Files modified (high level)
+- `src/z80.mjs` — R increment + `_applyPortContention` changes
+- `src/memory.mjs` — contention API used as authoritative source
+- `tests/unit/*` — updated/additional tests for indexed-CB R, port-contention, Jetpac rocket-write
+- `tests/scripts/capture_jetpac_trace.mjs` — capture + parsed snapshot option
+- `traces/*` — regenerated jetpac traces and synthetic reference
+
+### Next actions
+- Stabilize Playwright E2E Jetpac smoke (timing/rAF flakiness)
+- Open PR with fixes + tests + trace artifacts; run Codacy (trivy) scan if dependencies change
+
+---
+
 ## [2026-02-08] — Z80 SNAPSHOT PARSER REWRITE & JETPAC E2E TEST
 
 ### Summary

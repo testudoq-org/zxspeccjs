@@ -58,19 +58,41 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   // Parse the snapshot using Loader
-  // Allow using the real Jetpac .z80 from Archive.org when REFERENCE_JETPAC=1
-  let payloadBuf;
+  // Priority for snapshot source:
+  //  1) REFERENCE_JETPAC=1 -> fetch real .z80 from archive
+  //  2) local pre-parsed snapshot at traces/parsed_jetpac_snapshot.json -> use that (offline friendly)
+  //  3) fallback -> synthetic Jetpac payload (keeps existing behavior)
+  const LOCAL_PARSED = path.resolve(process.cwd(), 'traces', 'parsed_jetpac_snapshot.json');
+  let parsed = null;
+
   if (process.env.REFERENCE_JETPAC === '1') {
     console.log('[TraceDiag] fetching real Jetpac .z80 from Archive.org');
     const jetpacUrl = 'https://cors.archive.org/cors/zx_Jetpac_1983_Ultimate_Play_The_Game_a_16K/Jetpac_1983_Ultimate_Play_The_Game_a_16K.z80';
     const res = await fetch(jetpacUrl);
     if (!res.ok) throw new Error('Failed to fetch Jetpac .z80: ' + res.status);
     // Loader.parseZ80 expects an ArrayBuffer (not a Node Buffer)
-    payloadBuf = await res.arrayBuffer();
+    const payloadBuf = await res.arrayBuffer();
+    parsed = Loader.parseZ80(payloadBuf);
+  } else if (process.env.USE_PARSED_JETPAC === '1' && fs.existsSync(LOCAL_PARSED)) {
+    // Use local parsed snapshot only when explicitly requested by env (keeps default behaviour synthetic)
+    console.log('[TraceDiag] using local parsed Jetpac snapshot from traces/parsed_jetpac_snapshot.json (USE_PARSED_JETPAC=1)');
+    const json = JSON.parse(fs.readFileSync(LOCAL_PARSED, 'utf8'));
+    // Build a Uint8Array RAM image from the parsed JSON (object or array)
+    const RAM_48K = 3 * 16384;
+    let ramBuf = new Uint8Array(RAM_48K);
+    if (Array.isArray(json.ram)) {
+      ramBuf.set(json.ram.slice(0, RAM_48K));
+    } else if (json.ram && typeof json.ram === 'object') {
+      for (const k of Object.keys(json.ram)) {
+        const idx = parseInt(k, 10);
+        if (!Number.isNaN(idx) && idx >= 0 && idx < RAM_48K) ramBuf[idx] = json.ram[k] & 0xff;
+      }
+    }
+    parsed = { rom: null, snapshot: { ram: ramBuf, registers: json.registers || {} } };
   } else {
-    payloadBuf = generateJetpacZ80Payload();
+    const payloadBuf = generateJetpacZ80Payload();
+    parsed = Loader.parseZ80(payloadBuf);
   }
-  const parsed = Loader.parseZ80(payloadBuf);
 
   // Create an emulator instance with minimal options
   const { Emulator } = await import('../../src/main.mjs');

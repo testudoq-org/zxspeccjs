@@ -1,0 +1,21 @@
+import { Loader } from '../src/loader.mjs';
+import { Emulator } from '../src/main.mjs';
+(async ()=>{
+  if (typeof globalThis.window === 'undefined') globalThis.window = { addEventListener: ()=>{}, dispatchEvent: ()=>{}, __TEST__: {} };
+  if (typeof globalThis.document === 'undefined') globalThis.document = { getElementById: ()=>null };
+  const URL = 'https://cors.archive.org/cors/zx_Jetpac_1983_Ultimate_Play_The_Game_a_16K/Jetpac_1983_Ultimate_Play_The_Game_a_16K.z80';
+  const res = await fetch(URL);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  const parsed = Loader.parseZ80(buf.buffer);
+  const canvasStub = { width:320, height:240, style: {}, getContext: ()=>({ createImageData: ()=>({ data: new Uint8ClampedArray(320*240*4) }), putImageData: ()=>{}, fillRect: ()=>{}, imageSmoothingEnabled:false }), toDataURL: ()=>'' };
+  const emu = new Emulator({ canvas: canvasStub, statusEl: {} });
+  if(!emu.memory) await emu._createCore(null);
+  const ram = parsed.snapshot.ram;
+  emu.memory.pages[1].set(ram.subarray(0x0000,0x4000));
+  emu.memory.pages[2].set(ram.subarray(0x4000,0x8000));
+  emu.memory.pages[3].set(ram.subarray(0x8000,0xC000));
+  if(typeof emu.memory._syncFlatRamFromBanks==='function') emu.memory._syncFlatRamFromBanks();
+  const pc = 25102; const start = pc-8; const bytes = [];
+  for (let i=0;i<32;i++) bytes.push(emu.memory.read((start+i)&0xffff).toString(16).padStart(2,'0'));
+  console.log('bytes around', pc.toString(16), bytes.join(' '));
+})();
