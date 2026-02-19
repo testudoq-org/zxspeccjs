@@ -142,9 +142,6 @@ export class Emulator {
         if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
         window.__ZX_DEBUG__.traceLog = this._traceLog;
         window.__ZX_DEBUG__.traceFrameNumber = this._traceFrameNumber;
-        // also expose recent sound toggles and port write log for robust E2E diagnostics
-        try { if (this.sound && Array.isArray(this.sound._toggles)) window.__ZX_DEBUG__.soundToggles = this.sound._toggles.slice(-8); } catch (e) { /* ignore */ }
-        try { if (Array.isArray(this._portWrites)) window.__ZX_DEBUG__.portWrites = this._portWrites.slice(-64); } catch (e) { /* ignore */ }
       }
     } catch { /* best-effort */ }
   }
@@ -856,13 +853,6 @@ export class Emulator {
   async applySnapshot(parsed, opts = {}) {
     const { fileName = 'snapshot', autoStart = true } = opts;
     try {
-      // Initialize a short trace for diagnostics/timing (tests will read `emu._applySnapshotTrace`)
-      this._applySnapshotTrace = [];
-      const _now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
-      this._applySnapshotTrace.push({ step: 'applySnapshot:start', t: _now() });
-
-
-
       this.status(`Applying snapshot ${fileName}...`);
 
       // Pause running emulation if active
@@ -874,157 +864,12 @@ export class Emulator {
       // Load RAM into memory (extracted to helper to reduce method complexity)
       this._applySnapshot_ramRestore(parsed.snapshot && parsed.snapshot.ram);
 
-      // Diagnostic: surface a few bytes from screen RAM immediately after restore
-      try {
-        const testIdx = 0x1000; // quick sanity check
-        if (this.memory && this.memory.pages && this.memory.pages[1]) {
-          // log a tiny sample around the test index
-          const sample = Array.from(this.memory.pages[1].slice(testIdx, testIdx + 8));
-          try { console.log('[APPLY-DIAG] pages[1] sample @0x' + testIdx.toString(16) + ':', sample); } catch (e) { /* ignore */ }
-        }
-      } catch (e) { /* ignore */ }
-
       // Restore CPU registers (extracted to helper for clarity)
       this._applySnapshot_registerRestore(parsed.snapshot && parsed.snapshot.registers);
-      // make local copy of restored regs for UI hints (border colour etc.)
-      const regs = (parsed && parsed.snapshot && parsed.snapshot.registers) ? parsed.snapshot.registers : null;
 
       // Restore border, init peripherals, resume audio, focus canvas and optionally start
       try { this._applySnapshot_restorePeripherals(parsed, autoStart); } catch (e) { void e; }
-              // fall back to a manual copy to guarantee backing-store correctness.
-              try {
-                const MARKER_X = 120, MARKER_Y = 80;
-                const xByte = MARKER_X >> 3;
-                const bitmapAddr = ((MARKER_Y & 0xC0) << 5) | ((MARKER_Y & 0x07) << 8) | ((MARKER_Y & 0x38) << 2) | xByte;
-                const attrAddr = 6144 + (Math.floor(MARKER_Y / 8) * 32) + xByte;
-                const FB_BASE = 24 * 160;
-                const LINE_STRIDE = 96; // bytes per main-screen framebuffer row
-                const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
-                const cellStart = lineOffset + 16 + xByte * 2;
-                const fb = this.ula.frameBuffer.getBuffer();
-                const memPage = (this.memory && this.memory.pages) ? this.memory.pages[1] : null;
-                const memBitmap = memPage ? memPage[bitmapAddr] : null;
-                const fbBitmap = fb ? fb[cellStart] : null;
-                if (memBitmap !== null && fbBitmap !== memBitmap) {
-                  // Diagnostic logging — mismatch after authoritative generator should be rare
-                  try { console.log('[Emu-DIAG] fb mismatch after generateFromMemory(), memBitmap, fbBitmap =', memBitmap, fbBitmap); } catch (e) { /* ignore */ }
 
-                  // No fallback here — generateFromMemory() and correct indexing must match
-                  // (fallback was a safety net masking an indexing/stride bug). Keep a
-                  // diagnostic message to aid future troubleshooting.
-                  try { console.log('[Emu-DIAG] applySnapshot: unexpected framebuffer mismatch (no fallback)'); } catch (e) { /* ignore */ }
-                }
-              } catch (e) { /* ignore internal sanity-check errors */ }
-            } catch (e) { /* best-effort; don't block snapshot apply */ }
-
-            // Diagnostic: surface a small marker-line comparison for debugging
-            try {
-              const MARKER_Y = 80;
-              const FB_BASE = 24 * 160;
-              const LINE_STRIDE = 96;
-              const lineOffset = FB_BASE + MARKER_Y * LINE_STRIDE;
-              const fb = this.ula.frameBuffer.getBuffer();
-              const memPage = (this.memory && this.memory.pages) ? this.memory.pages[1] : null;
-
-              const fbLine = [];
-              const memLine = [];
-              for (let xb = 0; xb < 32; xb++) {
-                const bitmapAddr = ((MARKER_Y & 0x07) << 8) | (((MARKER_Y & 0x38) >> 3) << 5) | (((MARKER_Y & 0xC0) >> 6) << 11) | xb;
-                const attrAddr = (Math.floor(MARKER_Y / 8) * 32) + xb;
-                const memBitmap = memPage ? memPage[bitmapAddr] : (this.memory.exportScreenBitmap ? this.memory.exportScreenBitmap()[bitmapAddr] : null);
-                const memAttr = memPage ? memPage[6144 + attrAddr] : (this.memory.getAttributeView ? this.memory.getAttributeView()[attrAddr] : null);
-                const fbBitmap = fb ? fb[lineOffset + 16 + xb * 2] : null;
-                const fbAttr = fb ? fb[lineOffset + 16 + xb * 2 + 1] : null;
-                memLine.push([memBitmap, memAttr]);
-                fbLine.push([fbBitmap, fbAttr]);
-              }
-              console.log('[Emu-DIAG] marker-line memLine (32):', memLine);
-              console.log('[Emu-DIAG] marker-line fbLine  (32):', fbLine);
-            } catch (e) { /* ignore diagnostic errors */ }
-          }
-        } catch (e) { /* ignore */ }
-
-        // === JETPAC-SPECIFIC DIAGNOSTICS ===
-        try {
-          // Non-zero byte counts for each 16KB RAM page (diagnostic)
-          const pageNonZero = (p) => { if (!p) return 0; let c = 0; for (let i = 0; i < p.length; i++) if (p[i] !== 0) c++; return c; };
-          const p1 = this.memory && this.memory.pages ? this.memory.pages[1] : null;
-          const p2 = this.memory && this.memory.pages ? this.memory.pages[2] : null;
-          const p3 = this.memory && this.memory.pages ? this.memory.pages[3] : null;
-
-          const nz1 = pageNonZero(p1);
-          const nz2 = pageNonZero(p2);
-          const nz3 = pageNonZero(p3);
-          console.log(`[SNAP-DIAG] non-zero bytes per 16KB page: page1=${nz1}, page2=${nz2}, page3=${nz3}`);
-
-          // Screen vs game-data areas in page1 (0x4000..0x5AFF vs 0x5B00..0x7FFF)
-          const screenNonZero = (() => { if (!p1) return 0; let c = 0; for (let i = 0; i < 0x1800; i++) if (p1[i] !== 0) c++; return c; })();
-          const gameAreaNonZero = (() => { if (!p1) return 0; let c = 0; for (let i = 0x1B00; i < 0x4000; i++) if (p1[i] !== 0) c++; return c; })();
-          const page2NonZero = pageNonZero(p2);
-          console.log(`[SNAP-DIAG] page1: screen(0x4000-0x57FF) non-zero=${screenNonZero}, page1 game-data(0x5B00-0x7FFF) non-zero=${gameAreaNonZero}, page2(0x8000+) non-zero=${page2NonZero}`);
-
-          // Hex-dump small regions useful for Jetpac diagnostics
-          const hexDump = (memView, addr, len) => { if (!memView) return null; const out = []; const base = addr - 0x4000; for (let i = 0; i < len; i++) out.push((memView[base + i] || 0).toString(16).padStart(2, '0')); return out.join(' '); };
-
-          // Rocket tile area (0x4800..0x49FF), marker offsets near 120,80, and a few candidate tables
-          const rocketDump = p1 ? Array.from(p1.slice(0x0800, 0x0A00)).slice(0, 32).map(b => b.toString(16).padStart(2,'0')).join(' ') : null;
-          const table5B00 = p1 ? Array.from(p1.slice(0x1B00, 0x1B20)).map(b => b.toString(16).padStart(2,'0')).join(' ') : null;
-          const table6000 = p2 ? Array.from(p2.slice(0x2000 % 0x4000, (0x2000 % 0x4000) + 0x20)).map(b => b.toString(16).padStart(2,'0')).join(' ') : null; // 0xA000 absolute -> page2 offset
-          console.log('[SNAP-DIAG] rocket area sample (0x4800..0x483F):', rocketDump);
-          console.log('[SNAP-DIAG] table @0x5B00..0x5B1F:', table5B00);
-          console.log('[SNAP-DIAG] page2 sample @0xA000..0xA01F (page2 offsets):', table6000);
-
-          // Jetpac: extra quick diagnostics (non-zero counts + small hex dumps)
-          try {
-            console.log('DIAG: pages[1] (0x4000-0x7FFF) non-zero:',
-              Array.from(this.memory.pages[1]).filter(b => b !== 0).length);
-            console.log('DIAG: pages[2] (0x8000-0xBFFF) non-zero:',
-              Array.from(this.memory.pages[2]).filter(b => b !== 0).length);
-            console.log('DIAG: pages[3] (0xC000-0xFFFF) non-zero:',
-              Array.from(this.memory.pages[3]).filter(b => b !== 0).length);
-            const dumpHex = arr => Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join(' ');
-            console.log('DIAG: Enemy pointers (0x6A50-0x6A5F):',
-              dumpHex(this.memory.pages[1].subarray(0x2A50, 0x2A60)));
-            console.log('DIAG: Rocket parts (0x68E0-0x68EF):',
-              dumpHex(this.memory.pages[1].subarray(0x28E0, 0x28F0)));
-            console.log('DIAG: Bullet code (0x6C00-0x6C0F):',
-              dumpHex(this.memory.pages[1].subarray(0x2C00, 0x2C10)));
-          } catch (e) { /* ignore */ }
-
-          // Expose diagnostics to test harness for assertions
-          try { if (typeof window !== 'undefined' && window.__TEST__) {
-            window.__TEST__.snapshotDiag = window.__TEST__.snapshotDiag || {};
-            window.__TEST__.snapshotDiag.pageNonZero = { p1: nz1, p2: nz2, p3: nz3 };
-            window.__TEST__.snapshotDiag.screenNonZero = screenNonZero;
-            window.__TEST__.snapshotDiag.page1GameNonZero = gameAreaNonZero;
-            window.__TEST__.snapshotDiag.rocketSample = rocketDump;
-            window.__TEST__.snapshotDiag.table5B00 = table5B00;
-            window.__TEST__.snapshotDiag.table6000 = table6000;
-          } } catch (e) { /* ignore */ }
-        } catch (e) { /* ignore snapshot diagnostics */ }
-      } catch (e) { void e; }
-
-      // Initialize peripherals and input
-      try { this.input.start(); } catch (e) { void e; }
-
-      // Resume audio context if possible (user gesture should allow resume on click)
-      try {
-        if (this.sound && this.sound.ctx && typeof this.sound.ctx.resume === 'function' && this.sound.ctx.state === 'suspended') {
-          await this.sound.ctx.resume();
-        }
-      } catch (e) { void e; }
-
-      // Focus canvas for keyboard input
-      try { if (this.canvas && typeof this.canvas.focus === 'function') this.canvas.focus(); } catch (e) { void e; }
-
-      // Start emulation loop
-      try { if (autoStart && typeof this.start === 'function') this.start(); } catch (e) { void e; }
-=======
-      // Restore border, init peripherals, resume audio, focus canvas and optionally start
-      try { this._applySnapshot_restorePeripherals(parsed, autoStart); } catch (e) { void e; }
->>>>>>> origin/main
-
-      try { this._applySnapshotTrace.push({ step: 'applySnapshot:end', t: (typeof performance !== 'undefined' ? performance.now() : Date.now()) }); } catch (e) { /* ignore */ }
       this.status(`Snapshot ${fileName} applied`);
       return true;
     } catch (err) {
@@ -1427,9 +1272,6 @@ export class Emulator {
     // Create IO adapter via helper to keep this method focused
     const ioAdapter = this._createIOAdapter();
 
-    // Mark adapter as applying I/O contention itself (Z80 will skip duplicate application)
-    ioAdapter._appliesContention = true;
-
     // Install debug helpers and expose useful testing API
     this._installDebugHelpers(ioAdapter);
 
@@ -1633,58 +1475,20 @@ export class Emulator {
     }
     // else: uncontended + non-ULA → N:4 (no extra delays; base I/O timing in CPU)
   }
-      }
-      this.cpu.tstates += sum;
-      // call _applyContention four times for side-effects, then remove their tstate additions
-      let applied = 0;
-      try {
-        for (let i = 0; i < 4; i++) applied += (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0;
-      } catch (e) { /* ignore */ }
-      this.cpu.tstates -= applied;
-    } else if (!highContended && isULAPort) {
-<<<<<<< HEAD
-      // N:1, C:3 -> no contention at base, then check at base+1
-      this.cpu.tstates += 1;                    // N:1
-      base = (base + 1) % frameCycle;
-      // invoke memory._applyContention for test-side-effects (stubs count calls)
-      if (typeof this.memory._applyContention === 'function') {
-        const saved = this.cpu.tstates;
-        try { this.memory._applyContention(0x4000); } catch (e) { /* ignore */ }
-        this.cpu.tstates = saved;
-      }
-      const extra = table[base] || 0;
-      this.cpu.tstates += extra;               // apply contention for this phase
-      this.memory._lastContention = extra;
-      this.cpu.tstates += 3;                   // explicit :3
-=======
-      // N:1, C:3 — sample contention at baseFrame+1
-      const lateC = (this.memory._contentionTable && this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount]) ? this.memory._contentionTable[(baseFrame + 1) % this.memory._frameCycleCount] : 0;
-      const totalExtra = 1 + lateC + 3;
-      this.cpu.tstates += totalExtra;
-      // call _applyContention once for observability then subtract its tstate delta
-      let applied = 0;
-      try { applied = (this.memory._applyContention && this.memory._applyContention(0x4000)) || 0; } catch (e) { /* ignore */ }
-      this.cpu.tstates -= applied;
->>>>>>> origin/main
-    }
-    // else: uncontended + non-ULA → N:4 (no extra delays; base I/O timing in CPU)
-  }
 
   _installDebugHelpers(ioAdapter) {
-    // Expose __ZX_DEBUG__ on globalThis so both browser and Node test environments can use it
-    globalThis.__ZX_DEBUG__ = globalThis.__ZX_DEBUG__ || {};
-    const dbg = globalThis.__ZX_DEBUG__;
-
     // Add ROM visibility verification to debug API
-    dbg.isROMVisible = (address = 0) => {
+    // Ensure __ZX_DEBUG__ exists before accessing it
+    if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
+    window.__ZX_DEBUG__.isROMVisible = (address = 0) => {
       // Checks if the byte at address matches the ROM byte
-      if (!this.memory || typeof globalThis.spec48 === 'undefined' || !globalThis.spec48.bytes) return false;
-      if (address < 0 || address >= globalThis.spec48.bytes.length) return false;
-      return this.memory.read(address) === globalThis.spec48.bytes[address];
+      if (!this.memory || !window.spec48 || !window.spec48.bytes) return false;
+      if (address < 0 || address >= window.spec48.bytes.length) return false;
+      return this.memory.read(address) === window.spec48.bytes[address];
     };
 
     // Add keyboard debug helpers to __ZX_DEBUG__ so they're always available
-    dbg.pressKey = (key) => {
+    window.__ZX_DEBUG__.pressKey = (key) => {
       if (this.input && typeof this.input.pressKey === 'function') {
         this.input.pressKey(key);
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1695,7 +1499,7 @@ export class Emulator {
       return false;
     };
 
-    dbg.releaseKey = (key) => {
+    window.__ZX_DEBUG__.releaseKey = (key) => {
       if (this.input && typeof this.input.releaseKey === 'function') {
         this.input.releaseKey(key);
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1705,15 +1509,15 @@ export class Emulator {
       return false;
     };
 
-    dbg.typeKey = async (key, holdMs = 100) => {
-      dbg.pressKey(key);
+    window.__ZX_DEBUG__.typeKey = async (key, holdMs = 100) => {
+      window.__ZX_DEBUG__.pressKey(key);
       await new Promise(r => setTimeout(r, holdMs));
-      dbg.releaseKey(key);
+      window.__ZX_DEBUG__.releaseKey(key);
     };
 
     // pressAndHold: press key, hold for ms, actively poll ULA during hold, then release
     // Returns diagnostic info about port reads during the hold period
-    dbg.pressAndHold = async (key, holdMs = 700) => {
+    window.__ZX_DEBUG__.pressAndHold = async (key, holdMs = 700) => {
       const diagnostics = {
         key,
         holdMs,
@@ -1723,21 +1527,21 @@ export class Emulator {
         keyDetectedDuringHold: false,
         finalUlaMatrix: null
       };
-
+      
       console.log(`[__ZX_DEBUG__] pressAndHold('${key}', ${holdMs}ms) starting`);
-      dbg.pressKey(key);
-
+      window.__ZX_DEBUG__.pressKey(key);
+      
       // Poll ULA.readPort during hold period to capture key detection
       const pollInterval = 20; // Poll every 20ms
       const startTime = Date.now();
       let pollCount = 0;
-
+      
       while (Date.now() - startTime < holdMs) {
         pollCount++;
         // Determine correct port for key - for L key it's row 6 = 0xBFFE
         const port = 0xBFFE; // Row 6 where L lives (default, could be made dynamic)
         const portResult = (this.ula && typeof this.ula.readPort === 'function') ? this.ula.readPort(port) : null;
-
+        
         if (portResult !== null) {
           diagnostics.portReadsDuringHold.push({
             t: Date.now() - startTime,
@@ -1745,27 +1549,27 @@ export class Emulator {
             result: portResult,
             keyBitCleared: (portResult & 0x02) === 0 // Bit 1 for L key
           });
-
+          
           if ((portResult & 0x02) === 0) {
             diagnostics.keyDetectedDuringHold = true;
           }
         }
-
+        
         await new Promise(r => setTimeout(r, pollInterval));
       }
-
+      
       diagnostics.releaseTime = Date.now();
       diagnostics.finalUlaMatrix = this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix) : null;
-
-      dbg.releaseKey(key);
-
+      
+      window.__ZX_DEBUG__.releaseKey(key);
+      
       console.log(`[__ZX_DEBUG__] pressAndHold complete: ${pollCount} polls, keyDetected=${diagnostics.keyDetectedDuringHold}`);
       console.log(`[__ZX_DEBUG__] Port reads during hold:`, diagnostics.portReadsDuringHold.slice(0, 5), '...');
-
+      
       return diagnostics;
     };
 
-    dbg.resetKeyboard = () => {
+    window.__ZX_DEBUG__.resetKeyboard = () => {
       if (this.input && typeof this.input.reset === 'function') {
         this.input.reset();
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1773,23 +1577,12 @@ export class Emulator {
       }
     };
 
-    // Jetpac/start diagnostics: snapshot of CPU tstates and rocket-area memory (0x4800..0x49FF)
-    dbg.postStartDiagnostics = () => {
-      try {
-        const cpuT = this.cpu ? this.cpu.tstates : null;
-        const mem = this.memory && this.memory.pages ? this.memory.pages[1] : null;
-        if (!mem) return { tstates: cpuT, rocket: null };
-        const start = 0x4800 - 0x4000; const end = 0x49FF - 0x4000;
-        return { tstates: cpuT, rocket: Array.from(mem.slice(start, end + 1)) };
-      } catch (e) { return { tstates: (this.cpu ? this.cpu.tstates : null), rocket: null }; }
-    };
-
-    dbg.getKeyMatrix = () => ({
+    window.__ZX_DEBUG__.getKeyMatrix = () => ({
       input: this.input?.matrix ? Array.from(this.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
       ula: this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
     });
 
-    dbg.enableKeyboardDebug = () => {
+    window.__ZX_DEBUG__.enableKeyboardDebug = () => {
       if (this.setKeyboardDebug) this.setKeyboardDebug(true);
       if (this.ula) this.ula.setDebug(true);
       if (this.input) this.input.setDebug(true);
@@ -1797,7 +1590,7 @@ export class Emulator {
       console.log('[__ZX_DEBUG__] keyboard debug ENABLED - watch for [Input], [ULA], and [IO] logs');
     };
 
-    dbg.disableKeyboardDebug = () => {
+    window.__ZX_DEBUG__.disableKeyboardDebug = () => {
       if (this.setKeyboardDebug) this.setKeyboardDebug(false);
       if (this.ula) this.ula.setDebug(false);
       if (this.input) this.input.setDebug(false);
@@ -1805,16 +1598,16 @@ export class Emulator {
       console.log('[__ZX_DEBUG__] keyboard debug DISABLED');
     };
 
-    dbg.testKeyboardPath = async (key = 'l') => {
+    window.__ZX_DEBUG__.testKeyboardPath = async (key = 'l') => {
       console.log('=== KEYBOARD PATH TEST ===' );
       console.log('1. Initial state:');
-      console.log('   Input matrix:', dbg.getKeyMatrix().input);
-      console.log('   ULA keyMatrix:', dbg.getKeyMatrix().ula);
+      console.log('   Input matrix:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      console.log('   ULA keyMatrix:', window.__ZX_DEBUG__.getKeyMatrix().ula);
 
       console.log(`2. Pressing key '${key}'...`);
-      dbg.pressKey(key);
-      console.log('   Input matrix after press:', dbg.getKeyMatrix().input);
-      console.log('   ULA keyMatrix after press:', dbg.getKeyMatrix().ula);
+      window.__ZX_DEBUG__.pressKey(key);
+      console.log('   Input matrix after press:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      console.log('   ULA keyMatrix after press:', window.__ZX_DEBUG__.getKeyMatrix().ula);
 
       // New direct-matrix diagnostic: directly mutate input.matrix and read port
       try {
@@ -1847,36 +1640,35 @@ export class Emulator {
       await new Promise(r => setTimeout(r, 500));
 
       console.log('5. Releasing key...');
-      dbg.releaseKey(key);
-      console.log('   Input matrix after release:', dbg.getKeyMatrix().input);
+      window.__ZX_DEBUG__.releaseKey(key);
+      console.log('   Input matrix after release:', window.__ZX_DEBUG__.getKeyMatrix().input);
       console.log('=== END TEST ===');
     };
 
     // Capture a screenshot after pressing a key to verify ROM interaction with canvas
-    dbg.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false, filename = null } = {}) => {
+    window.__ZX_DEBUG__.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false, filename = null } = {}) => {
       console.log('=== KEYBOARD SCREENSHOT TEST ===');
       try {
-        if (typeof document === 'undefined') { console.error('[__ZX_DEBUG__] testKeyboardAndScreenshot: no document available'); return null; }
         const canvas = document.getElementById('screen');
         if (!canvas) { console.error('[__ZX_DEBUG__] canvas #screen not found'); return null; }
         try { canvas.focus(); } catch { /* ignore */ }
 
         console.log(`[__ZX_DEBUG__] Pressing '${key}' for ${holdMs}ms`);
-        if (typeof dbg.pressKey === 'function') dbg.pressKey(key);
-        else if (globalThis.emu && globalThis.emu.input && typeof globalThis.emu.input.pressKey === 'function') globalThis.emu.input.pressKey(key);
-        if (globalThis.emu && typeof globalThis.emu._applyInputToULA === 'function') globalThis.emu._applyInputToULA();
+        if (typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey(key);
+        else if (window.emu && window.emu.input && typeof window.emu.input.pressKey === 'function') window.emu.input.pressKey(key);
+        if (typeof window.emu !== 'undefined' && typeof window.emu._applyInputToULA === 'function') window.emu._applyInputToULA();
 
         await new Promise(r => setTimeout(r, holdMs));
 
-        if (typeof dbg.releaseKey === 'function') dbg.releaseKey(key);
-        else if (globalThis.emu && globalThis.emu.input && typeof globalThis.emu.input.releaseKey === 'function') globalThis.emu.input.releaseKey(key);
+        if (typeof window.__ZX_DEBUG__.releaseKey === 'function') window.__ZX_DEBUG__.releaseKey(key);
+        else if (window.emu && window.emu.input && typeof window.emu.input.releaseKey === 'function') window.emu.input.releaseKey(key);
 
         console.log('[__ZX_DEBUG__] Waiting for ROM to poll and render...');
         await new Promise(r => setTimeout(r, waitMs));
 
         // Capture canvas image
         const dataUrl = canvas.toDataURL('image/png');
-        dbg.lastKeyboardScreenshot = dataUrl;
+        window.__ZX_DEBUG__.lastKeyboardScreenshot = dataUrl;
         console.log('[__ZX_DEBUG__] Screenshot captured (dataURL stored in window.__ZX_DEBUG__.lastKeyboardScreenshot)');
 
         if (download) {
@@ -1894,9 +1686,9 @@ export class Emulator {
           key,
           holdMs,
           waitMs,
-          matrices: dbg.getKeyMatrix(),
-          lastKeyDetected: globalThis.__KEYBOARD_DEBUG__?.lastKeyDetected || null,
-          lastPortReadsTail: (globalThis.__TEST__ && globalThis.__TEST__.portReads) ? globalThis.__TEST__.portReads.slice(-10) : null,
+          matrices: window.__ZX_DEBUG__.getKeyMatrix(),
+          lastKeyDetected: window.__KEYBOARD_DEBUG__?.lastKeyDetected || null,
+          lastPortReadsTail: (window.__TEST__ && window.__TEST__.portReads) ? window.__TEST__.portReads.slice(-10) : null,
           screenshotPreview: dataUrl.slice(0, 128) + '...'
         };
       } catch (e) {
