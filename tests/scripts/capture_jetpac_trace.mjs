@@ -107,6 +107,20 @@ async function main() {
     console.log('[TraceDiag] parsed snapshot PC =', parsed && parsed.snapshot && parsed.snapshot.registers && parsed.snapshot.registers.PC);
   } catch (e) { /* ignore */ }
 
+  // Defensive: if FORCE_SYNTHETIC is explicitly requested, ensure we are
+  // using the synthetic payload regardless of any local parsed snapshot.
+  // This prevents accidental seeding from the reference/local parsed file
+  // when running diagnostic/unit tests with FORCE_SYNTHETIC=1.
+  if (FORCE_SYNTHETIC) {
+    try {
+      const payloadBuf = generateJetpacZ80Payload();
+      parsed = Loader.parseZ80(payloadBuf);
+      console.log('[TraceDiag] FORCE_SYNTHETIC override - parsed snapshot PC =', parsed && parsed.snapshot && parsed.snapshot.registers && parsed.snapshot.registers.PC);
+    } catch (e) {
+      console.warn('[TraceDiag] FORCE_SYNTHETIC override failed:', e && e.message);
+    }
+  }
+
   // Create an emulator instance with minimal options
   const { Emulator } = await import('../../src/main.mjs');
   // Provide a minimal canvas stub with getContext and imageData helpers
