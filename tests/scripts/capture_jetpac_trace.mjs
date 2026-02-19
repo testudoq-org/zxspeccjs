@@ -44,8 +44,8 @@ function generateJetpacZ80Payload() {
   //   DJNZ loop         10 FB  ; relative -5 to go back to LD (HL),A
   //   JP 0x8003         C3 03 80 ; reload A/B and continue
   const code = [0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80];
-  // Place the active loop at 0x8000 so PC=0x8000 executes it
-  for (let i = 0; i < code.length; i++) ram[0x8000 + i] = code[i];
+  // Place the active loop at 0x8000 (RAM offset 0x4000) so PC=0x8000 executes it
+  for (let i = 0; i < code.length; i++) ram[0x4000 + i] = code[i];
 
   const out = new Uint8Array(header.length + ram.length);
   out.set(header, 0);
