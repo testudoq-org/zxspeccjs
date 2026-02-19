@@ -101,6 +101,11 @@ async function main() {
     parsed = Loader.parseZ80(payloadBuf);
   }
 
+  // DEBUG: show parsed snapshot PC so we can confirm which snapshot was chosen
+  try {
+    console.log('[TraceDiag] parsed snapshot PC =', parsed && parsed.snapshot && parsed.snapshot.registers && parsed.snapshot.registers.PC);
+  } catch (e) { /* ignore */ }
+
   // Create an emulator instance with minimal options
   const { Emulator } = await import('../../src/main.mjs');
   // Provide a minimal canvas stub with getContext and imageData helpers
