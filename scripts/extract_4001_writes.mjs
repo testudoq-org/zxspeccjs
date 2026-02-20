@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /* eslint-env node */
+/* global console, process */
 import fs from 'fs';
 
 const OUR = 'traces/jetpac_trace.json';
