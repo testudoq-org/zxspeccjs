@@ -1816,7 +1816,7 @@ export class Z80 {
         const portLo = this.readByte(this.PC++);
         const port = ((this.A & 0xff) << 8) | (portLo & 0xff);
         // If CPU-level IO adapter does not apply contention, apply it here
-        if (!this.io || !this.io._appliesContention) this._applyPortContention();
+        if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
         let val = 0xff;
         if (this.io && typeof this.io.read === 'function') {
           try { val = this.io.read(port) & 0xff; } catch (e) { val = 0xff; }
@@ -1839,7 +1839,7 @@ export class Z80 {
         const portLo = this.readByte(this.PC++);
         const port = ((this.A & 0xff) << 8) | (portLo & 0xff);
         // If CPU-level IO adapter does not apply contention, apply it here
-        if (!this.io || !this.io._appliesContention) this._applyPortContention();
+        if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
         if (this.io && typeof this.io.write === 'function') {
           try { this.io.write(port, this.A & 0xff, this.tstates); } catch (e) { /* ignore */ }
         }
@@ -2631,7 +2631,7 @@ export class Z80 {
           // IN/OUT (C) instructions — full set (ED 40..7B)
           case 0x40: { // IN B,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2642,7 +2642,7 @@ export class Z80 {
           }
           case 0x41: { // OUT (C),B
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.B & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2650,7 +2650,7 @@ export class Z80 {
           }
           case 0x48: { // IN C,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2661,7 +2661,7 @@ export class Z80 {
           }
           case 0x49: { // OUT (C),C
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.C & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2669,7 +2669,7 @@ export class Z80 {
           }
           case 0x50: { // IN D,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2680,7 +2680,7 @@ export class Z80 {
           }
           case 0x51: { // OUT (C),D
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.D & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2688,7 +2688,7 @@ export class Z80 {
           }
           case 0x58: { // IN E,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2699,7 +2699,7 @@ export class Z80 {
           }
           case 0x59: { // OUT (C),E
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.E & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2707,7 +2707,7 @@ export class Z80 {
           }
           case 0x60: { // IN H,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2718,7 +2718,7 @@ export class Z80 {
           }
           case 0x61: { // OUT (C),H
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.H & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2726,7 +2726,7 @@ export class Z80 {
           }
           case 0x68: { // IN L,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2737,7 +2737,7 @@ export class Z80 {
           }
           case 0x69: { // OUT (C),L
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.L & 0xFF, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2745,7 +2745,7 @@ export class Z80 {
           }
           case 0x70: { // IN (C) — undocumented: affects flags only, result discarded
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2756,7 +2756,7 @@ export class Z80 {
           }
           case 0x71: { // OUT (C),0 — undocumented: outputs 0
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, 0, this.tstates); } catch(_e) { /* ignore */ }
             }
@@ -2764,7 +2764,7 @@ export class Z80 {
           }
           case 0x78: { // IN A,(C)
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             let val = 0xFF;
             if (this.io && typeof this.io.read === 'function') {
               try { val = this.io.read(port) & 0xFF; } catch(_e) { val = 0xFF; }
@@ -2784,7 +2784,7 @@ export class Z80 {
           }
           case 0x79: { // OUT (C),A
             const port = this._getBC();
-            if (!this.io || !this.io._appliesContention) this._applyPortContention();
+            if (!this.io || !this.io._appliesContention) this._applyPortContention(port);
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, this.A & 0xFF, this.tstates); } catch(e) { /* ignore */ }
             }
