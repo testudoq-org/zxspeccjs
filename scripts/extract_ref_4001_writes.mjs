@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+/* eslint-env node */
 import fs from 'fs';
 
 const REF = 'traces/jsspeccy_reference_jetpac_trace.json';
