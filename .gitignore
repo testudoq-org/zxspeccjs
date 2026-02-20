@@ -175,6 +175,9 @@ playwright-report/
 test-results/
 playwright-report/data/
 traces/
+!traces/parsed_jetpac_snapshot.json
+!traces/jsspeccy_reference_jetpac_trace.json
+!traces/jsspeccy_reference_jetpac_trace.frames.json
 
 # Temporary debug/trace files
 tmp_*.mjs
