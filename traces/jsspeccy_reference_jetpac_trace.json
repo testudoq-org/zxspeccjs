@@ -1,0 +1,9007 @@
+{
+  "meta": {
+    "frames": 200
+  },
+  "frames": [
+    {
+      "frame": 0,
+      "startT": 0,
+      "tstates": 69889,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33688,
+        "SP": 65280,
+        "I": 63,
+        "R": 90,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 65560
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 65562
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 65577
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 1,
+      "startT": 69889,
+      "tstates": 139778,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34608,
+        "SP": 65280,
+        "I": 63,
+        "R": 51,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 135449
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 135451
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 135466
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 2,
+      "startT": 139778,
+      "tstates": 209667,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35528,
+        "SP": 65280,
+        "I": 63,
+        "R": 12,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 205338
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 205340
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 205355
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 3,
+      "startT": 209667,
+      "tstates": 279556,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36432,
+        "SP": 65280,
+        "I": 63,
+        "R": 85,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 275227
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 275229
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 275244
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 4,
+      "startT": 279556,
+      "tstates": 349445,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37336,
+        "SP": 65280,
+        "I": 63,
+        "R": 30,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 345116
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 345118
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 345133
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 5,
+      "startT": 349445,
+      "tstates": 419334,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38240,
+        "SP": 65280,
+        "I": 63,
+        "R": 103,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 415005
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 415007
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 415022
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 6,
+      "startT": 419334,
+      "tstates": 489223,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39146,
+        "SP": 65280,
+        "I": 63,
+        "R": 50,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 484894
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 484896
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 484911
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 7,
+      "startT": 489223,
+      "tstates": 559114,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40052,
+        "SP": 65280,
+        "I": 63,
+        "R": 125,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 554783
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 554785
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 554800
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 8,
+      "startT": 559114,
+      "tstates": 629004,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40958,
+        "SP": 65280,
+        "I": 63,
+        "R": 72,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 624674
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 624676
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 624691
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 9,
+      "startT": 629004,
+      "tstates": 698893,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41862,
+        "SP": 65280,
+        "I": 63,
+        "R": 17,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 694564
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 694566
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 694581
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 10,
+      "startT": 698893,
+      "tstates": 768782,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42766,
+        "SP": 65280,
+        "I": 63,
+        "R": 90,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 764453
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 764455
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 764470
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 11,
+      "startT": 768782,
+      "tstates": 838671,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43670,
+        "SP": 65280,
+        "I": 63,
+        "R": 35,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 834342
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 834344
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 834359
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 12,
+      "startT": 838671,
+      "tstates": 908560,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44574,
+        "SP": 65280,
+        "I": 63,
+        "R": 108,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 904231
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 904233
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 904248
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 13,
+      "startT": 908560,
+      "tstates": 978451,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45480,
+        "SP": 65280,
+        "I": 63,
+        "R": 55,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 974120
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 974122
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 974137
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 14,
+      "startT": 978451,
+      "tstates": 1048341,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46386,
+        "SP": 65280,
+        "I": 63,
+        "R": 2,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1044011
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1044013
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1044028
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 15,
+      "startT": 1048341,
+      "tstates": 1118230,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47306,
+        "SP": 65280,
+        "I": 63,
+        "R": 91,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1113901
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1113903
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1113918
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 16,
+      "startT": 1118230,
+      "tstates": 1188119,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48226,
+        "SP": 65280,
+        "I": 63,
+        "R": 52,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1183790
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1183792
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1183807
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 17,
+      "startT": 1188119,
+      "tstates": 1258008,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 49146,
+        "SP": 65280,
+        "I": 63,
+        "R": 13,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1253679
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1253681
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1253696
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 18,
+      "startT": 1258008,
+      "tstates": 1327898,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33514,
+        "SP": 65280,
+        "I": 63,
+        "R": 127,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1323568
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1323570
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1323585
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 19,
+      "startT": 1327898,
+      "tstates": 1397787,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34434,
+        "SP": 65280,
+        "I": 63,
+        "R": 88,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1393458
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1393460
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1393475
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 20,
+      "startT": 1397787,
+      "tstates": 1467676,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35354,
+        "SP": 65280,
+        "I": 63,
+        "R": 49,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1463347
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1463349
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1463364
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 21,
+      "startT": 1467676,
+      "tstates": 1537567,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36259,
+        "SP": 65280,
+        "I": 63,
+        "R": 123,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1533236
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1533238
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1533253
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 22,
+      "startT": 1537567,
+      "tstates": 1607456,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37164,
+        "SP": 65280,
+        "I": 63,
+        "R": 69,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1603127
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1603129
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1603144
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 23,
+      "startT": 1607456,
+      "tstates": 1677345,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38068,
+        "SP": 65280,
+        "I": 63,
+        "R": 14,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1673016
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1673018
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1673033
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 24,
+      "startT": 1677345,
+      "tstates": 1747234,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38972,
+        "SP": 65280,
+        "I": 63,
+        "R": 87,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1742905
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1742907
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1742922
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 25,
+      "startT": 1747234,
+      "tstates": 1817123,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39878,
+        "SP": 65280,
+        "I": 63,
+        "R": 34,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1812794
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1812796
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1812811
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 26,
+      "startT": 1817123,
+      "tstates": 1887011,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40784,
+        "SP": 65280,
+        "I": 63,
+        "R": 109,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1882683
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1882685
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1882700
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 27,
+      "startT": 1887011,
+      "tstates": 1956902,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41689,
+        "SP": 65280,
+        "I": 63,
+        "R": 55,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 1952571
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 1952573
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 1952588
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 28,
+      "startT": 1956902,
+      "tstates": 2026791,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42594,
+        "SP": 65280,
+        "I": 63,
+        "R": 1,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2022462
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2022464
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2022479
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 29,
+      "startT": 2026791,
+      "tstates": 2096680,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43498,
+        "SP": 65280,
+        "I": 63,
+        "R": 74,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2092351
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2092353
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2092368
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 30,
+      "startT": 2096680,
+      "tstates": 2166569,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44402,
+        "SP": 65280,
+        "I": 63,
+        "R": 19,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2162240
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2162242
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2162257
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 31,
+      "startT": 2166569,
+      "tstates": 2236458,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45308,
+        "SP": 65280,
+        "I": 63,
+        "R": 94,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2232129
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2232131
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2232146
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 32,
+      "startT": 2236458,
+      "tstates": 2306349,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46214,
+        "SP": 65280,
+        "I": 63,
+        "R": 41,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2302018
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2302020
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2302035
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 33,
+      "startT": 2306349,
+      "tstates": 2376238,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47134,
+        "SP": 65280,
+        "I": 63,
+        "R": 2,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2371909
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2371911
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2371926
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 34,
+      "startT": 2376238,
+      "tstates": 2446127,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48054,
+        "SP": 65280,
+        "I": 63,
+        "R": 91,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2441798
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2441800
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2441815
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 35,
+      "startT": 2446127,
+      "tstates": 2516016,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48974,
+        "SP": 65280,
+        "I": 63,
+        "R": 52,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2511687
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2511689
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2511704
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 36,
+      "startT": 2516016,
+      "tstates": 2585906,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33342,
+        "SP": 65280,
+        "I": 63,
+        "R": 38,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2581576
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2581578
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2581593
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 37,
+      "startT": 2585906,
+      "tstates": 2655795,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34262,
+        "SP": 65280,
+        "I": 63,
+        "R": 127,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2651466
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2651468
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2651483
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 38,
+      "startT": 2655795,
+      "tstates": 2725684,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35182,
+        "SP": 65280,
+        "I": 63,
+        "R": 88,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2721355
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2721357
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2721372
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 39,
+      "startT": 2725684,
+      "tstates": 2795574,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36088,
+        "SP": 65280,
+        "I": 63,
+        "R": 35,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2791244
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2791246
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2791261
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 40,
+      "startT": 2795574,
+      "tstates": 2865463,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36992,
+        "SP": 65280,
+        "I": 63,
+        "R": 108,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2861134
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2861136
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2861151
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 41,
+      "startT": 2865463,
+      "tstates": 2935352,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37896,
+        "SP": 65280,
+        "I": 63,
+        "R": 53,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 2931023
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 2931025
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 2931040
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 42,
+      "startT": 2935352,
+      "tstates": 3005241,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38800,
+        "SP": 65280,
+        "I": 63,
+        "R": 126,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3000912
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3000914
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3000929
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 43,
+      "startT": 3005241,
+      "tstates": 3075130,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39706,
+        "SP": 65280,
+        "I": 63,
+        "R": 73,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3070801
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3070803
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3070818
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 44,
+      "startT": 3075130,
+      "tstates": 3145021,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40612,
+        "SP": 65280,
+        "I": 63,
+        "R": 20,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3140690
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3140692
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3140707
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 45,
+      "startT": 3145021,
+      "tstates": 3214911,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41518,
+        "SP": 65280,
+        "I": 63,
+        "R": 95,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3210581
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3210583
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3210598
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 46,
+      "startT": 3214911,
+      "tstates": 3284800,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42422,
+        "SP": 65280,
+        "I": 63,
+        "R": 40,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3280471
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3280473
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3280488
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 47,
+      "startT": 3284800,
+      "tstates": 3354689,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43326,
+        "SP": 65280,
+        "I": 63,
+        "R": 113,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3350360
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3350362
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3350377
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 48,
+      "startT": 3354689,
+      "tstates": 3424578,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44230,
+        "SP": 65280,
+        "I": 63,
+        "R": 58,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3420249
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3420251
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3420266
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 49,
+      "startT": 3424578,
+      "tstates": 3494467,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45134,
+        "SP": 65280,
+        "I": 63,
+        "R": 3,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3490138
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3490140
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3490155
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 50,
+      "startT": 3494467,
+      "tstates": 3564358,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46040,
+        "SP": 65280,
+        "I": 63,
+        "R": 78,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3560027
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3560029
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3560044
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 51,
+      "startT": 3564358,
+      "tstates": 3634247,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46960,
+        "SP": 65280,
+        "I": 63,
+        "R": 39,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3629918
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3629920
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3629935
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 52,
+      "startT": 3634247,
+      "tstates": 3704136,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47880,
+        "SP": 65280,
+        "I": 63,
+        "R": 0,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3699807
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3699809
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3699824
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 53,
+      "startT": 3704136,
+      "tstates": 3774025,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48800,
+        "SP": 65280,
+        "I": 63,
+        "R": 89,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3769696
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3769698
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3769713
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 54,
+      "startT": 3774025,
+      "tstates": 3843915,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33168,
+        "SP": 65280,
+        "I": 63,
+        "R": 75,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3839585
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3839587
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3839602
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 55,
+      "startT": 3843915,
+      "tstates": 3913804,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34088,
+        "SP": 65280,
+        "I": 63,
+        "R": 36,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3909475
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3909477
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3909492
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 56,
+      "startT": 3913804,
+      "tstates": 3983693,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35008,
+        "SP": 65280,
+        "I": 63,
+        "R": 125,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 3979364
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 3979366
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 3979381
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 57,
+      "startT": 3983693,
+      "tstates": 4053583,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35914,
+        "SP": 65280,
+        "I": 63,
+        "R": 72,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4049253
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4049255
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4049270
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 58,
+      "startT": 4053583,
+      "tstates": 4123474,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36819,
+        "SP": 65280,
+        "I": 63,
+        "R": 18,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4119143
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4119145
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4119160
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 59,
+      "startT": 4123474,
+      "tstates": 4193363,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37724,
+        "SP": 65280,
+        "I": 63,
+        "R": 92,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4189034
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4189036
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4189051
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 60,
+      "startT": 4193363,
+      "tstates": 4263252,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38628,
+        "SP": 65280,
+        "I": 63,
+        "R": 37,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4258923
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4258925
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4258940
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 61,
+      "startT": 4263252,
+      "tstates": 4333141,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39532,
+        "SP": 65280,
+        "I": 63,
+        "R": 110,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4328812
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4328814
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4328829
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 62,
+      "startT": 4333141,
+      "tstates": 4403030,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40438,
+        "SP": 65280,
+        "I": 63,
+        "R": 57,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4398701
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4398703
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4398718
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 63,
+      "startT": 4403030,
+      "tstates": 4472918,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41344,
+        "SP": 65280,
+        "I": 63,
+        "R": 4,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4468590
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4468592
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4468607
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 64,
+      "startT": 4472918,
+      "tstates": 4542809,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42249,
+        "SP": 65280,
+        "I": 63,
+        "R": 78,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4538478
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4538480
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4538495
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 65,
+      "startT": 4542809,
+      "tstates": 4612698,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43154,
+        "SP": 65280,
+        "I": 63,
+        "R": 24,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4608369
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4608371
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4608386
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 66,
+      "startT": 4612698,
+      "tstates": 4682587,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44058,
+        "SP": 65280,
+        "I": 63,
+        "R": 97,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4678258
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4678260
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4678275
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 67,
+      "startT": 4682587,
+      "tstates": 4752476,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44962,
+        "SP": 65280,
+        "I": 63,
+        "R": 42,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4748147
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4748149
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4748164
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 68,
+      "startT": 4752476,
+      "tstates": 4822365,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45868,
+        "SP": 65280,
+        "I": 63,
+        "R": 117,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4818036
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4818038
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4818053
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 69,
+      "startT": 4822365,
+      "tstates": 4892254,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46788,
+        "SP": 65280,
+        "I": 63,
+        "R": 78,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4887925
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4887927
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4887942
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 70,
+      "startT": 4892254,
+      "tstates": 4962143,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47708,
+        "SP": 65280,
+        "I": 63,
+        "R": 39,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 4957814
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 4957816
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 4957831
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 71,
+      "startT": 4962143,
+      "tstates": 5032032,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48628,
+        "SP": 65280,
+        "I": 63,
+        "R": 0,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5027703
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5027705
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5027720
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 72,
+      "startT": 5032032,
+      "tstates": 5101922,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 32996,
+        "SP": 65280,
+        "I": 63,
+        "R": 114,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5097592
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5097594
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5097609
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 73,
+      "startT": 5101922,
+      "tstates": 5171811,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33916,
+        "SP": 65280,
+        "I": 63,
+        "R": 75,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5167482
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5167484
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5167499
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 74,
+      "startT": 5171811,
+      "tstates": 5241700,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34836,
+        "SP": 65280,
+        "I": 63,
+        "R": 36,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5237371
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5237373
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5237388
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 75,
+      "startT": 5241700,
+      "tstates": 5311589,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35756,
+        "SP": 65280,
+        "I": 63,
+        "R": 125,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5307260
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5307262
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5307277
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 76,
+      "startT": 5311589,
+      "tstates": 5381478,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36660,
+        "SP": 65280,
+        "I": 63,
+        "R": 70,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5377149
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5377151
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5377166
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 77,
+      "startT": 5381478,
+      "tstates": 5451367,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37564,
+        "SP": 65280,
+        "I": 63,
+        "R": 15,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5447038
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5447040
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5447055
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 78,
+      "startT": 5451367,
+      "tstates": 5521256,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38468,
+        "SP": 65280,
+        "I": 63,
+        "R": 88,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5516927
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5516929
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5516944
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 79,
+      "startT": 5521256,
+      "tstates": 5591145,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39374,
+        "SP": 65280,
+        "I": 63,
+        "R": 35,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5586816
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5586818
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5586833
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 80,
+      "startT": 5591145,
+      "tstates": 5661033,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40280,
+        "SP": 65280,
+        "I": 63,
+        "R": 110,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5656705
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5656707
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5656722
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 81,
+      "startT": 5661033,
+      "tstates": 5730924,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41185,
+        "SP": 65280,
+        "I": 63,
+        "R": 56,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5726593
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5726595
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5726610
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 82,
+      "startT": 5730924,
+      "tstates": 5800813,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42090,
+        "SP": 65280,
+        "I": 63,
+        "R": 2,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5796484
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5796486
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5796501
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 83,
+      "startT": 5800813,
+      "tstates": 5870702,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42994,
+        "SP": 65280,
+        "I": 63,
+        "R": 75,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5866373
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5866375
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5866390
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 84,
+      "startT": 5870702,
+      "tstates": 5940591,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43898,
+        "SP": 65280,
+        "I": 63,
+        "R": 20,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 5936262
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 5936264
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 5936279
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 85,
+      "startT": 5940591,
+      "tstates": 6010480,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44804,
+        "SP": 65280,
+        "I": 63,
+        "R": 95,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6006151
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6006153
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6006168
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 86,
+      "startT": 6010480,
+      "tstates": 6080371,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45710,
+        "SP": 65280,
+        "I": 63,
+        "R": 42,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6076040
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6076042
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6076057
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 87,
+      "startT": 6080371,
+      "tstates": 6150260,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46626,
+        "SP": 65280,
+        "I": 63,
+        "R": 127,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6145931
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6145933
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6145948
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 88,
+      "startT": 6150260,
+      "tstates": 6220149,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47546,
+        "SP": 65280,
+        "I": 63,
+        "R": 88,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6215820
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6215822
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6215837
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 89,
+      "startT": 6220149,
+      "tstates": 6290038,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48466,
+        "SP": 65280,
+        "I": 63,
+        "R": 49,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6285709
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6285711
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6285726
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 90,
+      "startT": 6290038,
+      "tstates": 6359928,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 32834,
+        "SP": 65280,
+        "I": 63,
+        "R": 35,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6355598
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6355600
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6355615
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 91,
+      "startT": 6359928,
+      "tstates": 6429817,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33754,
+        "SP": 65280,
+        "I": 63,
+        "R": 124,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6425488
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6425490
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6425505
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 92,
+      "startT": 6429817,
+      "tstates": 6499706,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34674,
+        "SP": 65280,
+        "I": 63,
+        "R": 85,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6495377
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6495379
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6495394
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 93,
+      "startT": 6499706,
+      "tstates": 6569595,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35594,
+        "SP": 65280,
+        "I": 63,
+        "R": 46,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6565266
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6565268
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6565283
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 94,
+      "startT": 6569595,
+      "tstates": 6639484,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36498,
+        "SP": 65280,
+        "I": 63,
+        "R": 119,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6635155
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6635157
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6635172
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 95,
+      "startT": 6639484,
+      "tstates": 6709373,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37402,
+        "SP": 65280,
+        "I": 63,
+        "R": 64,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6705044
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6705046
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6705061
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 96,
+      "startT": 6709373,
+      "tstates": 6779262,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38308,
+        "SP": 65280,
+        "I": 63,
+        "R": 11,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6774933
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6774935
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6774950
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 97,
+      "startT": 6779262,
+      "tstates": 6849153,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39214,
+        "SP": 65280,
+        "I": 63,
+        "R": 86,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6844822
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6844824
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6844839
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 98,
+      "startT": 6849153,
+      "tstates": 6919043,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40120,
+        "SP": 65280,
+        "I": 63,
+        "R": 33,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6914713
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6914715
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6914730
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 99,
+      "startT": 6919043,
+      "tstates": 6988932,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41024,
+        "SP": 65280,
+        "I": 63,
+        "R": 106,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 6984603
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 6984605
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 6984620
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 100,
+      "startT": 6988932,
+      "tstates": 7058821,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41928,
+        "SP": 65280,
+        "I": 63,
+        "R": 51,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7054492
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7054494
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7054509
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 101,
+      "startT": 7058821,
+      "tstates": 7128710,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42832,
+        "SP": 65280,
+        "I": 63,
+        "R": 124,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7124381
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7124383
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7124398
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 102,
+      "startT": 7128710,
+      "tstates": 7198599,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43738,
+        "SP": 65280,
+        "I": 63,
+        "R": 71,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7194270
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7194272
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7194287
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 103,
+      "startT": 7198599,
+      "tstates": 7268490,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44644,
+        "SP": 65280,
+        "I": 63,
+        "R": 18,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7264159
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7264161
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7264176
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 104,
+      "startT": 7268490,
+      "tstates": 7338380,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45550,
+        "SP": 65280,
+        "I": 63,
+        "R": 93,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7334050
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7334052
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7334067
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 105,
+      "startT": 7338380,
+      "tstates": 7408269,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46454,
+        "SP": 65280,
+        "I": 63,
+        "R": 38,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7403940
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7403942
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7403957
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 106,
+      "startT": 7408269,
+      "tstates": 7478158,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47374,
+        "SP": 65280,
+        "I": 63,
+        "R": 127,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7473829
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7473831
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7473846
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 107,
+      "startT": 7478158,
+      "tstates": 7548047,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48294,
+        "SP": 65280,
+        "I": 63,
+        "R": 88,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7543718
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7543720
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7543735
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 108,
+      "startT": 7548047,
+      "tstates": 7617945,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 11,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 6,
+        "PC": 49163,
+        "SP": 65280,
+        "I": 63,
+        "R": 13,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7613607
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7613609
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7613624
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 109,
+      "startT": 7617945,
+      "tstates": 7687834,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33584,
+        "SP": 65280,
+        "I": 63,
+        "R": 37,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7683505
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7683507
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7683522
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 110,
+      "startT": 7687834,
+      "tstates": 7757723,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34504,
+        "SP": 65280,
+        "I": 63,
+        "R": 126,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7753394
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7753396
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7753411
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 111,
+      "startT": 7757723,
+      "tstates": 7827612,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35424,
+        "SP": 65280,
+        "I": 63,
+        "R": 87,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7823283
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7823285
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7823300
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 112,
+      "startT": 7827612,
+      "tstates": 7897501,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36328,
+        "SP": 65280,
+        "I": 63,
+        "R": 32,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7893172
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7893174
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7893189
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 113,
+      "startT": 7897501,
+      "tstates": 7967390,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37232,
+        "SP": 65280,
+        "I": 63,
+        "R": 105,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 7963061
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 7963063
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 7963078
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 114,
+      "startT": 7967390,
+      "tstates": 8037279,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38138,
+        "SP": 65280,
+        "I": 63,
+        "R": 52,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8032950
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8032952
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8032967
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 115,
+      "startT": 8037279,
+      "tstates": 8107170,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39044,
+        "SP": 65280,
+        "I": 63,
+        "R": 127,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8102839
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8102841
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8102856
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 116,
+      "startT": 8107170,
+      "tstates": 8177060,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39950,
+        "SP": 65280,
+        "I": 63,
+        "R": 74,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8172730
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8172732
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8172747
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 117,
+      "startT": 8177060,
+      "tstates": 8246949,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40854,
+        "SP": 65280,
+        "I": 63,
+        "R": 19,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8242620
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8242622
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8242637
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 118,
+      "startT": 8246949,
+      "tstates": 8316838,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41758,
+        "SP": 65280,
+        "I": 63,
+        "R": 92,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8312509
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8312511
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8312526
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 119,
+      "startT": 8316838,
+      "tstates": 8386727,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42662,
+        "SP": 65280,
+        "I": 63,
+        "R": 37,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8382398
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8382400
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8382415
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 120,
+      "startT": 8386727,
+      "tstates": 8456616,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43566,
+        "SP": 65280,
+        "I": 63,
+        "R": 110,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8452287
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8452289
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8452304
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 121,
+      "startT": 8456616,
+      "tstates": 8526507,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44472,
+        "SP": 65280,
+        "I": 63,
+        "R": 57,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8522176
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8522178
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8522193
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 122,
+      "startT": 8526507,
+      "tstates": 8596397,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45378,
+        "SP": 65280,
+        "I": 63,
+        "R": 4,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8592067
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8592069
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8592084
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 123,
+      "startT": 8596397,
+      "tstates": 8666288,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46283,
+        "SP": 65280,
+        "I": 63,
+        "R": 78,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8661957
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8661959
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8661974
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 124,
+      "startT": 8666288,
+      "tstates": 8736177,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47203,
+        "SP": 65280,
+        "I": 63,
+        "R": 39,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8731848
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8731850
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8731865
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 125,
+      "startT": 8736177,
+      "tstates": 8806066,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48123,
+        "SP": 65280,
+        "I": 63,
+        "R": 0,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8801737
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8801739
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8801754
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 126,
+      "startT": 8806066,
+      "tstates": 8875955,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 49043,
+        "SP": 65280,
+        "I": 63,
+        "R": 89,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8871626
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8871628
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8871643
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 127,
+      "startT": 8875955,
+      "tstates": 8945845,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33411,
+        "SP": 65280,
+        "I": 63,
+        "R": 75,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 8941515
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 8941517
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 8941532
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 128,
+      "startT": 8945845,
+      "tstates": 9015734,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34331,
+        "SP": 65280,
+        "I": 63,
+        "R": 36,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9011405
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9011407
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9011422
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 129,
+      "startT": 9015734,
+      "tstates": 9085623,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35251,
+        "SP": 65280,
+        "I": 63,
+        "R": 125,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9081294
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9081296
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9081311
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 130,
+      "startT": 9085623,
+      "tstates": 9155512,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36156,
+        "SP": 65280,
+        "I": 63,
+        "R": 71,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9151183
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9151185
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9151200
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 131,
+      "startT": 9155512,
+      "tstates": 9225401,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37060,
+        "SP": 65280,
+        "I": 63,
+        "R": 16,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9221072
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9221074
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9221089
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 132,
+      "startT": 9225401,
+      "tstates": 9295290,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37964,
+        "SP": 65280,
+        "I": 63,
+        "R": 89,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9290961
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9290963
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9290978
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 133,
+      "startT": 9295290,
+      "tstates": 9365179,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38870,
+        "SP": 65280,
+        "I": 63,
+        "R": 36,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9360850
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9360852
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9360867
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 134,
+      "startT": 9365179,
+      "tstates": 9435067,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39776,
+        "SP": 65280,
+        "I": 63,
+        "R": 111,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9430739
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9430741
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9430756
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 135,
+      "startT": 9435067,
+      "tstates": 9504958,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40681,
+        "SP": 65280,
+        "I": 63,
+        "R": 57,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9500627
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9500629
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9500644
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 136,
+      "startT": 9504958,
+      "tstates": 9574847,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41586,
+        "SP": 65280,
+        "I": 63,
+        "R": 3,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9570518
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9570520
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9570535
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 137,
+      "startT": 9574847,
+      "tstates": 9644736,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42490,
+        "SP": 65280,
+        "I": 63,
+        "R": 76,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9640407
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9640409
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9640424
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 138,
+      "startT": 9644736,
+      "tstates": 9714625,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43394,
+        "SP": 65280,
+        "I": 63,
+        "R": 21,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9710296
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9710298
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9710313
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 139,
+      "startT": 9714625,
+      "tstates": 9784514,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44300,
+        "SP": 65280,
+        "I": 63,
+        "R": 96,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9780185
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9780187
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9780202
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 140,
+      "startT": 9784514,
+      "tstates": 9854405,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45206,
+        "SP": 65280,
+        "I": 63,
+        "R": 43,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9850074
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9850076
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9850091
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 141,
+      "startT": 9854405,
+      "tstates": 9924295,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46112,
+        "SP": 65280,
+        "I": 63,
+        "R": 118,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9919965
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9919967
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9919982
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 142,
+      "startT": 9924295,
+      "tstates": 9994184,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47032,
+        "SP": 65280,
+        "I": 63,
+        "R": 79,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 9989855
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 9989857
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 9989872
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 143,
+      "startT": 9994184,
+      "tstates": 10064073,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47952,
+        "SP": 65280,
+        "I": 63,
+        "R": 40,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10059744
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10059746
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10059761
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 144,
+      "startT": 10064073,
+      "tstates": 10133962,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48872,
+        "SP": 65280,
+        "I": 63,
+        "R": 1,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10129633
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10129635
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10129650
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 145,
+      "startT": 10133962,
+      "tstates": 10203852,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33240,
+        "SP": 65280,
+        "I": 63,
+        "R": 115,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10199522
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10199524
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10199539
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 146,
+      "startT": 10203852,
+      "tstates": 10273741,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34160,
+        "SP": 65280,
+        "I": 63,
+        "R": 76,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10269412
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10269414
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10269429
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 147,
+      "startT": 10273741,
+      "tstates": 10343630,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35080,
+        "SP": 65280,
+        "I": 63,
+        "R": 37,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10339301
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10339303
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10339318
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 148,
+      "startT": 10343630,
+      "tstates": 10413519,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35984,
+        "SP": 65280,
+        "I": 63,
+        "R": 110,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10409190
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10409192
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10409207
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 149,
+      "startT": 10413519,
+      "tstates": 10483408,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36888,
+        "SP": 65280,
+        "I": 63,
+        "R": 55,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10479079
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10479081
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10479096
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 150,
+      "startT": 10483408,
+      "tstates": 10553297,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37792,
+        "SP": 65280,
+        "I": 63,
+        "R": 0,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10548968
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10548970
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10548985
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 151,
+      "startT": 10553297,
+      "tstates": 10623186,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38698,
+        "SP": 65280,
+        "I": 63,
+        "R": 75,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10618857
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10618859
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10618874
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 152,
+      "startT": 10623186,
+      "tstates": 10693077,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39604,
+        "SP": 65280,
+        "I": 63,
+        "R": 22,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10688746
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10688748
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10688763
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 153,
+      "startT": 10693077,
+      "tstates": 10762967,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40510,
+        "SP": 65280,
+        "I": 63,
+        "R": 97,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10758637
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10758639
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10758654
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 154,
+      "startT": 10762967,
+      "tstates": 10832856,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41414,
+        "SP": 65280,
+        "I": 63,
+        "R": 42,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10828527
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10828529
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10828544
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 155,
+      "startT": 10832856,
+      "tstates": 10902745,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42318,
+        "SP": 65280,
+        "I": 63,
+        "R": 115,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10898416
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10898418
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10898433
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 156,
+      "startT": 10902745,
+      "tstates": 10972634,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43222,
+        "SP": 65280,
+        "I": 63,
+        "R": 60,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 10968305
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 10968307
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 10968322
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 157,
+      "startT": 10972634,
+      "tstates": 11042523,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44126,
+        "SP": 65280,
+        "I": 63,
+        "R": 5,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11038194
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11038196
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11038211
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 158,
+      "startT": 11042523,
+      "tstates": 11112414,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45032,
+        "SP": 65280,
+        "I": 63,
+        "R": 80,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11108083
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11108085
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11108100
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 159,
+      "startT": 11112414,
+      "tstates": 11182304,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45938,
+        "SP": 65280,
+        "I": 63,
+        "R": 27,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11177974
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11177976
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11177991
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 160,
+      "startT": 11182304,
+      "tstates": 11252193,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46858,
+        "SP": 65280,
+        "I": 63,
+        "R": 116,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11247864
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11247866
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11247881
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 161,
+      "startT": 11252193,
+      "tstates": 11322082,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47778,
+        "SP": 65280,
+        "I": 63,
+        "R": 77,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11317753
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11317755
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11317770
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 162,
+      "startT": 11322082,
+      "tstates": 11391971,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48698,
+        "SP": 65280,
+        "I": 63,
+        "R": 38,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11387642
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11387644
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11387659
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 163,
+      "startT": 11391971,
+      "tstates": 11461861,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33066,
+        "SP": 65280,
+        "I": 63,
+        "R": 24,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11457531
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11457533
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11457548
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 164,
+      "startT": 11461861,
+      "tstates": 11531750,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33986,
+        "SP": 65280,
+        "I": 63,
+        "R": 113,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11527421
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11527423
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11527438
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 165,
+      "startT": 11531750,
+      "tstates": 11601639,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34906,
+        "SP": 65280,
+        "I": 63,
+        "R": 74,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11597310
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11597312
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11597327
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 166,
+      "startT": 11601639,
+      "tstates": 11671528,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35820,
+        "SP": 65280,
+        "I": 63,
+        "R": 29,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11667199
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11667201
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11667216
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 167,
+      "startT": 11671528,
+      "tstates": 11741417,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36724,
+        "SP": 65280,
+        "I": 63,
+        "R": 102,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11737088
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11737090
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11737105
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 168,
+      "startT": 11741417,
+      "tstates": 11811306,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37628,
+        "SP": 65280,
+        "I": 63,
+        "R": 47,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11806977
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11806979
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11806994
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 169,
+      "startT": 11811306,
+      "tstates": 11881195,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38534,
+        "SP": 65280,
+        "I": 63,
+        "R": 122,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11876866
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11876868
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11876883
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 170,
+      "startT": 11881195,
+      "tstates": 11951083,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39440,
+        "SP": 65280,
+        "I": 63,
+        "R": 69,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 11946755
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 11946757
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 11946772
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 171,
+      "startT": 11951083,
+      "tstates": 12020974,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40345,
+        "SP": 65280,
+        "I": 63,
+        "R": 15,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12016643
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12016645
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12016660
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 172,
+      "startT": 12020974,
+      "tstates": 12090863,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41250,
+        "SP": 65280,
+        "I": 63,
+        "R": 89,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12086534
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12086536
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12086551
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 173,
+      "startT": 12090863,
+      "tstates": 12160752,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42154,
+        "SP": 65280,
+        "I": 63,
+        "R": 34,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12156423
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12156425
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12156440
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 174,
+      "startT": 12160752,
+      "tstates": 12230641,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43058,
+        "SP": 65280,
+        "I": 63,
+        "R": 107,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12226312
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12226314
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12226329
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 175,
+      "startT": 12230641,
+      "tstates": 12300530,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43964,
+        "SP": 65280,
+        "I": 63,
+        "R": 54,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12296201
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12296203
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12296218
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 176,
+      "startT": 12300530,
+      "tstates": 12370421,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44870,
+        "SP": 65280,
+        "I": 63,
+        "R": 1,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12366090
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12366092
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12366107
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 177,
+      "startT": 12370421,
+      "tstates": 12440311,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45776,
+        "SP": 65280,
+        "I": 63,
+        "R": 76,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12435981
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12435983
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12435998
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 178,
+      "startT": 12440311,
+      "tstates": 12510200,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46696,
+        "SP": 65280,
+        "I": 63,
+        "R": 37,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12505871
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12505873
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12505888
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 179,
+      "startT": 12510200,
+      "tstates": 12580089,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47616,
+        "SP": 65280,
+        "I": 63,
+        "R": 126,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12575760
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12575762
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12575777
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 180,
+      "startT": 12580089,
+      "tstates": 12649978,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48536,
+        "SP": 65280,
+        "I": 63,
+        "R": 87,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12645649
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12645651
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12645666
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 181,
+      "startT": 12649978,
+      "tstates": 12719868,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 32904,
+        "SP": 65280,
+        "I": 63,
+        "R": 73,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12715538
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12715540
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12715555
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 182,
+      "startT": 12719868,
+      "tstates": 12789757,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 33824,
+        "SP": 65280,
+        "I": 63,
+        "R": 34,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12785428
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12785430
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12785445
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 183,
+      "startT": 12789757,
+      "tstates": 12859646,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 34744,
+        "SP": 65280,
+        "I": 63,
+        "R": 123,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12855317
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12855319
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12855334
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 184,
+      "startT": 12859646,
+      "tstates": 12929535,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 35664,
+        "SP": 65280,
+        "I": 63,
+        "R": 84,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12925206
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12925208
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12925223
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 185,
+      "startT": 12929535,
+      "tstates": 12999424,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 36570,
+        "SP": 65280,
+        "I": 63,
+        "R": 31,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 12995095
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 12995097
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 12995112
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 186,
+      "startT": 12999424,
+      "tstates": 13069315,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 37476,
+        "SP": 65280,
+        "I": 63,
+        "R": 106,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13064984
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13064986
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13065001
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 187,
+      "startT": 13069315,
+      "tstates": 13139205,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 38382,
+        "SP": 65280,
+        "I": 63,
+        "R": 53,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13134875
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13134877
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13134892
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 188,
+      "startT": 13139205,
+      "tstates": 13209094,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 39286,
+        "SP": 65280,
+        "I": 63,
+        "R": 126,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13204765
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13204767
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13204782
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 189,
+      "startT": 13209094,
+      "tstates": 13278983,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 40190,
+        "SP": 65280,
+        "I": 63,
+        "R": 71,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13274654
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13274656
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13274671
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 190,
+      "startT": 13278983,
+      "tstates": 13348872,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41094,
+        "SP": 65280,
+        "I": 63,
+        "R": 16,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13344543
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13344545
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13344560
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 191,
+      "startT": 13348872,
+      "tstates": 13418761,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 41998,
+        "SP": 65280,
+        "I": 63,
+        "R": 89,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13414432
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13414434
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13414449
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 192,
+      "startT": 13418761,
+      "tstates": 13488652,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 42904,
+        "SP": 65280,
+        "I": 63,
+        "R": 36,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13484321
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13484323
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13484338
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 193,
+      "startT": 13488652,
+      "tstates": 13558542,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 43810,
+        "SP": 65280,
+        "I": 63,
+        "R": 111,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13554212
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13554214
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13554229
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 194,
+      "startT": 13558542,
+      "tstates": 13628433,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 44715,
+        "SP": 65280,
+        "I": 63,
+        "R": 57,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13624102
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13624104
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13624119
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 195,
+      "startT": 13628433,
+      "tstates": 13698322,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 45620,
+        "SP": 65280,
+        "I": 63,
+        "R": 3,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13693993
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13693995
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13694010
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 196,
+      "startT": 13698322,
+      "tstates": 13768211,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 46530,
+        "SP": 65280,
+        "I": 63,
+        "R": 82,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13763882
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13763884
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13763899
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 197,
+      "startT": 13768211,
+      "tstates": 13838100,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 47450,
+        "SP": 65280,
+        "I": 63,
+        "R": 43,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13833771
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13833773
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13833788
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 198,
+      "startT": 13838100,
+      "tstates": 13907989,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 0,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 16,
+        "PC": 48370,
+        "SP": 65280,
+        "I": 63,
+        "R": 4,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13903660
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13903662
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13903677
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    },
+    {
+      "frame": 199,
+      "startT": 13907989,
+      "tstates": 13977883,
+      "regs": {
+        "A": 170,
+        "F": 68,
+        "B": 3,
+        "C": 0,
+        "D": 0,
+        "E": 0,
+        "H": 64,
+        "L": 13,
+        "PC": 49159,
+        "SP": 65280,
+        "I": 63,
+        "R": 10,
+        "IFF1": true,
+        "IFF2": true,
+        "IM": 1
+      },
+      "memWrites": [
+        {
+          "type": "write",
+          "addr": 16384,
+          "value": 170,
+          "t": 13973549
+        },
+        {
+          "type": "write",
+          "addr": 16385,
+          "value": 170,
+          "t": 13973551
+        }
+      ],
+      "portWrites": [
+        {
+          "port": 254,
+          "value": 170,
+          "tstates": 13973566
+        }
+      ],
+      "micro": [],
+      "toggles": []
+    }
+  ]
+}
