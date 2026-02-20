@@ -853,6 +853,9 @@ export class Emulator {
   async applySnapshot(parsed, opts = {}) {
     const { fileName = 'snapshot', autoStart = true } = opts;
     try {
+      // Trace instrumentation for applySnapshot (tests assert ordering)
+      try { this._applySnapshotTrace = []; this._applySnapshotTrace.push({ step: 'applySnapshot:start', t: Date.now() }); } catch (e) { /* best-effort */ }
+
       this.status(`Applying snapshot ${fileName}...`);
 
       // Pause running emulation if active
@@ -863,13 +866,31 @@ export class Emulator {
 
       // Load RAM into memory (extracted to helper to reduce method complexity)
       this._applySnapshot_ramRestore(parsed.snapshot && parsed.snapshot.ram);
+      try { this._applySnapshotTrace.push({ step: 'ramRestore:done', t: Date.now() }); } catch (e) { /* best-effort */ }
 
       // Restore CPU registers (extracted to helper for clarity)
       this._applySnapshot_registerRestore(parsed.snapshot && parsed.snapshot.registers);
+      try { this._applySnapshotTrace.push({ step: 'registerRestore:done', t: Date.now() }); } catch (e) { /* best-effort */ }
+
+      // If using deferred rendering, synchronously refresh the FrameBuffer so
+      // tests observing the framebuffer immediately after applySnapshot see
+      // the updated contents (regression fix for applySnapshot ordering).
+      try {
+        if (this.ula && this.ula.useDeferredRendering && this.ula.frameBuffer && this.ula.frameRenderer) {
+          try { this._applySnapshotTrace.push({ step: 'fb.generateFromMemory:start', t: Date.now() }); } catch (e) { /* best-effort */ }
+          this.ula.frameBuffer.generateFromMemory();
+          try { this._applySnapshotTrace.push({ step: 'fb.generateFromMemory:end', t: Date.now() }); } catch (e) { /* best-effort */ }
+
+          try { this._applySnapshotTrace.push({ step: 'frameRenderer.render:start', t: Date.now() }); } catch (e) { /* best-effort */ }
+          this.ula.frameRenderer.render(this.ula.frameBuffer, this.ula.frameBuffer.getFlashPhase());
+          try { this._applySnapshotTrace.push({ step: 'frameRenderer.render:end', t: Date.now() }); } catch (e) { /* best-effort */ }
+        }
+      } catch (e) { /* best-effort */ }
 
       // Restore border, init peripherals, resume audio, focus canvas and optionally start
       try { this._applySnapshot_restorePeripherals(parsed, autoStart); } catch (e) { void e; }
 
+      try { this._applySnapshotTrace.push({ step: 'applySnapshot:end', t: Date.now() }); } catch (e) { /* best-effort */ }
       this.status(`Snapshot ${fileName} applied`);
       return true;
     } catch (err) {
@@ -1477,18 +1498,21 @@ export class Emulator {
   }
 
   _installDebugHelpers(ioAdapter) {
-    // Add ROM visibility verification to debug API
-    // Ensure __ZX_DEBUG__ exists before accessing it
-    if (!window.__ZX_DEBUG__) window.__ZX_DEBUG__ = {};
-    window.__ZX_DEBUG__.isROMVisible = (address = 0) => {
-      // Checks if the byte at address matches the ROM byte
-      if (!this.memory || !window.spec48 || !window.spec48.bytes) return false;
-      if (address < 0 || address >= window.spec48.bytes.length) return false;
-      return this.memory.read(address) === window.spec48.bytes[address];
+    // Add ROM visibility & keyboard debug API in a way that's safe for both
+    // browser (window) and Node/unit-test (globalThis) environments.
+    const debugHost = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
+    debugHost.__ZX_DEBUG__ = debugHost.__ZX_DEBUG__ || {};
+    const dbg = debugHost.__ZX_DEBUG__;
+
+    // ROM visibility check (uses spec48 if exposed on the host)
+    dbg.isROMVisible = (address = 0) => {
+      if (!this.memory || !debugHost.spec48 || !debugHost.spec48.bytes) return false;
+      if (address < 0 || address >= debugHost.spec48.bytes.length) return false;
+      return this.memory.read(address) === debugHost.spec48.bytes[address];
     };
 
-    // Add keyboard debug helpers to __ZX_DEBUG__ so they're always available
-    window.__ZX_DEBUG__.pressKey = (key) => {
+    // Keyboard helpers (work in both Node and browser — Node tests call these via dbg)
+    dbg.pressKey = (key) => {
       if (this.input && typeof this.input.pressKey === 'function') {
         this.input.pressKey(key);
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1499,7 +1523,7 @@ export class Emulator {
       return false;
     };
 
-    window.__ZX_DEBUG__.releaseKey = (key) => {
+    dbg.releaseKey = (key) => {
       if (this.input && typeof this.input.releaseKey === 'function') {
         this.input.releaseKey(key);
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1509,67 +1533,43 @@ export class Emulator {
       return false;
     };
 
-    window.__ZX_DEBUG__.typeKey = async (key, holdMs = 100) => {
-      window.__ZX_DEBUG__.pressKey(key);
+    dbg.typeKey = async (key, holdMs = 100) => {
+      dbg.pressKey(key);
       await new Promise(r => setTimeout(r, holdMs));
-      window.__ZX_DEBUG__.releaseKey(key);
+      dbg.releaseKey(key);
     };
 
-    // pressAndHold: press key, hold for ms, actively poll ULA during hold, then release
-    // Returns diagnostic info about port reads during the hold period
-    window.__ZX_DEBUG__.pressAndHold = async (key, holdMs = 700) => {
-      const diagnostics = {
-        key,
-        holdMs,
-        pressTime: Date.now(),
-        releaseTime: null,
-        portReadsDuringHold: [],
-        keyDetectedDuringHold: false,
-        finalUlaMatrix: null
-      };
-      
+    // pressAndHold: press key, hold for ms, poll ULA during hold, then release
+    dbg.pressAndHold = async (key, holdMs = 700) => {
+      const diagnostics = { key, holdMs, pressTime: Date.now(), releaseTime: null, portReadsDuringHold: [], keyDetectedDuringHold: false, finalUlaMatrix: null };
       console.log(`[__ZX_DEBUG__] pressAndHold('${key}', ${holdMs}ms) starting`);
-      window.__ZX_DEBUG__.pressKey(key);
-      
-      // Poll ULA.readPort during hold period to capture key detection
-      const pollInterval = 20; // Poll every 20ms
+      dbg.pressKey(key);
+
+      const pollInterval = 20;
       const startTime = Date.now();
       let pollCount = 0;
-      
+
       while (Date.now() - startTime < holdMs) {
         pollCount++;
-        // Determine correct port for key - for L key it's row 6 = 0xBFFE
-        const port = 0xBFFE; // Row 6 where L lives (default, could be made dynamic)
+        const port = 0xBFFE; // default diagnostic port for 'L'
         const portResult = (this.ula && typeof this.ula.readPort === 'function') ? this.ula.readPort(port) : null;
-        
         if (portResult !== null) {
-          diagnostics.portReadsDuringHold.push({
-            t: Date.now() - startTime,
-            port,
-            result: portResult,
-            keyBitCleared: (portResult & 0x02) === 0 // Bit 1 for L key
-          });
-          
-          if ((portResult & 0x02) === 0) {
-            diagnostics.keyDetectedDuringHold = true;
-          }
+          diagnostics.portReadsDuringHold.push({ t: Date.now() - startTime, port, result: portResult, keyBitCleared: (portResult & 0x02) === 0 });
+          if ((portResult & 0x02) === 0) diagnostics.keyDetectedDuringHold = true;
         }
-        
         await new Promise(r => setTimeout(r, pollInterval));
       }
-      
+
       diagnostics.releaseTime = Date.now();
       diagnostics.finalUlaMatrix = this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix) : null;
-      
-      window.__ZX_DEBUG__.releaseKey(key);
-      
+      dbg.releaseKey(key);
+
       console.log(`[__ZX_DEBUG__] pressAndHold complete: ${pollCount} polls, keyDetected=${diagnostics.keyDetectedDuringHold}`);
       console.log(`[__ZX_DEBUG__] Port reads during hold:`, diagnostics.portReadsDuringHold.slice(0, 5), '...');
-      
       return diagnostics;
     };
 
-    window.__ZX_DEBUG__.resetKeyboard = () => {
+    dbg.resetKeyboard = () => {
       if (this.input && typeof this.input.reset === 'function') {
         this.input.reset();
         if (typeof this._applyInputToULA === 'function') this._applyInputToULA();
@@ -1577,12 +1577,12 @@ export class Emulator {
       }
     };
 
-    window.__ZX_DEBUG__.getKeyMatrix = () => ({
+    dbg.getKeyMatrix = () => ({
       input: this.input?.matrix ? Array.from(this.input.matrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null,
       ula: this.ula?.keyMatrix ? Array.from(this.ula.keyMatrix).map(v => '0x' + v.toString(16).padStart(2, '0')) : null
     });
 
-    window.__ZX_DEBUG__.enableKeyboardDebug = () => {
+    dbg.enableKeyboardDebug = () => {
       if (this.setKeyboardDebug) this.setKeyboardDebug(true);
       if (this.ula) this.ula.setDebug(true);
       if (this.input) this.input.setDebug(true);
@@ -1590,7 +1590,7 @@ export class Emulator {
       console.log('[__ZX_DEBUG__] keyboard debug ENABLED - watch for [Input], [ULA], and [IO] logs');
     };
 
-    window.__ZX_DEBUG__.disableKeyboardDebug = () => {
+    dbg.disableKeyboardDebug = () => {
       if (this.setKeyboardDebug) this.setKeyboardDebug(false);
       if (this.ula) this.ula.setDebug(false);
       if (this.input) this.input.setDebug(false);
@@ -1598,20 +1598,19 @@ export class Emulator {
       console.log('[__ZX_DEBUG__] keyboard debug DISABLED');
     };
 
-    window.__ZX_DEBUG__.testKeyboardPath = async (key = 'l') => {
-      console.log('=== KEYBOARD PATH TEST ===' );
+    dbg.testKeyboardPath = async (key = 'l') => {
+      console.log('=== KEYBOARD PATH TEST ===');
       console.log('1. Initial state:');
-      console.log('   Input matrix:', window.__ZX_DEBUG__.getKeyMatrix().input);
-      console.log('   ULA keyMatrix:', window.__ZX_DEBUG__.getKeyMatrix().ula);
+      console.log('   Input matrix:', dbg.getKeyMatrix().input);
+      console.log('   ULA keyMatrix:', dbg.getKeyMatrix().ula);
 
       console.log(`2. Pressing key '${key}'...`);
-      window.__ZX_DEBUG__.pressKey(key);
-      console.log('   Input matrix after press:', window.__ZX_DEBUG__.getKeyMatrix().input);
-      console.log('   ULA keyMatrix after press:', window.__ZX_DEBUG__.getKeyMatrix().ula);
+      dbg.pressKey(key);
+      console.log('   Input matrix after press:', dbg.getKeyMatrix().input);
+      console.log('   ULA keyMatrix after press:', dbg.getKeyMatrix().ula);
 
-      // New direct-matrix diagnostic: directly mutate input.matrix and read port
       try {
-        const normalized = (''+key).toLowerCase();
+        const normalized = ('' + key).toLowerCase();
         const pos = KEY_TO_POS.get(normalized);
         if (pos) {
           console.log('[__ZX_DEBUG__] Directly mutating input.matrix for diagnostic...');
@@ -1629,48 +1628,43 @@ export class Emulator {
         const portResult = this.ula.readPort(0xBFFE);
         console.log(`   ULA.readPort(0xBFFE) = 0x${portResult.toString(16)} (expect bit 1 = 0 for L key)`);
         console.log(`   Binary: ${portResult.toString(2).padStart(8, '0')}`);
-        if ((portResult & 0x02) === 0) {
-          console.log('   ✓ L key IS detected in port read!');
-        } else {
-          console.log('   ✗ L key NOT detected - check ULA.readPort implementation');
-        }
+        if ((portResult & 0x02) === 0) console.log('   ✓ L key IS detected in port read!');
+        else console.log('   ✗ L key NOT detected - check ULA.readPort implementation');
       }
 
       console.log('4. Holding for 500ms to let ROM poll...');
       await new Promise(r => setTimeout(r, 500));
 
       console.log('5. Releasing key...');
-      window.__ZX_DEBUG__.releaseKey(key);
-      console.log('   Input matrix after release:', window.__ZX_DEBUG__.getKeyMatrix().input);
+      dbg.releaseKey(key);
+      console.log('   Input matrix after release:', dbg.getKeyMatrix().input);
       console.log('=== END TEST ===');
     };
 
-    // Capture a screenshot after pressing a key to verify ROM interaction with canvas
-    window.__ZX_DEBUG__.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false, filename = null } = {}) => {
-      console.log('=== KEYBOARD SCREENSHOT TEST ===');
+    // Browser-only helpers (leave using window/document for DOM interactions)
+    // testKeyboardAndScreenshot is intentionally DOM-bound and will still use
+    // `window` / `document` when executed in a browser environment.
+    // No-op in Node where `document` is absent.
+    dbg.testKeyboardAndScreenshot = async ({ key = 'l', holdMs = 500, waitMs = 500, download = false, filename = null } = {}) => {
+      if (typeof document === 'undefined') return null;
       try {
         const canvas = document.getElementById('screen');
-        if (!canvas) { console.error('[__ZX_DEBUG__] canvas #screen not found'); return null; }
+        if (!canvas) return null;
         try { canvas.focus(); } catch { /* ignore */ }
 
-        console.log(`[__ZX_DEBUG__] Pressing '${key}' for ${holdMs}ms`);
-        if (typeof window.__ZX_DEBUG__.pressKey === 'function') window.__ZX_DEBUG__.pressKey(key);
+        if (typeof dbg.pressKey === 'function') dbg.pressKey(key);
         else if (window.emu && window.emu.input && typeof window.emu.input.pressKey === 'function') window.emu.input.pressKey(key);
         if (typeof window.emu !== 'undefined' && typeof window.emu._applyInputToULA === 'function') window.emu._applyInputToULA();
 
         await new Promise(r => setTimeout(r, holdMs));
 
-        if (typeof window.__ZX_DEBUG__.releaseKey === 'function') window.__ZX_DEBUG__.releaseKey(key);
+        if (typeof dbg.releaseKey === 'function') dbg.releaseKey(key);
         else if (window.emu && window.emu.input && typeof window.emu.input.releaseKey === 'function') window.emu.input.releaseKey(key);
 
-        console.log('[__ZX_DEBUG__] Waiting for ROM to poll and render...');
         await new Promise(r => setTimeout(r, waitMs));
 
-        // Capture canvas image
         const dataUrl = canvas.toDataURL('image/png');
-        window.__ZX_DEBUG__.lastKeyboardScreenshot = dataUrl;
-        console.log('[__ZX_DEBUG__] Screenshot captured (dataURL stored in window.__ZX_DEBUG__.lastKeyboardScreenshot)');
-
+        dbg.lastKeyboardScreenshot = dataUrl;
         if (download) {
           const a = document.createElement('a');
           a.href = dataUrl;
@@ -1678,23 +1672,10 @@ export class Emulator {
           document.body.appendChild(a);
           a.click();
           a.remove();
-          console.log('[__ZX_DEBUG__] Screenshot downloaded as', a.download);
         }
 
-        // Return diagnostics summary
-        return {
-          key,
-          holdMs,
-          waitMs,
-          matrices: window.__ZX_DEBUG__.getKeyMatrix(),
-          lastKeyDetected: window.__KEYBOARD_DEBUG__?.lastKeyDetected || null,
-          lastPortReadsTail: (window.__TEST__ && window.__TEST__.portReads) ? window.__TEST__.portReads.slice(-10) : null,
-          screenshotPreview: dataUrl.slice(0, 128) + '...'
-        };
-      } catch (e) {
-        console.error('[__ZX_DEBUG__] testKeyboardAndScreenshot failed', e);
-        return null;
-      }
+        return { key, holdMs, waitMs, matrices: dbg.getKeyMatrix(), screenshotPreview: dataUrl.slice(0, 128) + '...' };
+      } catch (e) { return null; }
     };
   }
 

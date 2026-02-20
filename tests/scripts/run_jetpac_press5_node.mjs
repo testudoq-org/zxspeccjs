@@ -114,9 +114,18 @@ async function main() {
   console.log(JSON.stringify(reads.slice(0,40), null, 2));
 
   // Also surface any CPU micro-log IN events (DB/ED variants) for diagnosis
-  const micro = (emu.cpu && Array.isArray(emu.cpu._microLog)) ? emu.cpu._microLog.filter(m => m.type && m.type.startsWith('IN')) : [];
-  console.log('Collected CPU micro IN events (for diagnosis):');
-  console.log(JSON.stringify(micro.slice(0,40), null, 2));
+  const microLog = (emu.cpu && Array.isArray(emu.cpu._microLog)) ? emu.cpu._microLog.slice() : [];
+  const inEvents = microLog.map((m, i) => ({ i, e: m })).filter(x => x.e && typeof x.e.type === 'string' && x.e.type.startsWith('IN'));
+  console.log('Collected CPU micro IN events (indexes):', inEvents.map(x => x.i));
+
+  // For each IN event, check if PC_HIT (PC==0x0039) or MEMWRITE@0x4001 happens within next 300 microLog entries
+  const analyses = inEvents.map(({ i }) => {
+    const window = microLog.slice(i, i + 300);
+    const pcHit = window.find(w => w && w.type === 'PC_HIT');
+    const mem4001 = window.find(w => w && w.type === 'MEMWRITE' && w.addr === 0x4001);
+    return { inIndex: i, pcHit: !!pcHit, mem4001: !!mem4001, pcHitAt: pcHit ? pcHit.t : null, mem4001At: mem4001 ? mem4001.t : null };
+  });
+  console.log('IN -> PC_HIT / MEM4001 correlation:', JSON.stringify(analyses, null, 2));
 
   console.log('Collected rocket-area memWrites (sample):');
   console.log(JSON.stringify(memWrites.slice(0,40), null, 2));

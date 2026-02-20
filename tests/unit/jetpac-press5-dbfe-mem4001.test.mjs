@@ -84,12 +84,55 @@ test('Jetpac: pressing 5 executes DB 0xFE polling and writes to 0x4001 in frame-
   // capture the ROM keyboard poll + rocket-area writes. This removes the
   // brittle dependency on an exact PC in the parsed snapshot.
   const TPF = 69888;
-  for (let i = 0; i < 5; i++) emu.cpu.runFor(TPF);
+  // Warm 5 frames using the emulator's per-frame helper so ULA interrupts
+  // and frame-final processing occur exactly as in the main loop.
+  for (let i = 0; i < 5; i++) emu._runCpuForFrame();
 
   // Now press '5' and run a single frame to capture IN/OUT and memWrites
+  // The parsed Jetpac snapshot now includes interrupts enabled (IFF1=true).
+  // No manual IFF flip is necessary — run with the snapshot state as-is.
   emu.input.pressKey('5');
   if (emu && emu._applyInputToULA) emu._applyInputToULA();
-  emu.cpu.runFor(TPF);
+
+  // Run two frames: the ULA requests the interrupt at end-of-frame, the
+  // ROM's keyboard-poll ISR will execute on the following frame. Running
+  // a second frame ensures the interrupt is serviced and any screen writes
+  // produced by the ROM are observable in mem._memWrites.
+  emu._runCpuForFrame();
+  emu._runCpuForFrame();
+
+  // DIAGNOSTICS: print CPU / micro-log / ULA / memory state to help debug why
+  // the ROM keyboard-poll path didn't produce the rocket-area memWrite at 0x4001.
+  try {
+    console.log('DEBUG: CPU PC=0x' + (emu.cpu && typeof emu.cpu.PC === 'number' ? emu.cpu.PC.toString(16) : 'n/a'));
+    console.log('DEBUG: cpu.tstates=', emu.cpu ? emu.cpu.tstates : 'n/a');
+
+    // Show the full microLog tail and then look for IN (0xFE) events and any
+    // subsequent MEMWRITE to 0x4001 within the next 200 micro-events.
+    const microLog = Array.isArray(emu.cpu._microLog) ? emu.cpu._microLog.slice() : [];
+    console.log('DEBUG: cpu._microLog length=', microLog.length);
+    console.log('DEBUG: last microLog entries (tail 80)=', microLog.slice(-80));
+
+    const inEvents = microLog.map((m, i) => ({ i, e: m })).filter(x => x.e && typeof x.e.type === 'string' && x.e.type.startsWith('IN'));
+    console.log('DEBUG: IN events found (indexes):', inEvents.map(x => x.i));
+
+    // For each IN event, scan ahead in microLog for MEMWRITE to 0x4001
+    inEvents.forEach(({ i }) => {
+      const window = microLog.slice(i, i + 200);
+      const wrote4001 = window.find(m => m && m.type === 'MEMWRITE' && m.addr === 0x4001);
+      console.log(`DEBUG: IN at index ${i} -> memWrite@0x4001 in next 200 events?`, !!wrote4001);
+      if (wrote4001) console.log('DEBUG: matching MEMWRITE (context)=', wrote4001);
+      else console.log('DEBUG: microLog window after IN (first 40)=', window.slice(0, 40));
+    });
+
+    console.log('DEBUG: last mem._memWrites (tail 80)=', Array.isArray(mem._memWrites) ? mem._memWrites.slice(-80) : []);
+    if (emu.ula && typeof emu.ula.readPort === 'function') {
+      try { console.log('DEBUG: ULA.readPort(0xFE)=0x' + emu.ula.readPort(0xFE).toString(16)); } catch (e) { console.log('DEBUG: ULA.readPort(0xFE) failed', e.message); }
+    }
+    console.log('DEBUG: ULA.keyMatrix=', emu.ula && emu.ula.keyMatrix ? Array.from(emu.ula.keyMatrix) : null);
+    console.log('DEBUG: input.matrix=', emu.input && emu.input.matrix ? Array.from(emu.input.matrix) : null);
+    try { console.log('DEBUG: mem[0x4000..0x4003]=', mem.read(0x4000), mem.read(0x4001), mem.read(0x4002), mem.read(0x4003)); } catch (e) { console.log('DEBUG: mem.read failed', e.message); }
+  } catch (e) { console.log('DEBUG: diagnostics failed', e && e.message); }
 
   // 1) DB 0xFE polling -> look for IN microLog event addressing port low 0xFE
   const micro = Array.isArray(emu.cpu._microLog) ? emu.cpu._microLog.slice() : [];
@@ -100,5 +143,10 @@ test('Jetpac: pressing 5 executes DB 0xFE polling and writes to 0x4001 in frame-
   // 2) memWrite @0x4001 must have occurred during this frame
   const writes = Array.isArray(mem._memWrites) ? mem._memWrites.slice() : [];
   const wrote4001 = writes.some(w => w.addr === 0x4001);
+  if (!wrote4001) {
+    // extra diagnostic output on failure (keeps test failure message informative)
+    console.log('DIAG: did not find memWrite@0x4001 in mem._memWrites; full tail=');
+    console.log(writes.slice(-64));
+  }
   expect(wrote4001, 'expected a memWrite to 0x4001 in the frame after pressing 5').toBeTruthy();
 }, 20000);

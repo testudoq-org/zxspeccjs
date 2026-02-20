@@ -459,6 +459,24 @@ export class Memory {
         const pcVal = (this.cpu && typeof this.cpu.PC === 'number') ? this.cpu.PC : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().PC : undefined);
         const Rval = (this.cpu && typeof this.cpu.R === 'number') ? this.cpu.R : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().R : undefined);
         const writeEvt = { type: 'write', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: pcVal, R: Rval };
+
+        // Attach microtrace + opcode context for small-screen-area writes so
+        // unit tests can correlate a screen memWrite with the CPU instruction
+        // sequence that caused it. This is a test-only augmentation and kept
+        // compact to avoid large trace bloat in normal runs.
+        try {
+          if (this.cpu && Array.isArray(this.cpu._microLog)) {
+            const tail = this.cpu._microLog.slice(-8);
+            writeEvt.micro = tail;
+          }
+          if (typeof pcVal === 'number' && this.pages && this.pages.length) {
+            const opBytes = [];
+            for (let i = 0; i < 8; i++) {
+              try { opBytes.push(this.read((pcVal + i) & 0xffff)); } catch (e) { opBytes.push(null); }
+            }
+            writeEvt.opcodes = opBytes;
+          }
+        } catch (e) { /* best-effort only */ }
         this._memWrites.push(writeEvt);
         if (this._memWrites.length > 5000) this._memWrites.shift();
         // Mirror mem write into CPU microLog for tighter correlation when tracing

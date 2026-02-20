@@ -801,6 +801,13 @@ export class Z80 {
 
   // Execute a single instruction and return t-states consumed
   step() {
+    // TEST-HOOK: record when CPU executes ROM entry/interrupt vector at 0x0039
+    try {
+      if (this.PC === 0x0039) {
+        if (Array.isArray(this._microLog)) this._microLog.push({ type: 'PC_HIT', pc: this.PC, t: this.tstates });
+        try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.pcHits = window.__TEST__.pcHits || []; window.__TEST__.pcHits.push({ pc: this.PC, t: this.tstates }); } } catch (e) { /* ignore */ }
+      }
+    } catch (e) { /* ignore */ }
     // Handle interrupts — dispatch on IM mode
     if (this.intRequested && this.IFF1) {
       this.halted = false; // HALT is exited on interrupt

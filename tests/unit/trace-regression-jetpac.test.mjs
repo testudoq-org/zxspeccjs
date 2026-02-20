@@ -107,7 +107,6 @@ test('trace parity: compare R register and contention timeline against jsspeccy 
     const ourMem = findMemWriteNear(our.frames, i, FRAME_TOL, 0x4001, refMem ? refMem.value : undefined);
     expect(ourMem, `frame ${i}: our trace missing memWrite @0x4001 within +/-${FRAME_TOL} frames of reference`).toBeDefined();
 
-<<<<<<< HEAD
     // port write parity for ULA OUT (0xFE)
     const refPort = (refF.portWrites || []).find(p => (p.port & 0xFF) === 0xFE);
     expect(refPort, `frame ${i}: reference must include a port write to 0xFE`).toBeDefined();
