@@ -173,7 +173,7 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
     expect(emu.cpu.PC & 0xFFF0).toBe(0x8000);
   });
 
-  it('T-states reset to 0 before warm-up ensures contention alignment', async () => {
+  it('T-states reset to 0 before warm-up when snapshot has no tstates field', async () => {
     const emu = await makeEmu();
 
     // Artificially inflate tstates so we can verify the reset happens
@@ -190,6 +190,7 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
       snapshot: {
         ram: makeRamWithIm2Isr(),
         registers: im2Regs()
+        // no tstates property — should default to 0
       }
     };
 
@@ -197,6 +198,32 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
 
     // tstates must have been reset to 0 (frame boundary) before warm-up
     expect(tstatesAtEntry).toBe(0);
+  });
+
+  it('warm-up uses parsed snapshot.tstates when provided (v2/v3 interrupt phase)', async () => {
+    const emu = await makeEmu();
+
+    const SNAP_TSTATES = 17472; // one T-state chunk (69888/4) — typical v2/v3 value
+
+    let tstatesAtEntry = undefined;
+    const origRun = emu._runCpuForFrame.bind(emu);
+    emu._runCpuForFrame = function () {
+      tstatesAtEntry = this.cpu ? this.cpu.tstates : undefined;
+      return origRun();
+    };
+
+    const parsed = {
+      snapshot: {
+        ram: makeRamWithIm2Isr(),
+        registers: im2Regs(),
+        tstates: SNAP_TSTATES // simulates what parseZ80 now returns for v2/v3
+      }
+    };
+
+    await emu.applySnapshot(parsed, { fileName: 'tstatesPhaseTest', autoStart: false });
+
+    // Warm-up must start at the snapshot's T-state offset, not 0
+    expect(tstatesAtEntry).toBe(SNAP_TSTATES);
   });
 
   it('skipWarm bypasses the interrupt pre-queue entirely', async () => {

@@ -108,6 +108,7 @@ export class Loader {
     let version = 1;
     let hwMode = 0;
     let dataOffset = 30;
+    let snapTstates = 0; // T-state counter within the current frame (0 for v1)
 
     if (headerPC === 0 && len > 32) {
       // V2 or V3: extended header present
@@ -116,6 +117,20 @@ export class Loader {
       if (len > 34) hwMode = dv.getUint8(34);  // hardware mode
       version = extLen === 23 ? 2 : 3;
       dataOffset = 32 + extLen;                 // skip past extended header
+
+      // Restore T-state counter from interrupt counter bytes (55-57).
+      // Formula matches gasman/jsspeccy3 runtime/snapshot.js exactly:
+      //   tstateChunkSize = 69888 / 4 = 17472  (or 70908/4 for 128K/Pentagon)
+      //   tstates = (((b57+1)%4)+1)*chunkSize - (LE16(55)+1)
+      // For v2: hwMode < 3 means 48K; for v3: hwMode < 4 means 48K.
+      if (len > 57) {
+        const is48K = version === 2 ? hwMode < 3 : hwMode < 4;
+        const tstateChunkSize = Math.floor((is48K ? 69888 : 70908) / 4);
+        let t = (((dv.getUint8(57) + 1) % 4) + 1) * tstateChunkSize
+                - (dv.getUint16(55, true) + 1);
+        if (t >= tstateChunkSize * 4 || t < 0) t = 0;
+        snapTstates = t;
+      }
     } else {
       regs.PC = headerPC;
     }
@@ -189,7 +204,8 @@ export class Loader {
         ram: ramImage,
         registers: regs,
         version,
-        hwMode
+        hwMode,
+        tstates: snapTstates
       }
     };
   }

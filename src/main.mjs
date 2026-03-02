@@ -884,9 +884,14 @@ export class Emulator {
         // Force IFF1=true so the pre-queued interrupt is actually acknowledged
         // by the first step(); the ISR's own EI/RETI will restore the real value.
         this._applySnapshot_warmupInterrupt();
-        // Reset T-state counter to a frame boundary so contention tables are aligned.
-        this.cpu.tstates = 0;
-        this.cpu.frameStartTstates = 0;
+        // Restore T-state counter from the snapshot header (bytes 55-57 in v2/v3).
+        // This matches the position within the frame at which the snapshot was taken,
+        // aligning our interrupt phase with the reference (gasman/jsspeccy3).
+        // Verified formula: see loader.mjs parseZ80() and jsspeccy3 runtime/snapshot.js.
+        const snapTstates = (parsed.snapshot && typeof parsed.snapshot.tstates === 'number')
+          ? parsed.snapshot.tstates : 0;
+        this.cpu.tstates = snapTstates;
+        this.cpu.frameStartTstates = snapTstates;
         this._runCpuForFrame();
         try { this._applySnapshotTrace.push({ step: 'warmup:end', t: Date.now() }); } catch (e) { /* best-effort */ }
       }
