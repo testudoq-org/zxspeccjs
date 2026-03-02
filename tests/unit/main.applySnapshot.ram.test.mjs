@@ -19,7 +19,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     for (let i = 0; i < ram.length; i++) ram[i] = (i & 0xff);
 
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'full', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'full', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // verify page1/page2/page3 were written from ram subarrays
@@ -39,7 +39,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     for (let i = 0; i < ram.length; i++) ram[i] = (0x80 + (i & 0x7f));
 
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'partial', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'partial', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // page1 filled completely
@@ -61,7 +61,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
 
     const ram = new Uint8Array(0x4000);
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'flat', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'flat', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
     expect(emu.memory._syncFlatRamFromBanks).toHaveBeenCalled();
   });
@@ -81,7 +81,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     ram[attrIdx] = 0x47;             // bright white ink
 
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'marker', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'marker', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // FrameBuffer should have been updated by applySnapshot() (deferred path)
@@ -116,7 +116,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     // Ensure fallback is enabled (default) so we detect if it's ever used
     delete emu._disableApplySnapshotFallback;
 
-    const ok = await emu.applySnapshot(parsed, { fileName: 'regression', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'regression', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // The frame buffer must match memory
@@ -150,7 +150,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     // Test toggle: tell applySnapshot to skip fallback if implemented
     emu._disableApplySnapshotFallback = true;
 
-    const ok = await emu.applySnapshot(parsed, { fileName: 'no-fallback', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'no-fallback', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // The frame buffer must match memory immediately even when the fallback is disabled
@@ -177,7 +177,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     ram[attrIdx] = 0x47;             // bright white ink
 
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'timing', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'timing', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     // trace recorded and ordered
@@ -211,7 +211,7 @@ describe('Emulator.applySnapshot - RAM restore', () => {
     ram[attrIdx] = 0x47;             // bright white ink
 
     const parsed = { snapshot: { ram } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'timing-2', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'timing-2', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     const FB_BASE = 24 * 160;

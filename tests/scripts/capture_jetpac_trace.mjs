@@ -212,21 +212,28 @@ async function main() {
     // Set registers
     const regs = parsed.snapshot.registers || {};
 
-    // If a jsspeccy reference trace is available, seed our snapshot's CPU
-    // registers from that reference frame-0 so regenerated traces match the
-    // jsspeccy reference used by unit tests. Do NOT override when a test
-    // explicitly requested the synthetic payload via FORCE_SYNTHETIC.
-    const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
-    console.log('[TraceDiag] seed-check FORCE_SYNTHETIC=', FORCE_SYNTHETIC, 'REF_EXISTS=', fs.existsSync(REF_TRACE_PATH));
-    if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
-      try {
-        const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
-        if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs) {
-          console.log('[TraceDiag] seeding CPU registers from jsspeccy_reference_jetpac_trace.json (frame-0)');
-          Object.assign(regs, ref.frames[0].regs);
-        }
-      } catch (e) { console.log('[TraceDiag] seed-check parse error', e && e.message); /* ignore parse errors and continue with parsed snapshot */ }
-    }
+    // Historically we seeded the CPU registers from the external
+    // jsspeccy reference before starting the capture.  That was done to
+    // compensate for the fact that the canonical trace file begins *after*
+    // a single warm-up frame, while the raw snapshot contains the state
+    // immediately at save-time.  Rather than force the emulator into a
+    // different initial state, we now simply execute the warm frame here
+    // so our first recorded frame aligns with the reference.
+    //
+    // The seeding code is left commented for reference but is disabled by
+    // default – it should only be used when reproducing older behaviour or
+    // when FORCE_SYNTHETIC is explicitly requested.
+    // const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
+    // console.log('[TraceDiag] seed-check FORCE_SYNTHETIC=', FORCE_SYNTHETIC, 'REF_EXISTS=', fs.existsSync(REF_TRACE_PATH));
+    // if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
+    //   try {
+    //     const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
+    //     if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs) {
+    //       console.log('[TraceDiag] seeding CPU registers from jsspeccy_reference_jetpac_trace.json (frame-0)');
+    //       Object.assign(regs, ref.frames[0].regs);
+    //     }
+    //   } catch (e) { console.log('[TraceDiag] seed-check parse error', e && e.message); /* ignore parse errors and continue with parsed snapshot */ }
+    // }
 
     const cpu = emu.cpu;
     console.log('[TraceDiag] applying regs -> PC:', regs.PC, 'R:', regs.R, 'IFF1:', regs.IFF1, 'IFF2:', regs.IFF2);
@@ -254,19 +261,20 @@ async function main() {
     if (typeof regs.B2 === 'number') cpu.B_ = regs.B2 & 0xff;
     if (typeof regs.C2 === 'number') cpu.C_ = regs.C2 & 0xff;
 
-    // As a final safeguard, if the jsspeccy reference provides a frame-0 PC,
-    // force the emulator PC to that value so frame-0 execution aligns with
-    // the reference trace (useful when parsed snapshots differ).
-    try {
-      const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
-      if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
-        const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
-        if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs && typeof ref.frames[0].regs.PC === 'number') {
-          cpu.PC = ref.frames[0].regs.PC & 0xffff;
-          console.log('[TraceDiag] forced cpu.PC to reference value 0x' + cpu.PC.toString(16));
-        }
-      }
-    } catch (e) { /* non-fatal */ }
+    // The legacy "force PC" block is no longer required now that we
+    // execute a warm-up frame above.  Leave it in place commented out in
+    // case someone wants to reproduce the previous behaviour or debug
+    // mismatched snapshots.
+    // try {
+    //   const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
+    //   if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
+    //     const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
+    //     if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs && typeof ref.frames[0].regs.PC === 'number') {
+    //       cpu.PC = ref.frames[0].regs.PC & 0xffff;
+    //       console.log('[TraceDiag] forced cpu.PC to reference value 0x' + cpu.PC.toString(16));
+    //     }
+    //   }
+    // } catch (e) { /* non-fatal */ }
     if (typeof regs.D2 === 'number') cpu.D_ = regs.D2 & 0xff;
     if (typeof regs.E2 === 'number') cpu.E_ = regs.E2 & 0xff;
     if (typeof regs.H2 === 'number') cpu.H_ = regs.H2 & 0xff;
@@ -330,6 +338,13 @@ async function main() {
   if (PRESS_FRAME >= 0) console.log('[TraceDiag] will press key "5" at frame', PRESS_FRAME, 'for', PRESS_DURATION, 'frames');
 
   const frames = [];
+
+  // Take one warm-up frame to match the state captured by the
+  // original jsspeccy reference trace.  That trace starts with the CPU
+  // already having executed one full raster; without this the first frame
+  // in our local captures would be offset by a full frame and every
+  // subsequent comparison would require a manual index shift.
+  cpu.runFor(TPF);
 
   for (let f = 0; f < FRAMES; f++) {
     // Prepare frame

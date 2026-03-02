@@ -18,7 +18,7 @@ describe('Emulator.applySnapshot - register restore', () => {
     const regs = { PC: 0x1234, SP: 0xC000, A: 0x12, F: 0x34, B: 0x56, C: 0x78, D: 0x9a, E: 0xbc, H: 0xde, L: 0xf0, IX: 0x4242, IY: 0x4243, I: 0x7f, R: 0x55, IFF1: true, IFF2: false, IM: 2 };
     const parsed = { snapshot: { registers: regs } };
 
-    const ok = await emu.applySnapshot(parsed, { fileName: 'regs', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'regs', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     expect(emu.cpu.PC).toBe(0x1234);
@@ -47,7 +47,7 @@ describe('Emulator.applySnapshot - register restore', () => {
     const regs = { A2: 0x11, F2: 0x22, B2: 0x33, C2: 0x44, D2: 0x55, E2: 0x66, H2: 0x77, L2: 0x88 };
     const parsed = { snapshot: { registers: regs } };
 
-    const ok = await emu.applySnapshot(parsed, { fileName: 'altregs', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'altregs', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
 
     expect(emu.cpu.A_).toBe(0x11);
@@ -58,5 +58,26 @@ describe('Emulator.applySnapshot - register restore', () => {
     expect(emu.cpu.E_).toBe(0x66);
     expect(emu.cpu.H_).toBe(0x77);
     expect(emu.cpu.L_).toBe(0x88);
+  });
+
+  it('performs a warm-up frame by default and honors skipWarm', async () => {
+    const emu = await makeEmu();
+    await emu._createCore(null);
+    const regs = { PC: 0x4000, SP: 0xFF00 };
+    const parsed = { snapshot: { registers: regs } };
+
+    // default (no skipWarm) should record warmup steps
+    await emu.applySnapshot(parsed, { fileName: 'warmtest', autoStart: false });
+    expect(Array.isArray(emu._applySnapshotTrace)).toBeTruthy();
+    const steps = emu._applySnapshotTrace.map(e => e.step);
+    expect(steps).toContain('warmup:start');
+    expect(steps).toContain('warmup:end');
+
+    // resetting trace and try with skipWarm
+    emu._applySnapshotTrace = [];
+    await emu.applySnapshot(parsed, { fileName: 'warmtest2', autoStart: false, skipWarm: true });
+    const steps2 = emu._applySnapshotTrace.map(e => e.step);
+    expect(steps2).not.toContain('warmup:start');
+    expect(steps2).not.toContain('warmup:end');
   });
 });

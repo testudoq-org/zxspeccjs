@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { Loader } from '../../src/loader.mjs';
+import fs from 'fs';
+import path from 'path';
 
 // ── Helper: build a valid Z80 v1 uncompressed snapshot ──
 function generateV1Uncompressed(opts = {}) {
@@ -485,6 +487,22 @@ describe('Loader.parseZ80 — V2 uncompressed pages', () => {
 });
 
 describe('Loader.parseZ80 — edge cases', () => {
+
+  test('real Jetpac snapshot has expected PC/R values (regression guard)', () => {
+    // This verifies the loader does not regress on actual snapshot files that
+    // are used by the trace suite.  The values were inspected manually when
+    // the Jetpac snapshot was downloaded.
+    const snapPath = path.resolve('traces', 'jetpac.z80');
+  if (!fs.existsSync(snapPath)) {
+    // skip if the test repository doesn't contain the snapshot
+    return;
+  }
+  const buf = fs.readFileSync(snapPath);
+    const parsed = Loader.parseZ80(buf.buffer);
+    const r = parsed.snapshot.registers;
+    expect(r.PC).toBe(29026);
+    expect(r.R).toBe(161);
+  });
   test('returns null ram for files shorter than 30 bytes', () => {
     const parsed = Loader.parseZ80(new ArrayBuffer(10));
     expect(parsed.snapshot.ram).toBeNull();

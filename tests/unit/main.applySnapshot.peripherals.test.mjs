@@ -19,7 +19,7 @@ describe('Emulator.applySnapshot - peripherals & resume', () => {
     emu.ula = { border: 0, _updateCanvasBorder: vi.fn() };
 
     const parsed = { snapshot: { registers: { borderColor: 0x05 } } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'periph', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'periph', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
     expect(emu.ula.border).toBe(0x05 & 0x07);
     expect(emu.ula._updateCanvasBorder).toHaveBeenCalled();
@@ -32,7 +32,7 @@ describe('Emulator.applySnapshot - peripherals & resume', () => {
     emu.input.start = vi.fn();
 
     const parsed = { snapshot: { ram: new Uint8Array(0x400) } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'input', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'input', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
     expect(emu.input.start).toHaveBeenCalled();
   });
@@ -45,7 +45,7 @@ describe('Emulator.applySnapshot - peripherals & resume', () => {
     emu.sound = { ctx: { state: 'suspended', resume: vi.fn(() => Promise.resolve()) } };
 
     const parsed = { snapshot: { ram: new Uint8Array(0x100) } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'audio', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'audio', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
     expect(emu.sound.ctx.resume).toHaveBeenCalled();
   });
@@ -57,11 +57,11 @@ describe('Emulator.applySnapshot - peripherals & resume', () => {
     emu.start = vi.fn();
 
     const parsed = { snapshot: { ram: new Uint8Array(0x100) } };
-    await emu.applySnapshot(parsed, { fileName: 'as-true', autoStart: true });
+    await emu.applySnapshot(parsed, { fileName: 'as-true', autoStart: true, skipWarm: true });
     expect(emu.start).toHaveBeenCalled();
 
     emu.start.mockClear();
-    await emu.applySnapshot(parsed, { fileName: 'as-false', autoStart: false });
+    await emu.applySnapshot(parsed, { fileName: 'as-false', autoStart: false, skipWarm: true });
     expect(emu.start).not.toHaveBeenCalled();
   });
 
@@ -72,7 +72,7 @@ describe('Emulator.applySnapshot - peripherals & resume', () => {
     emu.canvas.focus = vi.fn();
 
     const parsed = { snapshot: { ram: new Uint8Array(0x100) } };
-    const ok = await emu.applySnapshot(parsed, { fileName: 'focus', autoStart: false });
+    const ok = await emu.applySnapshot(parsed, { fileName: 'focus', autoStart: false, skipWarm: true });
     expect(ok).toBe(true);
     expect(emu.canvas.focus).toHaveBeenCalled();
   });

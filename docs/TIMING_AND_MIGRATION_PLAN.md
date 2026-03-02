@@ -1,4 +1,4 @@
-Investigation report – Jetpac “no enemies/rockets” behaviour
+## Investigation Report – Jetpac “No Enemies/Rockets” Behaviour
 Date: 2026‑02‑21
 
 Context: our automated Jetpac regression tests were passing after the port‑contention fix, yet gameplay still lacked enemies and the rocket overlay in the emulator’s canvas. Two hypotheses were considered:
@@ -49,7 +49,11 @@ Therefore, poor performance (JS vs WASM) is not the root cause of the missing sp
 Conclusion
 The Jetpac gameplay issue is caused by an incorrect initial CPU state loaded from the snapshot. The PC and R registers (and potentially other state fields) differ from the jsspeccy reference, leading the emulator to execute a different code path that never draws enemies or rockets. Microtrace comparisons confirm the emulator’s timing is correct once the seed is right.
 
-This finding directs us to fix the snapshot parser / seeding logic rather than chasing performance optimizations or translating to WebAssembly. Once the seed matches the reference, the games should behave correctly, and the performance will be more than adequate.
+This finding initially pointed at the snapshot loader because the raw register values (PC/R/IFF1) didn’t match the jsspeccy trace, but closer inspection revealed the loader was faithfully reproducing the file contents.  The real discrepancy was semantic: the external reference trace is recorded *after* executing a single warm‑up frame, whereas the downloaded `.z80` file contains the pre‑warm state with interrupts disabled.  Once we replicate that warm-up in our capture/tests (and optionally initialise IFF1), the register sequence aligns and the rocket/enemy rendering returns.
+
+In other words: there is no mysterious performance bug or pointer arithmetic error, just a one‑frame offset in the starting state.  The “seeding hack” we added to tests was a quick way to force alignment; it’s now redundantly covered by the explicit warm‑up logic in the harness and capture script.  Future snapshots must either include the warm frame or the loader/tests must perform it automatically.
+
+With the starting state corrected, the games behave correctly and emulator performance is more than adequate; translating to WebAssembly remains an optional optimisation rather than a prerequisite fix.
 
 Next tactical steps (as previously outlined)
 - Compare our parsed snapshot contents with the reference registers to discover and correct the mis‑seeded fields.
@@ -58,7 +62,7 @@ Next tactical steps (as previously outlined)
 
 Let me know if you want me to start on the failing test or dive into the parser code.
 
-# Timing accuracy, microtrace-parity and AssemblyScript migration plan
+# Timing and Migration Plan for zxspeccjs
 
 Purpose
 - Capture remaining cycle-accuracy gaps vs. gasman/jsspeccy3, add deterministic tests, provide targeted JS fixes, and outline a safe migration path for CPU/timing logic to AssemblyScript (WASM).

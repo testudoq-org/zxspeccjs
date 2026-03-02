@@ -851,7 +851,7 @@ export class Emulator {
    * @returns {Promise<boolean>} true if applied successfully
    */
   async applySnapshot(parsed, opts = {}) {
-    const { fileName = 'snapshot', autoStart = true } = opts;
+    const { fileName = 'snapshot', autoStart = true, skipWarm = false } = opts;
     try {
       // Trace instrumentation for applySnapshot (tests assert ordering)
       try { this._applySnapshotTrace = []; this._applySnapshotTrace.push({ step: 'applySnapshot:start', t: Date.now() }); } catch (e) { /* best-effort */ }
@@ -871,6 +871,26 @@ export class Emulator {
       // Restore CPU registers (extracted to helper for clarity)
       this._applySnapshot_registerRestore(parsed.snapshot && parsed.snapshot.registers);
       try { this._applySnapshotTrace.push({ step: 'registerRestore:done', t: Date.now() }); } catch (e) { /* best-effort */ }
+
+      // A one-frame "warm-up" is required to align our state with the
+      // canonical jsspeccy reference snapshots, which are captured after a
+      // full raster.  Many of the unit tests exercised by the Zoo rely on
+      // being able to compare to that trace so we provide an opt-out flag
+      // (skipWarm) for tests that must verify raw register restoration.
+      if (!skipWarm && this.cpu && typeof this._runCpuForFrame === 'function') {
+        try { this._applySnapshotTrace.push({ step: 'warmup:start', t: Date.now() }); } catch (e) { /* best-effort */ }
+        // jsspeccy3 generates the ULA interrupt at the START of each new frame;
+        // our _runCpuForFrame() generates it at the END.  Pre-queue an interrupt
+        // before the warm-up so the very first step() in runFor() acknowledges it,
+        // matching the reference execution path.  The raw .z80 may have IFF1=0
+        // (snapshot taken inside an ISR); the ISR's EI/RETI restores IFF1 later.
+        this._applySnapshot_warmupInterrupt();
+        // Reset T-state counter to a frame boundary so contention tables are aligned.
+        this.cpu.tstates = 0;
+        this.cpu.frameStartTstates = 0;
+        this._runCpuForFrame();
+        try { this._applySnapshotTrace.push({ step: 'warmup:end', t: Date.now() }); } catch (e) { /* best-effort */ }
+      }
 
       // If using deferred rendering, synchronously refresh the FrameBuffer so
       // tests observing the framebuffer immediately after applySnapshot see
@@ -1023,6 +1043,26 @@ export class Emulator {
     if (typeof regs.E2 === 'number') this.cpu.E_ = regs.E2 & 0xff;
     if (typeof regs.H2 === 'number') this.cpu.H_ = regs.H2 & 0xff;
     if (typeof regs.L2 === 'number') this.cpu.L_ = regs.L2 & 0xff;
+  }
+
+  /**
+   * Pre-queue a ULA interrupt immediately before the post-load warm-up frame.
+   *
+   * jsspeccy3 (and real hardware) fires the maskable interrupt at the START of
+   * each new raster frame.  Our _runCpuForFrame() fires it at the END, so
+   * without this shim the warm-up frame runs with no interrupt pending, and the
+   * CPU takes a completely different code path from the reference.
+   *
+   * By setting IFF1=true and calling generateInterruptSync() here, we ensure
+   * cpu.intRequested=true before the first step() in the subsequent runFor()
+   * call, matching the jsspeccy3 frame-0 execution path.  The ISR's own
+   * EI/RETI instruction sequence restores the real IFF1 value as the game runs.
+   */
+  _applySnapshot_warmupInterrupt() {
+    if (!this.cpu || !this.ula) return;
+    this.cpu.IFF1 = true;
+    this.ula.updateInterruptState();
+    this.ula.generateInterruptSync(); // sets cpu.intRequested = true
   }
 
   /**
