@@ -232,4 +232,34 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
 
     emu.ula = origUla; // restore
   });
+
+  it('normal frames queue interrupt at START of _runCpuForFrame (every frame, not just warm-up)', async () => {
+    const emu = await makeEmu();
+
+    // Load snapshot with the IM2 ISR so the warm-up succeeds cleanly
+    const parsed = {
+      snapshot: {
+        ram: makeRamWithIm2Isr(),
+        registers: im2Regs()
+      }
+    };
+    await emu.applySnapshot(parsed, { fileName: 'phasetest', autoStart: false });
+
+    // Spy on cpu.runFor — it is called by _runCpuForFrame() immediately AFTER
+    // generateInterruptSync().  Capturing intRequested at the top of that call
+    // proves the interrupt was queued before the CPU executed anything.
+    let intAtRunForEntry = undefined;
+    const origRunFor = emu.cpu.runFor.bind(emu.cpu);
+    emu.cpu.runFor = function (...args) {
+      intAtRunForEntry = emu.cpu.intRequested;
+      emu.cpu.runFor = origRunFor; // single-shot spy
+      return origRunFor(...args);
+    };
+
+    // Trigger one normal (post-warm-up) frame directly
+    emu._runCpuForFrame();
+
+    // The interrupt must have been set BEFORE runFor() was called
+    expect(intAtRunForEntry).toBe(true);
+  });
 });
