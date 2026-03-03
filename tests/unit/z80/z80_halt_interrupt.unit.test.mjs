@@ -69,9 +69,10 @@ describe('Z80 HALT and interrupt timing/semantics', () => {
     expect(mem.read(0xFFFE)).toBe(0x40); // high
   });
 
-  it('EI enables interrupts immediately and a pending interrupt is serviced on next step', () => {
+  it('EI enables interrupts but real Z80 delays acceptance by one instruction', () => {
     const mem = new Memory();
     mem.write(0x4000, 0xFB); // EI
+    mem.write(0x4001, 0x00); // NOP (the one-instruction delay window)
 
     const cpu = new Z80(mem);
     cpu.reset(); cpu.PC = 0x4000; cpu.SP = 0xFFFF;
@@ -79,13 +80,19 @@ describe('Z80 HALT and interrupt timing/semantics', () => {
     cpu.IFF1 = false; cpu.IFF2 = false;
     cpu.requestInterrupt(); // interrupt pending before EI
 
-    const c1 = cpu.step(); // execute EI
+    const c1 = cpu.step(); // execute EI — sets IFF1/IFF2, eiDelay=1
     expect(c1).toBe(4);
     expect(cpu.IFF1).toBeTruthy();
     expect(cpu.IFF2).toBeTruthy();
 
-    const c2 = cpu.step(); // should now service interrupt
-    expect(c2).toBe(13);
+    // Real Z80: one more instruction executes before interrupt is accepted
+    const c2 = cpu.step(); // executes NOP (EI delay window)
+    expect(c2).toBe(4);
+    expect(cpu.PC).toBe(0x4002); // NOP executed, PC advanced past it
+    expect(cpu.intRequested).toBeTruthy(); // interrupt still pending
+
+    const c3 = cpu.step(); // NOW the interrupt is accepted
+    expect(c3).toBe(13);
     expect(cpu.PC).toBe(0x0038);
     expect(cpu.intRequested).toBeFalsy();
   });

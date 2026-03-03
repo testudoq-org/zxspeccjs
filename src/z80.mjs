@@ -49,6 +49,11 @@ export class Z80 {
     // Interrupt request line
     this.intRequested = false;
 
+    // EI delay: on real Z80, interrupts are not accepted until one
+    // instruction after EI.  When > 0, the next step() skips the
+    // interrupt check and decrements the counter.
+    this.eiDelay = 0;
+
     // Debug callback
     this.debugCallback = null;
     // Micro-tracing for focused opcode/stack/memory events (disabled by default)
@@ -685,6 +690,7 @@ export class Z80 {
     this.tstates = 0;
     this.intRequested = false;
     this.halted = false;
+    this.eiDelay = 0;
   }
 
   // Request an interrupt from external devices (ULA)
@@ -808,8 +814,12 @@ export class Z80 {
         try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.pcHits = window.__TEST__.pcHits || []; window.__TEST__.pcHits.push({ pc: this.PC, t: this.tstates }); } } catch (e) { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
+    // EI delay: skip interrupt acceptance for one instruction after EI
+    // (real Z80 behavior — allows EI;RET without spurious re-entry)
+    if (this.eiDelay > 0) {
+      this.eiDelay--;
+    } else if (this.intRequested && this.IFF1) {
     // Handle interrupts — dispatch on IM mode
-    if (this.intRequested && this.IFF1) {
       this.halted = false; // HALT is exited on interrupt
       this.IFF1 = false; this.IFF2 = false;
       this.pushWord(this.PC);
@@ -1968,6 +1978,8 @@ export class Z80 {
       case 0xFB: { // EI - Enable interrupts
         this.IFF1 = true;
         this.IFF2 = true;
+        // Real Z80 delays interrupt acceptance by one instruction after EI
+        this.eiDelay = 1;
         this.tstates += 4; return 4;
       }
 

@@ -1,17 +1,14 @@
 /* eslint-disable no-console */
 /**
- * Tests for the post-load warm-up interrupt pre-queuing in applySnapshot().
+ * Tests for the post-load warm-up frame in applySnapshot().
  *
- * Root cause: jsspeccy3 (reference) fires the ULA maskable interrupt at the
- * START of each new raster frame; our _runCpuForFrame() fires it at the END.
- * Without the pre-queue shim, the warm-up frame runs with IFF1=false (as
- * stored in the raw .z80 file), no interrupt fires, and the CPU follows a
- * completely different code path — putting Jetpac's rocket/enemy sprite code
- * out of reach.
+ * The warm-up runs one frame (matching jsspeccy3) with the interrupt queued
+ * at the frame start via _runCpuForFrame().  If the snapshot has IFF1=true
+ * the interrupt fires immediately; if IFF1=false (e.g. Jetpac's raw .z80) the
+ * interrupt stays pending until the game re-enables interrupts via EI.
  *
- * Fix: _applySnapshot_warmupInterrupt() forces IFF1=true and calls
- * generateInterruptSync() before the warm-up runFor(), so cpu.intRequested=true
- * at the very first step() — matching jsspeccy3's frame-0 execution path.
+ * This matches jsspeccy3's reference trace, which shows IFF1=false across all
+ * initial frames for the Jetpac snapshot.
  */
 import { describe, it, expect } from 'vitest';
 
@@ -96,41 +93,45 @@ function im2Regs(extra = {}) {
   return { PC: MAIN_ADDR, SP: 0xFF00, IFF1: false, IFF2: false, IM: 2, I: I_REG, ...extra };
 }
 
-describe('applySnapshot warm-up – interrupt pre-queuing', () => {
-  it('pre-queues cpu.intRequested before _runCpuForFrame when IFF1=false in snapshot', async () => {
+describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', () => {
+  it('_runCpuForFrame queues intRequested during warm-up (via generateInterruptSync)', async () => {
     const emu = await makeEmu();
 
-    // Spy on _runCpuForFrame to capture cpu.intRequested at the moment it is called
-    let intRequestedAtCallTime = undefined;
-    const origRun = emu._runCpuForFrame.bind(emu);
-    emu._runCpuForFrame = function () {
-      intRequestedAtCallTime = this.cpu ? this.cpu.intRequested : undefined;
-      return origRun();
+    // Spy on cpu.runFor to capture intRequested at the moment it is called.
+    // _runCpuForFrame calls generateInterruptSync() => intRequested=true
+    // before calling cpu.runFor().
+    let intRequestedAtRunForEntry = undefined;
+    const origRunFor = emu.cpu.runFor.bind(emu.cpu);
+    emu.cpu.runFor = function (n) {
+      if (intRequestedAtRunForEntry === undefined) {
+        intRequestedAtRunForEntry = emu.cpu.intRequested;
+      }
+      return origRunFor(n);
     };
 
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs()
+        registers: im2Regs()   // IFF1=false
       }
     };
 
     await emu.applySnapshot(parsed, { fileName: 'warmtest', autoStart: false });
 
-    // intRequested must have been true at warm-up entry — the pre-queue worked
-    expect(intRequestedAtCallTime).toBe(true);
+    // intRequested must have been true when cpu.runFor started (set by
+    // generateInterruptSync inside _runCpuForFrame)
+    expect(intRequestedAtRunForEntry).toBe(true);
   });
 
-  it('IM2 RAM-resident ISR runs during warm-up (FLAG_ADDR written by ISR)', async () => {
+  it('IM2 ISR runs during warm-up when snapshot has IFF1=true', async () => {
     const emu = await makeEmu();
 
-    // FLAG_ADDR starts as 0; ISR writes 0x42 to prove it executed
     expect(emu.memory.read(FLAG_ADDR)).toBe(0);
 
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs()
+        registers: im2Regs({ IFF1: true, IFF2: true })  // interrupts enabled
       }
     };
 
@@ -140,13 +141,31 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
     expect(emu.memory.read(FLAG_ADDR)).toBe(0x42);
   });
 
-  it('IFF1 is true after warm-up (IM2 ISR called EI before RETI)', async () => {
+  it('ISR does NOT run during warm-up when snapshot has IFF1=false (jsspeccy3 parity)', async () => {
+    const emu = await makeEmu();
+
+    expect(emu.memory.read(FLAG_ADDR)).toBe(0);
+
+    const parsed = {
+      snapshot: {
+        ram: makeRamWithIm2Isr(),
+        registers: im2Regs()   // IFF1=false — like Jetpac
+      }
+    };
+
+    await emu.applySnapshot(parsed, { fileName: 'noIsrTest', autoStart: false });
+
+    // ISR must NOT have run — FLAG_ADDR stays 0
+    expect(emu.memory.read(FLAG_ADDR)).toBe(0);
+  });
+
+  it('IFF1 is true after warm-up when snapshot has IFF1=true (IM2 ISR called EI before RETI)', async () => {
     const emu = await makeEmu();
 
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs()
+        registers: im2Regs({ IFF1: true, IFF2: true })  // interrupts enabled
       }
     };
 
@@ -156,13 +175,29 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
     expect(emu.cpu.IFF1).toBe(true);
   });
 
-  it('PC returns to main loop after IM2 warm-up (ISR completed via RETI)', async () => {
+  it('IFF1 stays false after warm-up when snapshot has IFF1=false (Jetpac parity)', async () => {
     const emu = await makeEmu();
 
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs()
+        registers: im2Regs()   // IFF1=false
+      }
+    };
+
+    await emu.applySnapshot(parsed, { fileName: 'iff1falseTest', autoStart: false });
+
+    // Interrupt not accepted → IFF1 stays false (matches jsspeccy3 reference)
+    expect(emu.cpu.IFF1).toBe(false);
+  });
+
+  it('PC returns to main loop after IM2 warm-up with IFF1=true (ISR completed via RETI)', async () => {
+    const emu = await makeEmu();
+
+    const parsed = {
+      snapshot: {
+        ram: makeRamWithIm2Isr(),
+        registers: im2Regs({ IFF1: true, IFF2: true })
       }
     };
 

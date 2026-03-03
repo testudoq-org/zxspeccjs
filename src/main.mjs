@@ -893,11 +893,12 @@ export class Emulator {
           this.cpu.intRequested = false;
           this.cpu.runFor(TSTATES_PER_FRAME - snapTstates);
         } else {
-          // At frame boundary (v1 snapshots or tstates = 0): the interrupt is
-          // due immediately.  Use the existing IFF1-forcing warm-up so a single
-          // full frame runs before the game loop starts (preserves all existing
-          // unit-test expectations for the zero-tstates path).
-          this._applySnapshot_warmupInterrupt();
+          // At frame boundary (v1 snapshots or tstates = 0): run one warm-up
+          // frame.  _runCpuForFrame generates the interrupt at the frame start
+          // (matching jsspeccy3's timing).  We do NOT force IFF1 — if the
+          // snapshot has IFF1=false the interrupt stays pending until the game
+          // enables interrupts, exactly matching the jsspeccy3 reference trace
+          // which shows IFF1=false across all initial frames for Jetpac.
           this._runCpuForFrame();
         }
         try { this._applySnapshotTrace.push({ step: 'warmup:end', t: Date.now() }); } catch (e) { /* best-effort */ }
@@ -1070,9 +1071,13 @@ export class Emulator {
    * the warm-up runFor(); the ISR's own EI/RETI sequence restores the correct
    * IFF1 value as the game runs.
    */
+  // _applySnapshot_warmupInterrupt removed — IFF1 is no longer forced.
+  // The warm-up now calls _runCpuForFrame() which generates the interrupt
+  // at frame start without overriding the snapshot's IFF1 value.  This
+  // matches jsspeccy3 behavior where Jetpac keeps IFF1=false after load.
   _applySnapshot_warmupInterrupt() {
     if (!this.cpu || !this.ula) return;
-    this.cpu.IFF1 = true;
+    // Do NOT force IFF1 = true — preserve snapshot value
     this.ula.updateInterruptState();
     this.ula.generateInterruptSync(); // sets cpu.intRequested = true
   }
