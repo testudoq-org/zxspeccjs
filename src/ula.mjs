@@ -137,10 +137,14 @@ export class ULA {
     // the FRAMES system variable at 0x5C78-0x5C7A. Direct writes here
     // interfere with the ROM's RAM test during boot.
     
-    // Generate interrupt synchronously if interrupts are enabled
-    if (this.interruptEnabled && this.cpu.IFF1) {
-      this.cpu.intRequested = true;
-    }
+    // Always assert the maskable interrupt request — mirrors real ULA behaviour
+    // where ~/INT is driven low every frame regardless of CPU IFF1.  The Z80
+    // step() already gates acceptance on `this.intRequested && this.IFF1`, so
+    // setting intRequested unconditionally here is safe: the interrupt won't
+    // fire until the CPU executes EI.  This prevents frames being silently
+    // skipped when the game is briefly in a DI section at the frame boundary
+    // (e.g. Jetpac's DI game-logic path at snapshot load time).
+    this.cpu.intRequested = true;
   }
 
   // Legacy method for backwards compatibility (still available but deprecated)

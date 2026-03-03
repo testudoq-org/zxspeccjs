@@ -173,7 +173,7 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
     expect(emu.cpu.PC & 0xFFF0).toBe(0x8000);
   });
 
-  it('T-states reset to 0 before warm-up when snapshot has no tstates field', async () => {
+  it('T-states reset to 0 before warm-up when snapshot has no tstates field (frame-boundary path)', async () => {
     const emu = await makeEmu();
 
     // Artificially inflate tstates so we can verify the reset happens
@@ -190,40 +190,79 @@ describe('applySnapshot warm-up – interrupt pre-queuing', () => {
       snapshot: {
         ram: makeRamWithIm2Isr(),
         registers: im2Regs()
-        // no tstates property — should default to 0
+        // no tstates property → defaults to 0 → frame-boundary path
       }
     };
 
     await emu.applySnapshot(parsed, { fileName: 'tstatestest', autoStart: false });
 
-    // tstates must have been reset to 0 (frame boundary) before warm-up
+    // tstates must have been reset to 0 before warm-up _runCpuForFrame call
     expect(tstatesAtEntry).toBe(0);
   });
 
-  it('warm-up uses parsed snapshot.tstates when provided (v2/v3 interrupt phase)', async () => {
+  it('mid-frame snapshot: only remaining T-states run, intRequested cleared, IFF1 not clobbered', async () => {
+    // Root-cause fix for Jetpac missing asteroids/fire/enemies:
+    // The _mapZ80PagesToRam 48K page mapping (ID 8→0, 4→0x4000, 5→0x8000) was
+    // shadowed by the has128Pages branch (IDs 4,5,8 are all in range 3-10).
+    // Separately: the warmup must clear intRequested before runFor (to prevent
+    // spurious interrupts when game hits EI), and ULA now asserts intRequested
+    // unconditionally each frame so games in DI state at frame boundaries still
+    // get their interrupt when they execute EI.
+    const TSTATES_PER_FRAME = 69888;
+    const SNAP_TSTATES = 17472; // 69888/4 — one quarter through the frame
+
     const emu = await makeEmu();
 
-    const SNAP_TSTATES = 17472; // one T-state chunk (69888/4) — typical v2/v3 value
+    // Artificially set stale intRequested to true before applySnapshot to
+    // verify it is explicitly cleared by the mid-frame warmup path.
+    emu.cpu.intRequested = true;
 
-    let tstatesAtEntry = undefined;
-    const origRun = emu._runCpuForFrame.bind(emu);
-    emu._runCpuForFrame = function () {
-      tstatesAtEntry = this.cpu ? this.cpu.tstates : undefined;
-      return origRun();
+    // Track whether generateInterruptSync was called during applySnapshot warmup
+    let generateInterruptCalledDuringWarmup = false;
+    const origGen = emu.ula.generateInterruptSync.bind(emu.ula);
+    emu.ula.generateInterruptSync = function (...args) {
+      generateInterruptCalledDuringWarmup = true;
+      return origGen(...args);
+    };
+
+    // Spy on cpu.runFor: capture count AND intRequested state at the moment of call
+    let runForArg = undefined;
+    let intRequestedAtRunForEntry = undefined;
+    const origRunFor = emu.cpu.runFor.bind(emu.cpu);
+    emu.cpu.runFor = function (n) {
+      if (runForArg === undefined) {
+        runForArg = n;
+        intRequestedAtRunForEntry = emu.cpu.intRequested; // must be false (cleared)
+      }
+      return origRunFor(n);
     };
 
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs(),
-        tstates: SNAP_TSTATES // simulates what parseZ80 now returns for v2/v3
+        registers: im2Regs(), // IFF1=false (snapshot inside ISR)
+        tstates: SNAP_TSTATES  // v2/v3 header bytes 55-57 value
       }
     };
 
-    await emu.applySnapshot(parsed, { fileName: 'tstatesPhaseTest', autoStart: false });
+    await emu.applySnapshot(parsed, { fileName: 'midFrameTest', autoStart: false });
 
-    // Warm-up must start at the snapshot's T-state offset, not 0
-    expect(tstatesAtEntry).toBe(SNAP_TSTATES);
+    // 1. Warmup must run only the REMAINING T-states, not a full frame
+    expect(runForArg).toBe(TSTATES_PER_FRAME - SNAP_TSTATES); // 52416
+
+    // 2. intRequested must have been cleared BEFORE the warmup runFor call
+    expect(intRequestedAtRunForEntry).toBe(false);
+
+    // 3. generateInterruptSync must NOT be called during the mid-frame warmup
+    //    (the interrupt is not due until the next frame boundary)
+    expect(generateInterruptCalledDuringWarmup).toBe(false);
+
+    // 4. IFF1 must not be clobbered — the snapshot's real value (false) is preserved
+    expect(emu.cpu.IFF1).toBe(false);
+
+    // 5. After warmup, cpu.tstates must be at/past the frame boundary
+    expect(emu.cpu.tstates).toBeGreaterThanOrEqual(TSTATES_PER_FRAME);
+    expect(emu.cpu.tstates).toBeLessThan(TSTATES_PER_FRAME + 20);
   });
 
   it('skipWarm bypasses the interrupt pre-queue entirely', async () => {

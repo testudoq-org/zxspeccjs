@@ -221,43 +221,41 @@ export class Loader {
    */
   static _mapZ80PagesToRam(pageMap, ramImage) {
     const PAGE_SIZE = 16384;
+    const set = (pageNum, offset) => {
+      if (!pageMap.has(pageNum)) return false;
+      const pd = pageMap.get(pageNum);
+      ramImage.set(pd.subarray(0, Math.min(pd.length, PAGE_SIZE)), offset);
+      return true;
+    };
 
-    // Prefer 128K-style page blocks if any page in the 3..10 range is present
-    const has128Pages = [...pageMap.keys()].some(p => p >= 3 && p <= 10);
-    if (has128Pages) {
-      // 128K-style heuristics: pages 3..10 -> banks 0..7. Map commonly-used
-      // banks into the 48K linear view so many 128K snapshots become runnable.
-      const bankToPage = (bank) => bank + 3;
-      const trySet = (pageNum, offset) => {
-        if (!pageMap.has(pageNum)) return false;
-        const pd = pageMap.get(pageNum);
-        ramImage.set(pd.subarray(0, Math.min(pd.length, PAGE_SIZE)), offset);
-        return true;
-      };
-
-      // Preferred banks for 48K view: bank5->0, bank2->0x4000, bank0->0x8000
-      let applied = false;
-      applied = trySet(bankToPage(5), 0x0000) || applied;
-      applied = trySet(bankToPage(2), 0x4000) || applied;
-      applied = trySet(bankToPage(0), 0x8000) || applied;
-
-      // Only use the simple page->offset fallback if none of the preferred
-      // bank mappings were applied (avoid overwriting preferred banks).
-      if (!applied) {
-        if (pageMap.has(3)) trySet(3, 0x0000);
-        if (pageMap.has(4)) trySet(4, 0x4000);
-        if (pageMap.has(5)) trySet(5, 0x8000);
-      }
+    // Standard 48K .z80 v2/v3 page IDs (MUST be checked first — these IDs overlap
+    // the 3..10 range used by the 128K heuristic below):
+    //   ID 8 → CPU 0x4000–0x7FFF (screen RAM)     → ramImage offset 0x0000
+    //   ID 4 → CPU 0x8000–0xBFFF (main code/data) → ramImage offset 0x4000
+    //   ID 5 → CPU 0xC000–0xFFFF (upper data)     → ramImage offset 0x8000
+    //
+    // Discriminant: 48K snapshots NEVER include page ID 3 (128K bank 0); if page 3
+    // is absent but any standard 48K page is present, this is a 48K snapshot.
+    if (!pageMap.has(3) && (pageMap.has(8) || pageMap.has(4) || pageMap.has(5))) {
+      set(8, 0x0000);
+      set(4, 0x4000);
+      set(5, 0x8000);
       return;
     }
 
-    // If no 128K-style pages are present, fall back to preferred 48K mapping (common):
-    // page 8 -> 0x4000..0x7FFF (ram offset 0), page 4 -> 0x8000..0xBFFF (ram offset 0x4000),
-    // page 5 -> 0xC000..0xFFFF (ram offset 0x8000)
-    if (pageMap.has(8) || pageMap.has(4) || pageMap.has(5)) {
-      if (pageMap.has(8)) ramImage.set(pageMap.get(8).subarray(0, Math.min(PAGE_SIZE, pageMap.get(8).length)), 0x0000);
-      if (pageMap.has(4)) ramImage.set(pageMap.get(4).subarray(0, Math.min(PAGE_SIZE, pageMap.get(4).length)), 0x4000);
-      if (pageMap.has(5)) ramImage.set(pageMap.get(5).subarray(0, Math.min(PAGE_SIZE, pageMap.get(5).length)), 0x8000);
+    // 128K-style snapshots use page IDs 3..10 (without the 48K {4,5,8} set).
+    // Map commonly-used 128K banks into the 48K linear view.
+    const has128Pages = [...pageMap.keys()].some(p => p >= 3 && p <= 10);
+    if (has128Pages) {
+      const bankToPage = (bank) => bank + 3;
+      let applied = false;
+      applied = set(bankToPage(5), 0x0000) || applied; // bank5 = screen RAM at 0x4000
+      applied = set(bankToPage(2), 0x4000) || applied; // bank2 at 0x8000
+      applied = set(bankToPage(0), 0x8000) || applied; // bank0 at 0xC000
+      if (!applied) {
+        // Last-resort: sequential placement
+        set(3, 0x0000); set(6, 0x4000); set(9, 0x8000);
+      }
       return;
     }
 

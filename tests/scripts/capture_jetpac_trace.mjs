@@ -407,8 +407,10 @@ async function main() {
     // Sound toggles (copy)
     const toggles = sound ? (sound._toggles ? sound._toggles.slice() : []) : [];
 
-    // Include contention diagnostics so tests can compare against reference
-    const contentionLog = (mem._contentionLog || []).slice();
+    // Include contention diagnostics so tests can compare against reference.
+    // Cap to MAX_CONTENTION_PER_FRAME entries to prevent huge trace files.
+    const MAX_CONTENTION_PER_FRAME = parseInt(process.env.MAX_CONTENTION_PER_FRAME || '50', 10) || 50;
+    const contentionLog = (mem._contentionLog || []).slice(0, MAX_CONTENTION_PER_FRAME);
     const contentionHits = mem._contentionHits || 0;
 
     frames.push({ frame: f, startT: cpu.frameStartTstates, tstates: cpu.tstates, regs, memWrites, portWrites, micro, toggles, contentionLog, contentionHits });
@@ -416,13 +418,13 @@ async function main() {
     // Periodic flush to disk to limit memory
     if ((f + 1) % 20 === 0) {
       const partialFile = path.join(outDir, `jetpac_trace_partial_frame_${f}.json`);
-      fs.writeFileSync(partialFile, JSON.stringify({ meta: { framesSoFar: f + 1 }, frames }, null, 2));
+      fs.writeFileSync(partialFile, JSON.stringify({ meta: { framesSoFar: f + 1 }, frames }));
       console.log(`Wrote partial trace up to frame ${f} -> ${partialFile}`);
     }
   }
 
   const outFile = path.join(outDir, 'jetpac_trace.json');
-  fs.writeFileSync(outFile, JSON.stringify({ meta: { frames: FRAMES, tstatesPerFrame: TPF }, frames }, null, 2));
+  fs.writeFileSync(outFile, JSON.stringify({ meta: { frames: FRAMES, tstatesPerFrame: TPF }, frames }));
   console.log('Wrote full trace to', outFile);
 }
 

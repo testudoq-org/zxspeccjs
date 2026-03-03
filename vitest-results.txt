@@ -1,0 +1,42 @@
+npm verbose cli C:\nvm4w\nodejs\node.exe C:\Users\steph\AppData\Roaming\nvm\v22.16.0\node_modules\npm\bin\npm-cli.js
+npm info using npm@11.7.0
+npm info using node@v22.16.0
+npm verbose title npm exec vitest run
+npm verbose argv "exec" "--" "vitest" "run"
+npm verbose logfile logs-max:10 dir:C:\Users\steph\AppData\Local\npm-cache\_logs\2026-03-03T01_55_27_562Z-
+npm verbose logfile C:\Users\steph\AppData\Local\npm-cache\_logs\2026-03-03T01_55_27_562Z-debug-0.log
+ DEPRECATED  `test.poolOptions` was removed in Vitest 4. All previous `poolOptions` are now top-level options. Please, refer to the migration guide: https://vitest.dev/guide/migration#pool-rework
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/Code/GitHub/zxspeccjs[39m
+
+
+
+#
+# Fatal process out of memory: Zone
+#
+----- Native stack trace -----
+
+ 1: 00007FF622C7711D 
+ 2: 00007FF622B5181F 
+ 3: 00007FF623DC95C6 
+ 4: 00007FF62374D6E1 
+ 5: 00007FF62321C79B 
+ 6: 00007FF623160396 
+ 7: 00007FF623EDBE52 
+ 8: 00007FF623EE46E1 
+ 9: 00007FF623EE6622 
+10: 00007FF623EE064A 
+11: 00007FF6236C8314 
+12: 00007FF623681C22 
+13: 00007FF6239524F5 
+14: 00007FF622B54540 
+15: 00007FF622CD7463 
+16: 00007FF6244D4C2E 
+17: 00007FFBB26C259D 
+18: 00007FFBB3D2AF78 
+npm verbose cwd D:\Code\GitHub\zxspeccjs
+npm verbose os Windows_NT 10.0.22635
+npm verbose node v22.16.0
+npm verbose npm  v11.7.0
+npm verbose exit -2147483645
+npm verbose code -2147483645

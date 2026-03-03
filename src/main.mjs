@@ -877,22 +877,29 @@ export class Emulator {
       // full raster.  Many of the unit tests exercised by the Zoo rely on
       // being able to compare to that trace so we provide an opt-out flag
       // (skipWarm) for tests that must verify raw register restoration.
-      if (!skipWarm && this.cpu && typeof this._runCpuForFrame === 'function') {
+      if (!skipWarm && this.cpu && typeof this.cpu.runFor === 'function') {
         try { this._applySnapshotTrace.push({ step: 'warmup:start', t: Date.now() }); } catch (e) { /* best-effort */ }
-        // _runCpuForFrame() now raises the ULA interrupt at its own start,
-        // but the raw .z80 snapshot may have IFF1=false (captured inside an ISR).
-        // Force IFF1=true so the pre-queued interrupt is actually acknowledged
-        // by the first step(); the ISR's own EI/RETI will restore the real value.
-        this._applySnapshot_warmupInterrupt();
-        // Restore T-state counter from the snapshot header (bytes 55-57 in v2/v3).
-        // This matches the position within the frame at which the snapshot was taken,
-        // aligning our interrupt phase with the reference (gasman/jsspeccy3).
-        // Verified formula: see loader.mjs parseZ80() and jsspeccy3 runtime/snapshot.js.
+        // Restore T-state counter from the snapshot header (bytes 55-57 in v2/v3 — gasman formula).
         const snapTstates = (parsed.snapshot && typeof parsed.snapshot.tstates === 'number')
           ? parsed.snapshot.tstates : 0;
         this.cpu.tstates = snapTstates;
         this.cpu.frameStartTstates = snapTstates;
-        this._runCpuForFrame();
+        if (snapTstates > 0) {
+          // Mid-frame snapshot: the interrupt is NOT due yet.  Clear any stale
+          // intRequested left over from the boot phase so it cannot fire
+          // spuriously when the game executes EI during the catch-up run.
+          // Then run only the remaining T-states to reach the frame boundary,
+          // exactly matching gasman/jsspeccy3's runFrame(snapshot.tstates).
+          this.cpu.intRequested = false;
+          this.cpu.runFor(TSTATES_PER_FRAME - snapTstates);
+        } else {
+          // At frame boundary (v1 snapshots or tstates = 0): the interrupt is
+          // due immediately.  Use the existing IFF1-forcing warm-up so a single
+          // full frame runs before the game loop starts (preserves all existing
+          // unit-test expectations for the zero-tstates path).
+          this._applySnapshot_warmupInterrupt();
+          this._runCpuForFrame();
+        }
         try { this._applySnapshotTrace.push({ step: 'warmup:end', t: Date.now() }); } catch (e) { /* best-effort */ }
       }
 

@@ -1,3 +1,4 @@
+/* eslint-env node */
 import { test, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
@@ -7,8 +8,14 @@ test('capture_jetpac_trace captures rocket/part memWrites and contention after S
   const script = path.resolve(process.cwd(), 'tests', 'scripts', 'capture_jetpac_trace.mjs');
   if (!fs.existsSync(script)) throw new Error('capture_jetpac_trace.mjs missing');
 
-  // Run capture with injected START key at frame 5 for 2 frames
-  child.execFileSync(process.execPath, [script], { stdio: 'inherit', env: { ...process.env, PRESS_FRAME: '5', PRESS_DURATION: '2', USE_PARSED_JETPAC: '1' } });
+  // Run capture with injected START key at frame 5 for 2 frames.
+  // Limit to 30 frames (covers frames 5-24 for rocket writes) and cap
+  // the micro-log per frame to reduce peak memory during JSON serialisation.
+  const CAPTURE_FRAMES = 30;
+  child.execFileSync(process.execPath, ['--max-old-space-size=4096', script], {
+    stdio: 'inherit',
+    env: { ...process.env, PRESS_FRAME: '5', PRESS_DURATION: '2', USE_PARSED_JETPAC: '1', FRAMES: String(CAPTURE_FRAMES), MAX_MICRO_PER_FRAME: '50', MAX_CONTENTION_LOG: '20' }
+  });
 
   const tracePath = path.resolve(process.cwd(), 'traces', 'jetpac_trace.json');
   if (!fs.existsSync(tracePath)) throw new Error('jetpac_trace.json not produced');
