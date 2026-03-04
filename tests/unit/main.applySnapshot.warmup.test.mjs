@@ -3,12 +3,14 @@
  * Tests for the post-load warm-up frame in applySnapshot().
  *
  * The warm-up runs one frame (matching jsspeccy3) with the interrupt queued
- * at the frame start via _runCpuForFrame().  If the snapshot has IFF1=true
- * the interrupt fires immediately; if IFF1=false (e.g. Jetpac's raw .z80) the
+ * at the frame start via _runCpuForFrame().  IFF1 is NOT forced — if the
+ * snapshot has IFF1=false (e.g. Jetpac, captured inside an ISR), the
  * interrupt stays pending until the game re-enables interrupts via EI.
  *
- * This matches jsspeccy3's reference trace, which shows IFF1=false across all
- * initial frames for the Jetpac snapshot.
+ * This matches the jsspeccy3 reference trace, which shows IFF1=false across
+ * all initial frames for the Jetpac snapshot.  The game's main loop at the
+ * snapshot PC draws naturally (rocket, sprites) without needing the ISR to
+ * fire during warm-up.
  */
 import { describe, it, expect } from 'vitest';
 
@@ -155,7 +157,7 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
 
     await emu.applySnapshot(parsed, { fileName: 'noIsrTest', autoStart: false });
 
-    // ISR must NOT have run — FLAG_ADDR stays 0
+    // ISR must NOT have run — IFF1=false means interrupt stays pending
     expect(emu.memory.read(FLAG_ADDR)).toBe(0);
   });
 

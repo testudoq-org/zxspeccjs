@@ -895,12 +895,26 @@ export class Emulator {
         } else {
           // At frame boundary (v1 snapshots or tstates = 0): run one warm-up
           // frame.  _runCpuForFrame generates the interrupt at the frame start
-          // (matching jsspeccy3's timing).  We do NOT force IFF1 — if the
-          // snapshot has IFF1=false the interrupt stays pending until the game
-          // enables interrupts, exactly matching the jsspeccy3 reference trace
-          // which shows IFF1=false across all initial frames for Jetpac.
+          // (matching jsspeccy3's timing).  We do NOT force IFF1 — jsspeccy3's
+          // reference trace shows IFF1=false throughout, and the game's main
+          // loop at the snapshot PC draws naturally without interrupt acceptance.
+          // The interrupt stays pending (intRequested=true) until the game
+          // enables interrupts via EI in its own code.
           this._runCpuForFrame();
         }
+        // Diagnostic: log post-warm-up CPU state for comparison with reference trace.
+        // Visible only when __ZX_WARMUP_LOG is true (set in dev-tools or tests).
+        try {
+          if (typeof globalThis.__ZX_WARMUP_LOG !== 'undefined' && globalThis.__ZX_WARMUP_LOG) {
+            const c = this.cpu;
+            console.log('[warmup] POST state:', {
+              PC: c.PC, SP: c.SP, tstates: c.tstates,
+              IFF1: c.IFF1, IFF2: c.IFF2, IM: c.IM,
+              I: c.I, R: c.R, A: c.A, F: c.F,
+              intRequested: c.intRequested, halted: c.halted, eiDelay: c.eiDelay
+            });
+          }
+        } catch (e) { /* best-effort */ }
         try { this._applySnapshotTrace.push({ step: 'warmup:end', t: Date.now() }); } catch (e) { /* best-effort */ }
       }
 
@@ -1071,13 +1085,14 @@ export class Emulator {
    * the warm-up runFor(); the ISR's own EI/RETI sequence restores the correct
    * IFF1 value as the game runs.
    */
-  // _applySnapshot_warmupInterrupt removed — IFF1 is no longer forced.
-  // The warm-up now calls _runCpuForFrame() which generates the interrupt
-  // at frame start without overriding the snapshot's IFF1 value.  This
-  // matches jsspeccy3 behavior where Jetpac keeps IFF1=false after load.
+  /**
+   * Legacy warm-up interrupt helper (retained for test backwards-compat).
+   * Does NOT force IFF1 — preserves the snapshot value.
+   * _runCpuForFrame() generates the interrupt at frame start.
+   */
   _applySnapshot_warmupInterrupt() {
     if (!this.cpu || !this.ula) return;
-    // Do NOT force IFF1 = true — preserve snapshot value
+    // Do NOT force IFF1 = true — preserve snapshot value (jsspeccy3 parity)
     this.ula.updateInterruptState();
     this.ula.generateInterruptSync(); // sets cpu.intRequested = true
   }
@@ -1416,11 +1431,15 @@ export class Emulator {
           this._tracePortRead(port, result);
           return result;
         }
-        // Kempston joystick (port 0x1F): return 0x00 (no input)
-        // Active-high convention — 0xFF would mean all directions + fire pressed
+        // Kempston joystick (port 0x1F): return live joystick state from Input module.
+        // Active-high convention: bit 0=Right, 1=Left, 2=Down, 3=Up, 4=Fire.
+        // Arrow keys and Space are mapped to these bits in Input._keydown/_keyup.
         if ((port & 0xFF) === 0x1F) {
-          this._tracePortRead(port, 0x00);
-          return 0x00;
+          const val = (this.input && typeof this.input.kempstonState === 'number')
+            ? this.input.kempstonState & 0x1F
+            : 0x00;
+          this._tracePortRead(port, val);
+          return val;
         }
         // Floating bus: even ports (bit 0 clear, like ULA) return the byte
         // currently being fetched from video RAM during active display.
