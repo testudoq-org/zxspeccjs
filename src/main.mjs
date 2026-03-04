@@ -895,11 +895,19 @@ export class Emulator {
         } else {
           // At frame boundary (v1 snapshots or tstates = 0): run one warm-up
           // frame.  _runCpuForFrame generates the interrupt at the frame start
-          // (matching jsspeccy3's timing).  We do NOT force IFF1 — jsspeccy3's
-          // reference trace shows IFF1=false throughout, and the game's main
-          // loop at the snapshot PC draws naturally without interrupt acceptance.
-          // The interrupt stays pending (intRequested=true) until the game
-          // enables interrupts via EI in its own code.
+          // (matching jsspeccy3's timing).
+          //
+          // Force IFF1/IFF2 = true for the warm-up frame ONLY.  The raw .z80
+          // snapshot stores IFF1=false (captured inside an ISR or with DI
+          // active), but jsspeccy3's reference trace shows the ISR being
+          // serviced in frame 0 (only 2 value-changing memWrites).  Without
+          // the force, the interrupt stays pending and the CPU takes the wrong
+          // code path (964 redundant writes, no game-object initialisation).
+          //
+          // The ISR's own EI / RETI sequence restores the correct IFF1 state;
+          // normal gameplay frames use whatever the game leaves in IFF1.
+          this.cpu.IFF1 = true;
+          this.cpu.IFF2 = true;
           this._runCpuForFrame();
         }
         // Diagnostic: log post-warm-up CPU state for comparison with reference trace.
@@ -1072,27 +1080,19 @@ export class Emulator {
   }
 
   /**
-   * Force IFF1=true and pre-queue the ULA interrupt before the post-load warm-up
-   * frame runs via _runCpuForFrame().
+   * Force IFF1/IFF2=true and pre-queue the ULA interrupt before the post-load
+   * warm-up frame runs via _runCpuForFrame().
    *
-   * _runCpuForFrame() now raises the ULA interrupt at the very START of every
-   * frame (matching jsspeccy3 / real-hardware VSYNC timing).  However the raw
-   * .z80 snapshot stores IFF1=false (captured inside an ISR or with DI active).
-   * generateInterruptSync() guards on IFF1, so without this shim the warm-up
-   * frame would skip the interrupt and take the wrong code path.
-   *
-   * By forcing IFF1=true here, the interrupt fires at the very first step() of
-   * the warm-up runFor(); the ISR's own EI/RETI sequence restores the correct
-   * IFF1 value as the game runs.
-   */
-  /**
-   * Legacy warm-up interrupt helper (retained for test backwards-compat).
-   * Does NOT force IFF1 — preserves the snapshot value.
-   * _runCpuForFrame() generates the interrupt at frame start.
+   * The raw .z80 snapshot stores IFF1=false (captured inside an ISR or with DI
+   * active).  jsspeccy3's reference trace shows the ISR being serviced in
+   * frame 0 — the warm-up must force IFF1=true so the interrupt fires at the
+   * very first step() of the warm-up runFor().  The ISR's own EI/RETI
+   * sequence restores the correct IFF1 value as the game runs.
    */
   _applySnapshot_warmupInterrupt() {
     if (!this.cpu || !this.ula) return;
-    // Do NOT force IFF1 = true — preserve snapshot value (jsspeccy3 parity)
+    this.cpu.IFF1 = true;
+    this.cpu.IFF2 = true;
     this.ula.updateInterruptState();
     this.ula.generateInterruptSync(); // sets cpu.intRequested = true
   }
