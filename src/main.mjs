@@ -909,6 +909,10 @@ export class Emulator {
           this.cpu.IFF1 = true;
           this.cpu.IFF2 = true;
           this._runCpuForFrame();
+
+          // Redundant but explicit: ensure the post-warmup tstate counter
+          // is clean so the first real gameplay frame starts at 0.
+          this.cpu.tstates = 0;
         }
         // Diagnostic: log post-warm-up CPU state for comparison with reference trace.
         // Visible only when __ZX_WARMUP_LOG is true (set in dev-tools or tests).
@@ -2091,6 +2095,12 @@ export class Emulator {
       // Record frame start T-state so memory contention can compute scanline position
       this.cpu.frameStartTstates = this.cpu.tstates;
       this.cpu.runFor(TSTATES_PER_FRAME);
+
+      // Prevent frame-to-frame drift: runFor() accumulates tstates rather than
+      // subtracting, so after each call tstates ≈ TSTATES_PER_FRAME.  Resetting
+      // to 0 keeps contention tables, ULA raster position and scanline math
+      // aligned with jsspeccy3 (which also starts each frame at tstates = 0).
+      this.cpu.tstates = 0;
     }
   }
 
