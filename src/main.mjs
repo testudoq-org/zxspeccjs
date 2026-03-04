@@ -909,10 +909,8 @@ export class Emulator {
           this.cpu.IFF1 = true;
           this.cpu.IFF2 = true;
           this._runCpuForFrame();
-
-          // Redundant but explicit: ensure the post-warmup tstate counter
-          // is clean so the first real gameplay frame starts at 0.
-          this.cpu.tstates = 0;
+          // _runCpuForFrame already did tstates -= TSTATES_PER_FRAME,
+          // so cpu.tstates now holds the small carry-over (0-10 cycles).
         }
         // Diagnostic: log post-warm-up CPU state for comparison with reference trace.
         // Visible only when __ZX_WARMUP_LOG is true (set in dev-tools or tests).
@@ -2070,9 +2068,11 @@ export class Emulator {
     // Detect CHARS pointer changes and schedule glyph checks/render retries
     this._checkCharsAndScheduleRenders();
 
-    // Flush the beeper/sample buffer for this frame
+    // Flush the beeper/sample buffer for this frame.
+    // sound.endFrame receives 0 (not an offset) because tstates has already
+    // been adjusted by _runCpuForFrame (subtract TSTATES_PER_FRAME).
     if (this.sound && typeof this.sound.endFrame === 'function') {
-      this.sound.endFrame(this.cpu ? (this.cpu.tstates - TSTATES_PER_FRAME) : 0);
+      this.sound.endFrame(0);
     }
 
     // Emit per-frame trace entry (if tracing enabled)
@@ -2096,11 +2096,11 @@ export class Emulator {
       this.cpu.frameStartTstates = this.cpu.tstates;
       this.cpu.runFor(TSTATES_PER_FRAME);
 
-      // Prevent frame-to-frame drift: runFor() accumulates tstates rather than
-      // subtracting, so after each call tstates ≈ TSTATES_PER_FRAME.  Resetting
-      // to 0 keeps contention tables, ULA raster position and scanline math
-      // aligned with jsspeccy3 (which also starts each frame at tstates = 0).
-      this.cpu.tstates = 0;
+      // Carry over overshoot cycles exactly like jsspeccy3 (t -= frameCycleCount).
+      // The last instruction may cross the 69888 boundary by 0-10 cycles;
+      // preserving that overshoot keeps interrupt timing and raster phase
+      // cycle-accurate across frames.
+      this.cpu.tstates -= TSTATES_PER_FRAME;
     }
   }
 

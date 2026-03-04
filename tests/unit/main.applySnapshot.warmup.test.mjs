@@ -238,9 +238,10 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
     expect(changedWrites).toBeLessThanOrEqual(10);
     // IFF1 must be true after warm-up (ISR ran EI/RETI)
     expect(emu.cpu.IFF1).toBe(true);
-    // tstates must be reset to 0 after warm-up so the first gameplay frame
-    // starts aligned (prevents contention / ULA raster drift)
-    expect(emu.cpu.tstates).toBe(0);
+    // After warm-up, tstates holds the small carry-over from the last
+    // instruction that crossed the 69888 boundary (typically 0-10 cycles).
+    expect(emu.cpu.tstates).toBeGreaterThanOrEqual(0);
+    expect(emu.cpu.tstates).toBeLessThan(20);
   });
 
   it('T-states reset to 0 before warm-up when snapshot has no tstates field (frame-boundary path)', async () => {

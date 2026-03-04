@@ -29,14 +29,26 @@ describe('Emulator frame processing helpers', () => {
     return (async () => {
       const emu = await makeEmu();
 
-      const fakeCpu = { tstates: 12345, runFor: vi.fn((n) => { fakeCpu.tstates += n; }) };
+      const fakeCpu = {
+        tstates: 12345,
+        frameStartTstates: 0,
+        runFor: vi.fn(function (n) {
+          // Verify frameStartTstates was captured before runFor
+          expect(this.frameStartTstates).toBe(12345);
+          this.tstates += n;
+        })
+      };
       emu.cpu = fakeCpu;
       emu.ula = { updateInterruptState: vi.fn(), generateInterruptSync: vi.fn() };
 
       // run frame
       emu._runCpuForFrame();
 
-      // frameStartTstates recorded, runFor called with expected frame t-states
+      // After _runCpuForFrame, tstates has the carry-over (overshoot from
+      // the last instruction minus TSTATES_PER_FRAME).  With a fake runFor
+      // that adds exactly n, the result is 12345 + 69888 - 69888 = 12345.
+      expect(fakeCpu.tstates).toBe(12345);
+      // frameStartTstates was set to initial tstates (12345) before runFor
       expect(fakeCpu.frameStartTstates).toBe(12345);
       expect(fakeCpu.runFor).toHaveBeenCalledWith(69888);
 
