@@ -3,13 +3,10 @@
  * Tests for the post-load warm-up frame in applySnapshot().
  *
  * The warm-up runs one frame (matching jsspeccy3) with the interrupt queued
- * at the frame start via _runCpuForFrame().  For the tstates===0 path (v1
- * snapshots like Jetpac), IFF1/IFF2 are forced to true so the ISR fires
- * during the warm-up frame — matching jsspeccy3's reference trace which
- * shows the ISR serviced in frame 0 (only 2 value-changing memWrites).
- *
- * The ISR's own EI/RETI sequence restores the correct IFF1 value; normal
- * gameplay frames use whatever the game leaves in IFF1.
+ * at the frame start via _runCpuForFrame().  The time-window interrupt model
+ * holds the INT signal for the first ~32 T-states. If IFF1=true the ISR fires;
+ * if IFF1=false (as in real world Jetpac .z80) the interrupt is correctly
+ * missed — matching jsspeccy3 which never forces IFF1.
  */
 import { describe, it, expect } from 'vitest';
 
@@ -142,7 +139,7 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
     expect(emu.memory.read(FLAG_ADDR)).toBe(0x42);
   });
 
-  it('ISR runs during warm-up when snapshot has IFF1=false (forced for jsspeccy3 parity)', async () => {
+  it('ISR does NOT run during warm-up when snapshot has IFF1=false (time-window model)', async () => {
     const emu = await makeEmu();
 
     expect(emu.memory.read(FLAG_ADDR)).toBe(0);
@@ -156,8 +153,9 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
 
     await emu.applySnapshot(parsed, { fileName: 'noIsrTest', autoStart: false });
 
-    // IFF1 is forced true for warm-up, so ISR must have run
-    expect(emu.memory.read(FLAG_ADDR)).toBe(0x42);
+    // IFF1=false → interrupt correctly missed during the 32T window.
+    // ISR must NOT have run (matches jsspeccy3 which never forces IFF1).
+    expect(emu.memory.read(FLAG_ADDR)).toBe(0);
   });
 
   it('IFF1 is true after warm-up when snapshot has IFF1=true (IM2 ISR called EI before RETI)', async () => {
@@ -176,7 +174,7 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
     expect(emu.cpu.IFF1).toBe(true);
   });
 
-  it('IFF1 is true after warm-up when snapshot had IFF1=false (ISR ran EI/RETI)', async () => {
+  it('IFF1 remains false after warm-up when snapshot had IFF1=false (no ISR ran)', async () => {
     const emu = await makeEmu();
 
     const parsed = {
@@ -188,8 +186,9 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
 
     await emu.applySnapshot(parsed, { fileName: 'iff1falseTest', autoStart: false });
 
-    // IFF1 forced true for warm-up, ISR ran EI/RETI → IFF1 stays true
-    expect(emu.cpu.IFF1).toBe(true);
+    // IFF1=false → interrupt missed, no ISR ran, IFF1 stays false.
+    // Matches jsspeccy3 which preserves the snapshot's IFF1 value.
+    expect(emu.cpu.IFF1).toBe(false);
   });
 
   it('PC returns to main loop after IM2 warm-up with IFF1=true (ISR completed via RETI)', async () => {
@@ -209,13 +208,12 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
     expect(emu.cpu.PC & 0xFFF0).toBe(0x8000);
   });
 
-  it('warm-up with IFF1=false produces few memWrites (ISR serviced, matching reference)', async () => {
+  it('warm-up with IFF1=false produces zero value-changing memWrites (JR loop only)', async () => {
     const emu = await makeEmu();
 
     // Count value-changing memory writes during the warm-up frame.
-    // The reference trace (jsspeccy3) shows only 2 value-changing memWrites in
-    // frame 0.  With IFF1 forced=true the ISR fires, writes the marker, then
-    // the JR $ loop produces no further writes.
+    // With IFF1=false the interrupt is missed (time-window model), so the CPU
+    // stays in the JR $ tight loop for the entire frame — no memWrites at all.
     let changedWrites = 0;
     const origWrite = emu.memory.write.bind(emu.memory);
     emu.memory.write = function (addr, val, ...rest) {
@@ -228,16 +226,16 @@ describe('applySnapshot warm-up – interrupt generation and IFF1 behaviour', ()
     const parsed = {
       snapshot: {
         ram: makeRamWithIm2Isr(),
-        registers: im2Regs()   // IFF1=false — forced true by warm-up path
+        registers: im2Regs()   // IFF1=false — interrupt correctly missed
       }
     };
 
     await emu.applySnapshot(parsed, { fileName: 'memWriteTest', autoStart: false });
 
-    // ISR writes 1 byte (flag) + ISR call pushes 2 bytes on stack = ≤10 total
-    expect(changedWrites).toBeLessThanOrEqual(10);
-    // IFF1 must be true after warm-up (ISR ran EI/RETI)
-    expect(emu.cpu.IFF1).toBe(true);
+    // No ISR ran, JR $ loop writes nothing to memory
+    expect(changedWrites).toBe(0);
+    // IFF1 stays false (no ISR ran EI)
+    expect(emu.cpu.IFF1).toBe(false);
     // After warm-up, tstates holds the small carry-over from the last
     // instruction that crossed the 69888 boundary (typically 0-10 cycles).
     expect(emu.cpu.tstates).toBeGreaterThanOrEqual(0);

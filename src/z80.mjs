@@ -814,6 +814,16 @@ export class Z80 {
         try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.pcHits = window.__TEST__.pcHits || []; window.__TEST__.pcHits.push({ pc: this.PC, t: this.tstates }); } } catch (e) { /* ignore */ }
       }
     } catch (e) { /* ignore */ }
+    // Time-window INT auto-clear: when _intWindowEnd is set by the frame
+    // management layer, the ULA INT signal goes high after ~32 T-states.
+    // Once past the window, clear intRequested so the CPU cannot accept the
+    // interrupt later in the frame (matches jsspeccy3's `t < 36 && iff1`).
+    // Unit tests that set intRequested directly never set _intWindowEnd, so
+    // their behaviour is unchanged.
+    if (this._intWindowEnd !== undefined && this.tstates >= this._intWindowEnd) {
+      this.intRequested = false;
+      this._intWindowEnd = undefined;
+    }
     // EI delay: skip interrupt acceptance for one instruction after EI
     // (real Z80 behavior — allows EI;RET without spurious re-entry)
     if (this.eiDelay > 0) {

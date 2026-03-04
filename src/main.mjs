@@ -897,17 +897,12 @@ export class Emulator {
           // frame.  _runCpuForFrame generates the interrupt at the frame start
           // (matching jsspeccy3's timing).
           //
-          // Force IFF1/IFF2 = true for the warm-up frame ONLY.  The raw .z80
-          // snapshot stores IFF1=false (captured inside an ISR or with DI
-          // active), but jsspeccy3's reference trace shows the ISR being
-          // serviced in frame 0 (only 2 value-changing memWrites).  Without
-          // the force, the interrupt stays pending and the CPU takes the wrong
-          // code path (964 redundant writes, no game-object initialisation).
-          //
-          // The ISR's own EI / RETI sequence restores the correct IFF1 state;
-          // normal gameplay frames use whatever the game leaves in IFF1.
-          this.cpu.IFF1 = true;
-          this.cpu.IFF2 = true;
+          // We do NOT force IFF1/IFF2 here.  The Z80 time-window interrupt
+          // model ensures the INT signal only remains active for the first 32
+          // T-states of the frame.  If the snapshot has IFF1=false (game is in
+          // a DI section), the interrupt is correctly missed in the warm-up
+          // frame; the game code will EI later and the interrupt fires at the
+          // start of the NEXT frame — exactly matching jsspeccy3's behaviour.
           this._runCpuForFrame();
           // _runCpuForFrame already did tstates -= TSTATES_PER_FRAME,
           // so cpu.tstates now holds the small carry-over (0-10 cycles).
@@ -1079,24 +1074,6 @@ export class Emulator {
     if (typeof regs.E2 === 'number') this.cpu.E_ = regs.E2 & 0xff;
     if (typeof regs.H2 === 'number') this.cpu.H_ = regs.H2 & 0xff;
     if (typeof regs.L2 === 'number') this.cpu.L_ = regs.L2 & 0xff;
-  }
-
-  /**
-   * Force IFF1/IFF2=true and pre-queue the ULA interrupt before the post-load
-   * warm-up frame runs via _runCpuForFrame().
-   *
-   * The raw .z80 snapshot stores IFF1=false (captured inside an ISR or with DI
-   * active).  jsspeccy3's reference trace shows the ISR being serviced in
-   * frame 0 — the warm-up must force IFF1=true so the interrupt fires at the
-   * very first step() of the warm-up runFor().  The ISR's own EI/RETI
-   * sequence restores the correct IFF1 value as the game runs.
-   */
-  _applySnapshot_warmupInterrupt() {
-    if (!this.cpu || !this.ula) return;
-    this.cpu.IFF1 = true;
-    this.cpu.IFF2 = true;
-    this.ula.updateInterruptState();
-    this.ula.generateInterruptSync(); // sets cpu.intRequested = true
   }
 
   /**
@@ -2094,6 +2071,14 @@ export class Emulator {
 
       // Record frame start T-state so memory contention can compute scanline position
       this.cpu.frameStartTstates = this.cpu.tstates;
+
+      // Time-window interrupt model (matches jsspeccy3 / real hardware).
+      // The ULA holds INT low for roughly the first 32 T-states of each
+      // frame.  After that the INT signal rises and the CPU can no longer
+      // accept the interrupt — even if IFF1 becomes true later.
+      // step() auto-clears intRequested when tstates passes this threshold.
+      this.cpu._intWindowEnd = this.cpu.tstates + 32;
+
       this.cpu.runFor(TSTATES_PER_FRAME);
 
       // Carry over overshoot cycles exactly like jsspeccy3 (t -= frameCycleCount).
