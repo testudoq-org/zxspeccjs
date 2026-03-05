@@ -897,12 +897,16 @@ export class Emulator {
           // frame.  _runCpuForFrame generates the interrupt at the frame start
           // (matching jsspeccy3's timing).
           //
-          // We do NOT force IFF1/IFF2 here.  The Z80 time-window interrupt
-          // model ensures the INT signal only remains active for the first 32
-          // T-states of the frame.  If the snapshot has IFF1=false (game is in
-          // a DI section), the interrupt is correctly missed in the warm-up
-          // frame; the game code will EI later and the interrupt fires at the
-          // start of the NEXT frame — exactly matching jsspeccy3's behaviour.
+          // Force IFF1/IFF2 true for exactly this one warm-up frame.  Many
+          // .z80 snapshots (e.g. Jetpac) were saved inside an ISR with
+          // IFF1=false.  The game's post-ISR main loop — which draws the
+          // remaining rocket modules, spawns enemies, and enters the play
+          // loop — is only reachable once that first interrupt is serviced.
+          // After the ISR's own EI/RETI the game sets IFF1 back to whatever
+          // it needs, and the 32T time-window model in _runCpuForFrame
+          // handles all subsequent frames correctly.
+          this.cpu.IFF1 = true;
+          this.cpu.IFF2 = true;
           this._runCpuForFrame();
           // _runCpuForFrame already did tstates -= TSTATES_PER_FRAME,
           // so cpu.tstates now holds the small carry-over (0-10 cycles).
