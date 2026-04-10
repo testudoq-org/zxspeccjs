@@ -639,6 +639,36 @@ export class Z80 {
     this._setHL(result);
   }
 
+  _addIX(rr) {
+    const ix = this.IX;
+    const res = ix + (rr & 0xFFFF);
+    const result = res & 0xFFFF;
+    const carry = res > 0xFFFF;
+    const half = ((ix & 0x0FFF) + (rr & 0x0FFF)) > 0x0FFF;
+    const preservedSZPV = this.F & 0xC4;
+    let f = preservedSZPV;
+    if (carry) f |= 0x01;
+    if (half) f |= 0x10;
+    f |= (result >> 8) & 0x28;
+    this.F = f & ~0x02;
+    this.IX = result;
+  }
+
+  _addIY(rr) {
+    const iy = this.IY;
+    const res = iy + (rr & 0xFFFF);
+    const result = res & 0xFFFF;
+    const carry = res > 0xFFFF;
+    const half = ((iy & 0x0FFF) + (rr & 0x0FFF)) > 0x0FFF;
+    const preservedSZPV = this.F & 0xC4;
+    let f = preservedSZPV;
+    if (carry) f |= 0x01;
+    if (half) f |= 0x10;
+    f |= (result >> 8) & 0x28;
+    this.F = f & ~0x02;
+    this.IY = result;
+  }
+
   _adcHL(rr) {
     const hl = this._getHL();
     const c = (this.F & 0x01) ? 1 : 0;
@@ -2228,7 +2258,51 @@ export class Z80 {
 
             return this._executeDDCBOperation(cbOpcode, addr);
           }
-          
+
+          // ADD IX,rr (16-bit add to IX)
+          case 0x09: { // ADD IX,BC
+            this._addIX(this._getBC());
+            this.tstates += 15; return 15;
+          }
+          case 0x19: { // ADD IX,DE
+            this._addIX(this._getDE());
+            this.tstates += 15; return 15;
+          }
+          case 0x29: { // ADD IX,IX
+            this._addIX(this.IX);
+            this.tstates += 15; return 15;
+          }
+          case 0x39: { // ADD IX,SP
+            this._addIX(this.SP);
+            this.tstates += 15; return 15;
+          }
+
+          // INC/DEC IX register
+          case 0x23: { // INC IX
+            this.IX = (this.IX + 1) & 0xFFFF;
+            this.tstates += 10; return 10;
+          }
+          case 0x2B: { // DEC IX
+            this.IX = (this.IX - 1) & 0xFFFF;
+            this.tstates += 10; return 10;
+          }
+
+          // JP (IX) — jump to address in IX
+          case 0xE9: { // JP (IX)
+            this.PC = this.IX;
+            this.tstates += 8; return 8;
+          }
+
+          // EX (SP),IX — exchange top of stack with IX
+          case 0xE3: { // EX (SP),IX
+            const spLow = this.readByte(this.SP);
+            const spHigh = this.readByte((this.SP + 1) & 0xFFFF);
+            this.writeByte(this.SP, this.IX & 0xFF);
+            this.writeByte((this.SP + 1) & 0xFFFF, (this.IX >> 8) & 0xFF);
+            this.IX = (spHigh << 8) | spLow;
+            this.tstates += 23; return 23;
+          }
+
           default:
             // For other DD-prefixed ops, treat as NOP for now
             this.tstates += 8; return 8;
@@ -2464,7 +2538,51 @@ export class Z80 {
 
             return this._executeFDCBOperation(cbOpcode, addr);
           }
-          
+
+          // ADD IY,rr (16-bit add to IY)
+          case 0x09: { // ADD IY,BC
+            this._addIY(this._getBC());
+            this.tstates += 15; return 15;
+          }
+          case 0x19: { // ADD IY,DE
+            this._addIY(this._getDE());
+            this.tstates += 15; return 15;
+          }
+          case 0x29: { // ADD IY,IY
+            this._addIY(this.IY);
+            this.tstates += 15; return 15;
+          }
+          case 0x39: { // ADD IY,SP
+            this._addIY(this.SP);
+            this.tstates += 15; return 15;
+          }
+
+          // INC/DEC IY register
+          case 0x23: { // INC IY
+            this.IY = (this.IY + 1) & 0xFFFF;
+            this.tstates += 10; return 10;
+          }
+          case 0x2B: { // DEC IY
+            this.IY = (this.IY - 1) & 0xFFFF;
+            this.tstates += 10; return 10;
+          }
+
+          // JP (IY) — jump to address in IY
+          case 0xE9: { // JP (IY)
+            this.PC = this.IY;
+            this.tstates += 8; return 8;
+          }
+
+          // EX (SP),IY — exchange top of stack with IY
+          case 0xE3: { // EX (SP),IY
+            const spLow = this.readByte(this.SP);
+            const spHigh = this.readByte((this.SP + 1) & 0xFFFF);
+            this.writeByte(this.SP, this.IY & 0xFF);
+            this.writeByte((this.SP + 1) & 0xFFFF, (this.IY >> 8) & 0xFF);
+            this.IY = (spHigh << 8) | spLow;
+            this.tstates += 23; return 23;
+          }
+
           default:
             // For other FD-prefixed ops, treat as NOP for now
             this.tstates += 8; return 8;
