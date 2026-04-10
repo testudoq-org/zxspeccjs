@@ -164,8 +164,15 @@ export class ULA {
   writePort(port, value) {
     const p = port & 0xff;
     if (p === 0xfe) {
+      const newBorder = value & 0x07;
+      // Update deferred FrameBuffer with cycle-accurate border change
+      if (this.useDeferredRendering && this.frameBuffer) {
+        const currentTstates = this.cpu ? this.cpu.tstates : 0;
+        this.frameBuffer.updateToTstate(currentTstates);
+        this.frameBuffer.setBorder(newBorder);
+      }
       // Bits 0-2 = border colour
-      this.border = value & 0x07;
+      this.border = newBorder;
       // Bit 3: tape output (mic) - not implemented
       // Bit 4: speaker (beeper) - not handled here (Sound module handles it)
       // Bit 6: unknown, Bit 7: unknown

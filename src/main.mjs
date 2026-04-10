@@ -864,6 +864,10 @@ export class Emulator {
       // Ensure emulator core exists
       if (!this.memory) await this._createCore(parsed.rom || null);
 
+      // Skip boot-frame delay — snapshot has fully initialized RAM, so we
+      // can render every frame immediately without the ROM boot heuristic.
+      this._bootFramesRemaining = 0;
+
       // Load RAM into memory (extracted to helper to reduce method complexity)
       this._applySnapshot_ramRestore(parsed.snapshot && parsed.snapshot.ram);
       try { this._applySnapshotTrace.push({ step: 'ramRestore:done', t: Date.now() }); } catch (e) { /* best-effort */ }
@@ -1457,7 +1461,7 @@ export class Emulator {
       ? this.cpu.tstates - this.cpu.frameStartTstates
       : this.cpu.tstates % 69888;
 
-    const FIRST_PIXEL = 14335;
+    const FIRST_PIXEL = 14336;  // match Memory._firstContended
     const scanLine = Math.floor((frameT - FIRST_PIXEL) / 224);
     if (scanLine < 0 || scanLine >= 192) return 0xFF;
 
@@ -2076,6 +2080,9 @@ export class Emulator {
       // Record frame start T-state so memory contention can compute scanline position
       this.cpu.frameStartTstates = this.cpu.tstates;
 
+      // diagnostic: log frame boundary state
+      try { console.log(`[runCpu] frame start t=${this.cpu.tstates} intReq=${this.cpu.intRequested}`); } catch {}
+
       // Time-window interrupt model (matches jsspeccy3 / real hardware).
       // The ULA holds INT low for roughly the first 32 T-states of each
       // frame.  After that the INT signal rises and the CPU can no longer
@@ -2090,6 +2097,12 @@ export class Emulator {
       // preserving that overshoot keeps interrupt timing and raster phase
       // cycle-accurate across frames.
       this.cpu.tstates -= TSTATES_PER_FRAME;
+
+      // diagnostic: report FRAMES variable value after frame run
+      try {
+        const frames = this.memory && this.memory.read ? this.memory.read(0x5C78) : undefined;
+        console.log(`[runCpu] FRAMES=${frames}`);
+      } catch (e) { /* ignore */ }
     }
   }
 

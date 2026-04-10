@@ -11,7 +11,7 @@ describe('Memory contention (JSSpeccy-style table)', () => {
   });
 
   it('applies highest contention (6) at first contended T-state', () => {
-    // FIRST contended tstate is 14335 => extra should be 6
+    // FIRST contended tstate is 14336 => extra should be 6
     fakeCpu.tstates = mem._firstContended;
     const extra = mem._applyContention(0x4000);
     expect(extra).toBe(6);

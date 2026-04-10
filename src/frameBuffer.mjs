@@ -110,16 +110,40 @@ export class FrameBuffer {
   }
   
   /**
-   * Fill buffer up to specified tstate
-   * Internal method that generates the frame buffer data
-   * Note: Full cycle-accuracy would require tracking every memory write with its tstate.
-   * This implementation focuses on getting correct final output.
+   * Fill buffer up to specified tstate with border colour.
+   * The ZX Spectrum ULA renders 224 T-states per scanline (128 pixel-fetch +
+   * 96 border/retrace). Total frame: 312 lines × 224 = 69888 T-states.
+   *
+   * Buffer layout per line (160 bytes):
+   *  - Border lines (top/bottom): 160 border colour bytes
+   *  - Main screen lines: left/right border handled by generateFromMemory
+   *
+   * This method fills border-only bytes from lastUpdateTstate up to currentTstate
+   * so that mid-frame border colour changes appear correctly.
    */
-  _fillBufferToTstate() {
-    // This is a simplified version - full cycle-accuracy would
-    // require tracking every memory write with its tstate.
-    // This implementation focuses on getting correct final output
-    // rather than mid-frame accuracy (which requires more complexity)
+  _fillBufferToTstate(currentTstate) {
+    const TSTATES_PER_LINE = 224;
+    const TOTAL_LINES = 312;
+    const FIRST_VISIBLE_LINE = 64;
+    const VISIBLE_LINES = BORDER_TOP_LINES + MAIN_SCREEN_LINES + BORDER_BOTTOM_LINES;
+
+    const startLine = Math.floor(this.lastUpdateTstate / TSTATES_PER_LINE);
+    const endLine = Math.floor(currentTstate / TSTATES_PER_LINE);
+
+    for (let line = startLine; line <= endLine && line < TOTAL_LINES; line++) {
+      this._fillBorderLine(line - FIRST_VISIBLE_LINE, VISIBLE_LINES);
+    }
+  }
+
+  /** Fill a single visible border line in the buffer. */
+  _fillBorderLine(visLine, visibleLines) {
+    if (visLine < 0 || visLine >= visibleLines) return;
+    const isBorderLine = visLine < BORDER_TOP_LINES || visLine >= BORDER_TOP_LINES + MAIN_SCREEN_LINES;
+    if (!isBorderLine) return;
+    const lineStart = visLine * 160;
+    for (let x = lineStart; x < lineStart + 160 && x < FRAME_BUFFER_SIZE; x++) {
+      this.buffer[x] = this.borderColour;
+    }
   }
   
   /**

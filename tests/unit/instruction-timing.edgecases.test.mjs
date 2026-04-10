@@ -22,7 +22,7 @@ test('IN (0xFE) on contended frame applies ULA contention', () => {
   mem.write(0x4001, 0xFE);
 
   // Advance CPU into a contended tstate region
-  cpu.tstates = 14335; // first contended tstate boundary
+  cpu.tstates = 14336; // first contended tstate boundary
 
   const before = cpu.tstates;
   cpu.step();

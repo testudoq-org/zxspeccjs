@@ -164,7 +164,7 @@ describe('R register increment', () => {
 describe('ULA memory contention', () => {
   it('should NOT apply contention when contention is disabled', () => {
     const { cpu, mem } = makeCPU();
-    cpu.tstates = 14335; // active scan start
+    cpu.tstates = 14336; // active scan start
     cpu.frameStartTstates = 0;
 
     const before = cpu.tstates;
@@ -174,7 +174,7 @@ describe('ULA memory contention', () => {
 
   it('should NOT apply contention for addresses >= 0x8000', () => {
     const { cpu, mem } = makeCPUContended();
-    cpu.tstates = 14335;
+    cpu.tstates = 14336;
     cpu.frameStartTstates = 0;
 
     const before = cpu.tstates;
@@ -184,7 +184,7 @@ describe('ULA memory contention', () => {
 
   it('should NOT apply contention for addresses < 0x4000 (ROM)', () => {
     const { cpu, mem } = makeCPUContended();
-    cpu.tstates = 14335;
+    cpu.tstates = 14336;
     cpu.frameStartTstates = 0;
 
     const before = cpu.tstates;
@@ -205,7 +205,7 @@ describe('ULA memory contention', () => {
   it('should NOT apply contention outside active display area (after last scanline)', () => {
     const { cpu, mem } = makeCPUContended();
     cpu.frameStartTstates = 0;
-    // After line 191: 14335 + 192*224 = 57407
+    // After line 191: 14336 + 192*224 = 57407
     cpu.tstates = 57408;
 
     const before = cpu.tstates;
@@ -216,7 +216,7 @@ describe('ULA memory contention', () => {
   it('should NOT apply contention during border/retrace portion of scanline (T >= 128)', () => {
     const { cpu, mem } = makeCPUContended();
     cpu.frameStartTstates = 0;
-    // Scanline 0 starts at T=14335, border starts at T=14335+128=14463
+    // Scanline 0 starts at T=14336, border starts at T=14336+128=14463
     cpu.tstates = 14463;
 
     const before = cpu.tstates;
@@ -231,7 +231,7 @@ describe('ULA memory contention', () => {
       const { cpu, mem } = makeCPUContended();
       cpu.frameStartTstates = 0;
       // Scanline 0, T-state position = phase within the 8-T-state group
-      cpu.tstates = 14335 + phase;
+      cpu.tstates = 14336 + phase;
 
       const before = cpu.tstates;
       mem._applyContention(0x4000);
@@ -243,7 +243,7 @@ describe('ULA memory contention', () => {
   it('should apply contention correctly for address 0x7FFF (top of contended range)', () => {
     const { cpu, mem } = makeCPUContended();
     cpu.frameStartTstates = 0;
-    cpu.tstates = 14335; // phase 0 → expect 6 T-states delay
+    cpu.tstates = 14336; // phase 0 → expect 6 T-states delay
 
     const before = cpu.tstates;
     mem._applyContention(0x7FFF);
@@ -253,7 +253,7 @@ describe('ULA memory contention', () => {
   it('should apply contention on later scanlines correctly', () => {
     const { cpu, mem } = makeCPUContended();
     cpu.frameStartTstates = 0;
-    // Scanline 100 starts at T=14335 + 100*224 = 36735
+    // Scanline 100 starts at T=14336 + 100*224 = 36735
     // Phase 0 of scanline 100 → expect 6 T-states delay
     cpu.tstates = 36735;
 
@@ -266,7 +266,7 @@ describe('ULA memory contention', () => {
     const { cpu, mem } = makeCPUContended();
     // Simulate second frame: frame starts at 69888
     cpu.frameStartTstates = 69888;
-    cpu.tstates = 69888 + 14335; // start of active display in second frame
+    cpu.tstates = 69888 + 14336; // start of active display in second frame
 
     const before = cpu.tstates;
     mem._applyContention(0x4000);
@@ -277,7 +277,7 @@ describe('ULA memory contention', () => {
     const { cpu, mem } = makeCPUContended();
     // Align to start of active display so contention table yields >0
     cpu.frameStartTstates = 0;
-    cpu.tstates = 14335; // first contended t-state (phase 0)
+    cpu.tstates = 14336; // first contended t-state (phase 0)
 
     // Place PC in contended region and enter HALT
     cpu.PC = 0x4000;

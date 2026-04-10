@@ -50,7 +50,10 @@ export class Memory {
     // contention timing table (lazy-built to match JSSpeccy behavior)
     this._contentionTable = null;
     this._frameCycleCount = 69888; // default for 48K
-    this._firstContended = 14335;
+    // Some ULA revisions assert the first contended t‑state one cycle later.
+    // Jetpac and a handful of titles appear happier with 14336, so bump the
+    // value here and update unit tests accordingly.
+    this._firstContended = 14336;
     this._tstatesPerRow = 224;
     this._contendedLines = 192;
 
@@ -302,7 +305,7 @@ export class Memory {
    *   - 69888 T-states per frame, 312 scanlines × 224 T-states each
    *   - Active display: scanlines 64–255 (192 lines), pixel fetch during
    *     the first 128 T-states of each scanline
-   *   - First contended T-state of the frame: 14335 (scanline 64, column 0)
+   *   - First contended T-state of the frame: 14336 (scanline 64, column 0)
    *   - Contention pattern per 8 T-state group: [6, 5, 4, 3, 2, 1, 0, 0]
    *
    * Reference: "The ZX Spectrum ULA" by Chris Smith, ch. 7.
@@ -350,6 +353,10 @@ export class Memory {
     // Diagnostic: record contention events so tests / traces can assert against them
     if (extra > 0) {
       this._contentionHits = (this._contentionHits || 0) + 1;
+      // diagnostic console output for early-frame contention events
+      if (frameT < 300) {
+        try { console.log(`Contended access @${baseT} (${addr.toString(16)}) extra=${extra}`); } catch {};
+      }
       try {
         // record absolute CPU tstate at which contention was applied and current R
         const cpuT = this.cpu ? this.cpu.tstates : null;

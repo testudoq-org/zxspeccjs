@@ -813,6 +813,10 @@ export class Z80 {
         if (Array.isArray(this._microLog)) this._microLog.push({ type: 'PC_HIT', pc: this.PC, t: this.tstates });
         try { if (typeof window !== 'undefined' && window.__TEST__) { window.__TEST__.pcHits = window.__TEST__.pcHits || []; window.__TEST__.pcHits.push({ pc: this.PC, t: this.tstates }); } } catch (e) { /* ignore */ }
       }
+      // Jetpac uses the R register at PC=0x6999 for random direction/type
+      if (this.PC === 0x6999) {
+        try { console.log(`R at enemy-spawn PC=6999: ${this.R}`); } catch {}
+      }
     } catch (e) { /* ignore */ }
     // Time-window INT auto-clear: when _intWindowEnd is set by the frame
     // management layer, the ULA INT signal goes high after ~32 T-states.
@@ -829,6 +833,8 @@ export class Z80 {
     if (this.eiDelay > 0) {
       this.eiDelay--;
     } else if (this.intRequested && this.IFF1) {
+      // diagnostic: note when an interrupt is actually taken
+      try { console.log(`Interrupt accepted PC=${this.PC.toString(16)} t=${this.tstates}`); } catch {}
     // Handle interrupts — dispatch on IM mode
       this.halted = false; // HALT is exited on interrupt
       this.IFF1 = false; this.IFF2 = false;

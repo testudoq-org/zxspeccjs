@@ -29,7 +29,7 @@ describe('Floating bus read semantics', () => {
   it('returns bitmap byte during bitmap phase and attribute during attr phase', async () => {
     const { emu, cpu, mem } = await makeCore();
 
-    const FIRST_PIXEL = 14335;
+    const FIRST_PIXEL = 14336;
     // choose y=10, cell=3
     const y = 10;
     const cell = 3;
@@ -64,7 +64,7 @@ describe('Floating bus read semantics', () => {
     expect(emu._readFloatingBus()).toBe(0xFF);
 
     // exactly at first contended T-state - should be treated as active display (bitmap fetch)
-    cpu.tstates = 14335;
+    cpu.tstates = 14336;
     // pick a bitmap address for this line and ensure value is returned
     const y = 0, cell = 0;
     const bitmapAddr = 0x4000 | ((y & 0xC0) << 5) | ((y & 0x07) << 8) | ((y & 0x38) << 2) | cell;
@@ -76,7 +76,7 @@ describe('Floating bus read semantics', () => {
     expect(emu._readFloatingBus()).toBe(0xFF);
 
     // during border/retrace portion of line (first non-pixel tstate)
-    cpu.tstates = 14335 + 128;
+    cpu.tstates = 14336 + 128;
     expect(emu._readFloatingBus()).toBe(0xFF);
   });
 });
