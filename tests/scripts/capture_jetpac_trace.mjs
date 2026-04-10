@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* global fetch, Buffer */
+/* eslint no-console: 0 */
 // Capture per-frame traces for Jetpac .z80 snapshot
 import fs from 'fs';
 import path from 'path';
@@ -41,8 +44,8 @@ function generateJetpacZ80Payload() {
   //   DJNZ loop         10 FB  ; relative -5 to go back to LD (HL),A
   //   JP 0x8003         C3 03 80 ; reload A/B and continue
   const code = [0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80];
-  // Place the active loop at 0x8000 so PC=0x8000 executes it
-  for (let i = 0; i < code.length; i++) ram[0x8000 + i] = code[i];
+  // Place the active loop at 0x8000 (RAM offset 0x4000) so PC=0x8000 executes it
+  for (let i = 0; i < code.length; i++) ram[0x4000 + i] = code[i];
 
   const out = new Uint8Array(header.length + ram.length);
   out.set(header, 0);
@@ -55,8 +58,68 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   // Parse the snapshot using Loader
-  const payloadBuf = generateJetpacZ80Payload();
-  const parsed = Loader.parseZ80(payloadBuf);
+  // Priority for snapshot source:
+  //  1) REFERENCE_JETPAC=1 -> fetch real .z80 from archive
+  //  2) local pre-parsed snapshot at traces/parsed_jetpac_snapshot.json -> use that (offline friendly)
+  //  3) fallback -> synthetic Jetpac payload (keeps existing behavior)
+  const LOCAL_PARSED = path.resolve(process.cwd(), 'traces', 'parsed_jetpac_snapshot.json');
+  let parsed = null;
+  const FORCE_SYNTHETIC = process.env.FORCE_SYNTHETIC === '1';
+  console.log('[TraceDiag] env FORCE_SYNTHETIC=', process.env.FORCE_SYNTHETIC, 'const FORCE_SYNTHETIC=', FORCE_SYNTHETIC);
+
+  if (process.env.REFERENCE_JETPAC === '1') {
+    console.log('[TraceDiag] fetching real Jetpac .z80 from Archive.org');
+    const jetpacUrl = 'https://cors.archive.org/cors/zx_Jetpac_1983_Ultimate_Play_The_Game_a_16K/Jetpac_1983_Ultimate_Play_The_Game_a_16K.z80';
+    const res = await fetch(jetpacUrl);
+    if (!res.ok) throw new Error('Failed to fetch Jetpac .z80: ' + res.status);
+    // Loader.parseZ80 expects an ArrayBuffer (not a Node Buffer)
+    const payloadBuf = await res.arrayBuffer();
+    parsed = Loader.parseZ80(payloadBuf);
+  } else if (FORCE_SYNTHETIC) {
+    // Explicit test override: use synthetic payload when forced by env
+    console.log('[TraceDiag] FORCE_SYNTHETIC=1 - using synthetic Jetpac payload');
+    const payloadBuf = generateJetpacZ80Payload();
+    parsed = Loader.parseZ80(payloadBuf);
+  } else if (fs.existsSync(LOCAL_PARSED)) {
+    // Prefer using a local parsed Jetpac snapshot (if present) so regenerated
+    // traces match the real .z80 reference used elsewhere in the test-suite.
+    console.log('[TraceDiag] using local parsed Jetpac snapshot from traces/parsed_jetpac_snapshot.json');
+    const json = JSON.parse(fs.readFileSync(LOCAL_PARSED, 'utf8'));
+    // Build a Uint8Array RAM image from the parsed JSON (object or array)
+    const RAM_48K = 3 * 16384;
+    let ramBuf = new Uint8Array(RAM_48K);
+    if (Array.isArray(json.ram)) {
+      ramBuf.set(json.ram.slice(0, RAM_48K));
+    } else if (json.ram && typeof json.ram === 'object') {
+      for (const k of Object.keys(json.ram)) {
+        const idx = parseInt(k, 10);
+        if (!Number.isNaN(idx) && idx >= 0 && idx < RAM_48K) ramBuf[idx] = json.ram[k] & 0xff;
+      }
+    }
+    parsed = { rom: null, snapshot: { ram: ramBuf, registers: json.registers || {} } };
+  } else {
+    const payloadBuf = generateJetpacZ80Payload();
+    parsed = Loader.parseZ80(payloadBuf);
+  }
+
+  // DEBUG: show parsed snapshot PC so we can confirm which snapshot was chosen
+  try {
+    console.log('[TraceDiag] parsed snapshot PC =', parsed && parsed.snapshot && parsed.snapshot.registers && parsed.snapshot.registers.PC);
+  } catch (e) { /* ignore */ }
+
+  // Defensive: if FORCE_SYNTHETIC is explicitly requested, ensure we are
+  // using the synthetic payload regardless of any local parsed snapshot.
+  // This prevents accidental seeding from the reference/local parsed file
+  // when running diagnostic/unit tests with FORCE_SYNTHETIC=1.
+  if (FORCE_SYNTHETIC) {
+    try {
+      const payloadBuf = generateJetpacZ80Payload();
+      parsed = Loader.parseZ80(payloadBuf);
+      console.log('[TraceDiag] FORCE_SYNTHETIC override - parsed snapshot PC =', parsed && parsed.snapshot && parsed.snapshot.registers && parsed.snapshot.registers.PC);
+    } catch (e) {
+      console.warn('[TraceDiag] FORCE_SYNTHETIC override failed:', e && e.message);
+    }
+  }
 
   // Create an emulator instance with minimal options
   const { Emulator } = await import('../../src/main.mjs');
@@ -97,6 +160,49 @@ async function main() {
           off += len;
         }
       }
+
+      // If a jsspeccy reference expects memWrites at 0x4000/0x4001 in frame-0,
+      // we previously *injected* a small synthetic loop into parsed RAM to
+      // force deterministic capture. That behaviour is now disabled by
+      // default — the canonical parsed snapshot must contain the required
+      // code. To opt-in for legacy/debugging only, set ALLOW_SYNTHETIC_INJECTION=1.
+      try {
+        const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
+        if (fs.existsSync(REF_TRACE_PATH)) {
+          const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
+          const refF0 = ref && Array.isArray(ref.frames) ? ref.frames[0] : null;
+          const wantsRocketWrites = refF0 && Array.isArray(refF0.memWrites) && refF0.memWrites.some(m => (m.addr === 0x4000 || m.addr === 0x4001));
+
+          if (wantsRocketWrites && refF0 && refF0.regs && typeof refF0.regs.PC === 'number') {
+            const refPC = refF0.regs.PC & 0xffff;
+            const ramOffset = refPC - 0x4000;
+
+            // If the parsed snapshot does not contain the loop at the
+            // reference PC, do NOT silently patch RAM. Instead, recommend
+            // regenerating the canonical parsed snapshot or explicitly
+            // opt-in to synthetic injection for diagnostics.
+            const hasLoopAtRef = (ramOffset >= 0 && ramOffset + 16 <= (ram.length || 0xC000) && Array.from(ram.slice(ramOffset, ramOffset + 16)).some(b => b !== 0x00));
+            if (!hasLoopAtRef) {
+              console.warn('[TraceDiag] reference expects rocket writes but parsed snapshot does not contain the ROM loop at 0x' + refPC.toString(16) + '.');
+              console.warn('[TraceDiag] To reproduce reference behavior temporarily, set ALLOW_SYNTHETIC_INJECTION=1 (not recommended for CI).');
+
+              // If explicitly allowed, perform the legacy synthetic injection
+              if (process.env.ALLOW_SYNTHETIC_INJECTION === '1' && !FORCE_SYNTHETIC) {
+                const loopCode = new Uint8Array([0x21,0x00,0x40, 0x3E,0xAA, 0x06,0x10, 0x77,0x23,0xD3,0xFE, 0x10,0xFA, 0xC3,0x03,0x80]);
+                if (ramOffset >= 0 && ramOffset + loopCode.length <= (ram.length || 0xC000)) {
+                  for (let i = 0; i < loopCode.length; i++) {
+                    ram[ramOffset + i] = loopCode[i] & 0xff;
+                    const pageIndex = 1 + Math.floor((ramOffset + i) / 0x4000);
+                    const pageOff = (ramOffset + i) % 0x4000;
+                    if (emu.memory.pages[pageIndex]) emu.memory.pages[pageIndex][pageOff] = loopCode[i] & 0xff;
+                  }
+                  console.log('[TraceDiag] (opt-in) injected synthetic loop at 0x' + refPC.toString(16));
+                }
+              }
+            }
+          }
+        }
+      } catch (e) { /* non-fatal; continue with loaded RAM */ }
     }
 
     // Create CPU if missing
@@ -105,7 +211,32 @@ async function main() {
 
     // Set registers
     const regs = parsed.snapshot.registers || {};
+
+    // Historically we seeded the CPU registers from the external
+    // jsspeccy reference before starting the capture.  That was done to
+    // compensate for the fact that the canonical trace file begins *after*
+    // a single warm-up frame, while the raw snapshot contains the state
+    // immediately at save-time.  Rather than force the emulator into a
+    // different initial state, we now simply execute the warm frame here
+    // so our first recorded frame aligns with the reference.
+    //
+    // The seeding code is left commented for reference but is disabled by
+    // default – it should only be used when reproducing older behaviour or
+    // when FORCE_SYNTHETIC is explicitly requested.
+    // const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
+    // console.log('[TraceDiag] seed-check FORCE_SYNTHETIC=', FORCE_SYNTHETIC, 'REF_EXISTS=', fs.existsSync(REF_TRACE_PATH));
+    // if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
+    //   try {
+    //     const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
+    //     if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs) {
+    //       console.log('[TraceDiag] seeding CPU registers from jsspeccy_reference_jetpac_trace.json (frame-0)');
+    //       Object.assign(regs, ref.frames[0].regs);
+    //     }
+    //   } catch (e) { console.log('[TraceDiag] seed-check parse error', e && e.message); /* ignore parse errors and continue with parsed snapshot */ }
+    // }
+
     const cpu = emu.cpu;
+    console.log('[TraceDiag] applying regs -> PC:', regs.PC, 'R:', regs.R, 'IFF1:', regs.IFF1, 'IFF2:', regs.IFF2);
     if (typeof regs.PC === 'number') cpu.PC = regs.PC & 0xffff;
     if (typeof regs.SP === 'number') cpu.SP = regs.SP & 0xffff;
     if (typeof regs.A === 'number') cpu.A = regs.A & 0xff;
@@ -129,6 +260,21 @@ async function main() {
     if (typeof regs.F2 === 'number') cpu.F_ = regs.F2 & 0xff;
     if (typeof regs.B2 === 'number') cpu.B_ = regs.B2 & 0xff;
     if (typeof regs.C2 === 'number') cpu.C_ = regs.C2 & 0xff;
+
+    // The legacy "force PC" block is no longer required now that we
+    // execute a warm-up frame above.  Leave it in place commented out in
+    // case someone wants to reproduce the previous behaviour or debug
+    // mismatched snapshots.
+    // try {
+    //   const REF_TRACE_PATH = path.resolve(process.cwd(), 'traces', 'jsspeccy_reference_jetpac_trace.json');
+    //   if (!FORCE_SYNTHETIC && fs.existsSync(REF_TRACE_PATH)) {
+    //     const ref = JSON.parse(fs.readFileSync(REF_TRACE_PATH, 'utf8'));
+    //     if (ref && Array.isArray(ref.frames) && ref.frames.length > 0 && ref.frames[0].regs && typeof ref.frames[0].regs.PC === 'number') {
+    //       cpu.PC = ref.frames[0].regs.PC & 0xffff;
+    //       console.log('[TraceDiag] forced cpu.PC to reference value 0x' + cpu.PC.toString(16));
+    //     }
+    //   }
+    // } catch (e) { /* non-fatal */ }
     if (typeof regs.D2 === 'number') cpu.D_ = regs.D2 & 0xff;
     if (typeof regs.E2 === 'number') cpu.E_ = regs.E2 & 0xff;
     if (typeof regs.H2 === 'number') cpu.H_ = regs.H2 & 0xff;
@@ -185,7 +331,20 @@ async function main() {
   const FRAMES = Number(process.env.FRAMES) || 200; // allow override from tests
   const TPF = 69888; // t-states per frame
 
+  // Optional: inject a keypress during capture to exercise in-game logic
+  // Configure via env: PRESS_FRAME (frame index) and PRESS_DURATION (frames)
+  const PRESS_FRAME = Math.max(-1, parseInt(process.env.PRESS_FRAME || '-1', 10));
+  const PRESS_DURATION = Math.max(1, parseInt(process.env.PRESS_DURATION || '2', 10));
+  if (PRESS_FRAME >= 0) console.log('[TraceDiag] will press key "5" at frame', PRESS_FRAME, 'for', PRESS_DURATION, 'frames');
+
   const frames = [];
+
+  // Take one warm-up frame to match the state captured by the
+  // original jsspeccy reference trace.  That trace starts with the CPU
+  // already having executed one full raster; without this the first frame
+  // in our local captures would be offset by a full frame and every
+  // subsequent comparison would require a manual index shift.
+  cpu.runFor(TPF);
 
   for (let f = 0; f < FRAMES; f++) {
     // Prepare frame
@@ -193,7 +352,19 @@ async function main() {
     cpu._microTraceEnabled = true;
     cpu._microLog = [];
     mem._memWrites = [];
-    emu._portWrites = [];
+    // reset per-frame contention log so trace frames include only this-frame events
+    mem._contentionLog = [];
+    emu._portWrites = [];    
+
+    // optionally press/release key around this frame
+    try {
+      if (PRESS_FRAME >= 0 && f === PRESS_FRAME) {
+        try { if (emu && emu.input && typeof emu.input.pressKey === 'function') { emu.input.pressKey('5'); console.log('[TraceDiag] injected pressKey("5") at frame', f); } } catch (e) { }
+      }
+      if (PRESS_FRAME >= 0 && f === (PRESS_FRAME + PRESS_DURATION - 1)) {
+        try { if (emu && emu.input && typeof emu.input.releaseKey === 'function') { emu.input.releaseKey('5'); console.log('[TraceDiag] injected releaseKey("5") at frame', f); } } catch (e) { }
+      }
+    } catch (e) { /* ignore */ }
 
     // Run one frame
     cpu.runFor(TPF);
@@ -214,7 +385,20 @@ async function main() {
 
     let memWrites = mem._memWrites ? mem._memWrites.slice() : [];
     const portWrites = emu._portWrites ? emu._portWrites.slice() : [];
-    const micro = cpu._microLog ? cpu._microLog.slice() : [];
+
+    // Limit micro-log size per frame to avoid producing excessively large
+    // JSON payloads. Tests only need a sample — keep the head and indicate
+    // if truncation occurred.
+    const MAX_MICRO_PER_FRAME = parseInt(process.env.MAX_MICRO_PER_FRAME || '2000', 10) || 2000;
+    let micro = [];
+    if (cpu._microLog && Array.isArray(cpu._microLog)) {
+      if (cpu._microLog.length > MAX_MICRO_PER_FRAME) {
+        micro = cpu._microLog.slice(0, MAX_MICRO_PER_FRAME);
+        micro._truncated = true; // marker for diagnostics
+      } else {
+        micro = cpu._microLog.slice();
+      }
+    }
 
     // NOTE: Synthetic memWrite append removed — memory writes should be
     // recorded deterministically by the emulator. If the second write is
@@ -223,18 +407,24 @@ async function main() {
     // Sound toggles (copy)
     const toggles = sound ? (sound._toggles ? sound._toggles.slice() : []) : [];
 
-    frames.push({ frame: f, startT: cpu.frameStartTstates, tstates: cpu.tstates, regs, memWrites, portWrites, micro, toggles });
+    // Include contention diagnostics so tests can compare against reference.
+    // Cap to MAX_CONTENTION_PER_FRAME entries to prevent huge trace files.
+    const MAX_CONTENTION_PER_FRAME = parseInt(process.env.MAX_CONTENTION_PER_FRAME || '50', 10) || 50;
+    const contentionLog = (mem._contentionLog || []).slice(0, MAX_CONTENTION_PER_FRAME);
+    const contentionHits = mem._contentionHits || 0;
+
+    frames.push({ frame: f, startT: cpu.frameStartTstates, tstates: cpu.tstates, regs, memWrites, portWrites, micro, toggles, contentionLog, contentionHits });
 
     // Periodic flush to disk to limit memory
     if ((f + 1) % 20 === 0) {
       const partialFile = path.join(outDir, `jetpac_trace_partial_frame_${f}.json`);
-      fs.writeFileSync(partialFile, JSON.stringify({ meta: { framesSoFar: f + 1 }, frames }, null, 2));
+      fs.writeFileSync(partialFile, JSON.stringify({ meta: { framesSoFar: f + 1 }, frames }));
       console.log(`Wrote partial trace up to frame ${f} -> ${partialFile}`);
     }
   }
 
   const outFile = path.join(outDir, 'jetpac_trace.json');
-  fs.writeFileSync(outFile, JSON.stringify({ meta: { frames: FRAMES, tstatesPerFrame: TPF }, frames }, null, 2));
+  fs.writeFileSync(outFile, JSON.stringify({ meta: { frames: FRAMES, tstatesPerFrame: TPF }, frames }));
   console.log('Wrote full trace to', outFile);
 }
 

@@ -175,6 +175,9 @@ playwright-report/
 test-results/
 playwright-report/data/
 traces/
+!traces/parsed_jetpac_snapshot.json
+!traces/jsspeccy_reference_jetpac_trace.json
+!traces/jsspeccy_reference_jetpac_trace.frames.json
 
 # Temporary debug/trace files
 tmp_*.mjs
@@ -222,3 +225,6 @@ tools/
 
 # Do not include shims and their contents
 tests/reference
+tmp/
+compare-traces.out
+tests/e2e/_artifacts/

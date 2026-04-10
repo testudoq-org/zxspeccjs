@@ -108,6 +108,7 @@ export class Loader {
     let version = 1;
     let hwMode = 0;
     let dataOffset = 30;
+    let snapTstates = 0; // T-state counter within the current frame (0 for v1)
 
     if (headerPC === 0 && len > 32) {
       // V2 or V3: extended header present
@@ -116,6 +117,20 @@ export class Loader {
       if (len > 34) hwMode = dv.getUint8(34);  // hardware mode
       version = extLen === 23 ? 2 : 3;
       dataOffset = 32 + extLen;                 // skip past extended header
+
+      // Restore T-state counter from interrupt counter bytes (55-57).
+      // Formula matches gasman/jsspeccy3 runtime/snapshot.js exactly:
+      //   tstateChunkSize = 69888 / 4 = 17472  (or 70908/4 for 128K/Pentagon)
+      //   tstates = (((b57+1)%4)+1)*chunkSize - (LE16(55)+1)
+      // For v2: hwMode < 3 means 48K; for v3: hwMode < 4 means 48K.
+      if (len > 57) {
+        const is48K = version === 2 ? hwMode < 3 : hwMode < 4;
+        const tstateChunkSize = Math.floor((is48K ? 69888 : 70908) / 4);
+        let t = (((dv.getUint8(57) + 1) % 4) + 1) * tstateChunkSize
+                - (dv.getUint16(55, true) + 1);
+        if (t >= tstateChunkSize * 4 || t < 0) t = 0;
+        snapTstates = t;
+      }
     } else {
       regs.PC = headerPC;
     }
@@ -128,15 +143,11 @@ export class Loader {
       // V1: raw or compressed 48K block starting at offset 30
       const raw = buf.subarray(30);
       if (v1Compressed) {
-        // Compressed: decompress up to 48K; stop at 00 ED ED 00 marker or end
-        let endIdx = raw.length;
-        for (let i = 0; i + 3 < raw.length; i++) {
-          if (raw[i] === 0x00 && raw[i + 1] === 0xED && raw[i + 2] === 0xED && raw[i + 3] === 0x00) {
-            endIdx = i;
-            break;
-          }
-        }
-        ramImage = this._z80Decompress(raw.subarray(0, endIdx), RAM_48K);
+        // Compressed: treat the entire data after header as compressed stream.
+        // Do NOT search for an internal terminator marker — some snapshots
+        // contain incidental 00 ED ED 00 sequences. Decompress the whole
+        // remainder to the expected 48K and pad with zeros if input runs out.
+        ramImage = this._z80Decompress(raw, RAM_48K);
       } else {
         // Uncompressed v1: take up to 48K from offset 30
         const available = Math.min(raw.length, RAM_48K);
@@ -144,10 +155,14 @@ export class Loader {
         ramImage.set(raw.subarray(0, available));
       }
     } else {
-      // V2/V3: paged memory blocks
-      // Allocate full 48K RAM (pages 4/5/8 for 48K; banks 0-7 for 128K)
+      // V2/V3: paged memory blocks (more robust mapping for 48K / 128K / +3 variants)
+      // Strategy:
+      //  - collect all page blocks into a temporary map keyed by page number
+      //  - after parsing, attempt the most-likely mappings (48K pages 8/4/5,
+      //    then 128K-style pages 3..10 -> banks 0..7 and bank->offset heuristics)
       ramImage = new Uint8Array(RAM_48K);
       let pos = dataOffset;
+      const pageMap = new Map(); // pageNum -> Uint8Array(16384)
 
       while (pos + 3 <= len) {
         const blockLen = dv.getUint16(pos, true);
@@ -167,30 +182,20 @@ export class Loader {
           pos += blockLen;
         }
 
-        // Map page number to 48K RAM offset
-        //  48K mode:  page 4 → 0x8000 (offset 0x4000 in RAM), page 5 → 0xC000 (offset 0x8000), page 8 → 0x4000 (offset 0x0000)
-        // 128K mode:  pages 3-10 → RAM banks 0-7 (we build a linear 48K for 48K games)
-        let ramOffset = -1;
-        if (hwMode <= 1) {
-          // 48K mode page mapping
-          if (pageNum === 8) ramOffset = 0x0000;     // 0x4000-0x7FFF → RAM offset 0
-          else if (pageNum === 4) ramOffset = 0x4000; // 0x8000-0xBFFF → RAM offset 0x4000
-          else if (pageNum === 5) ramOffset = 0x8000; // 0xC000-0xFFFF → RAM offset 0x8000
-        } else {
-          // 128K: pages 3..10 map to RAM banks 0..7
-          // For basic 48K playback, map bank 5→offset 0, bank 2→offset 0x4000, bank 0→offset 0x8000
-          const bank = pageNum - 3;
-          if (bank === 5) ramOffset = 0x0000;
-          else if (bank === 2) ramOffset = 0x4000;
-          else if (bank === 0) ramOffset = 0x8000;
-          // Other banks: skip for now (128K full support can be added later)
-        }
-
-        if (ramOffset >= 0 && ramOffset + PAGE_SIZE <= RAM_48K) {
-          const copyLen = Math.min(pageData.length, PAGE_SIZE);
-          ramImage.set(pageData.subarray(0, copyLen), ramOffset);
-        }
+        // store pageData for later, do not commit into ramImage yet
+        pageMap.set(pageNum, pageData);
       }
+
+      // delegate mapping to helper to keep parseZ80 smaller and easier to test
+      this._mapZ80PagesToRam(pageMap, ramImage);
+    }
+
+    // Diagnostic logging (temporary): report non-zero counts when debug flag set
+    if (ramImage && ((typeof globalThis !== 'undefined' && globalThis.process && globalThis.process.env && globalThis.process.env.Z80_DEBUG) || (typeof window !== 'undefined' && window.__ZX_DEBUG__))) {
+      const totalNonZero = (() => { let c = 0; for (let i = 0; i < ramImage.length; i++) if (ramImage[i] !== 0) c++; return c; })();
+      const screenNonZero = (() => { let c = 0; const screenLen = Math.min(6912, ramImage.length); for (let i = 0; i < screenLen; i++) if (ramImage[i] !== 0) c++; return c; })();
+      console.log('Decompressed RAM non-zero bytes:', totalNonZero);
+      console.log('Screen RAM non-zero bytes:', screenNonZero);
     }
 
     return {
@@ -199,9 +204,62 @@ export class Loader {
         ram: ramImage,
         registers: regs,
         version,
-        hwMode
+        hwMode,
+        tstates: snapTstates
       }
     };
+  }
+
+  /**
+   * Map parsed Z80 page blocks into the linear 48K ramImage used by the
+   * emulator.  Handles common 48K (.z80 v2) mappings and provides a
+   * best-effort mapping for 128K/+3 page-numbered snapshots (pages 3..10).
+   *
+   * @param {Map<number,Uint8Array>} pageMap
+   * @param {Uint8Array} ramImage
+   * @param {number} hwMode
+   */
+  static _mapZ80PagesToRam(pageMap, ramImage) {
+    const PAGE_SIZE = 16384;
+    const set = (pageNum, offset) => {
+      if (!pageMap.has(pageNum)) return false;
+      const pd = pageMap.get(pageNum);
+      ramImage.set(pd.subarray(0, Math.min(pd.length, PAGE_SIZE)), offset);
+      return true;
+    };
+
+    // Standard 48K .z80 v2/v3 page IDs (MUST be checked first — these IDs overlap
+    // the 3..10 range used by the 128K heuristic below):
+    //   ID 8 → CPU 0x4000–0x7FFF (screen RAM)     → ramImage offset 0x0000
+    //   ID 4 → CPU 0x8000–0xBFFF (main code/data) → ramImage offset 0x4000
+    //   ID 5 → CPU 0xC000–0xFFFF (upper data)     → ramImage offset 0x8000
+    //
+    // Discriminant: 48K snapshots NEVER include page ID 3 (128K bank 0); if page 3
+    // is absent but any standard 48K page is present, this is a 48K snapshot.
+    if (!pageMap.has(3) && (pageMap.has(8) || pageMap.has(4) || pageMap.has(5))) {
+      set(8, 0x0000);
+      set(4, 0x4000);
+      set(5, 0x8000);
+      return;
+    }
+
+    // 128K-style snapshots use page IDs 3..10 (without the 48K {4,5,8} set).
+    // Map commonly-used 128K banks into the 48K linear view.
+    const has128Pages = [...pageMap.keys()].some(p => p >= 3 && p <= 10);
+    if (has128Pages) {
+      const bankToPage = (bank) => bank + 3;
+      let applied = false;
+      applied = set(bankToPage(5), 0x0000) || applied; // bank5 = screen RAM at 0x4000
+      applied = set(bankToPage(2), 0x4000) || applied; // bank2 at 0x8000
+      applied = set(bankToPage(0), 0x8000) || applied; // bank0 at 0xC000
+      if (!applied) {
+        // Last-resort: sequential placement
+        set(3, 0x0000); set(6, 0x4000); set(9, 0x8000);
+      }
+      return;
+    }
+
+    // Nothing matched — leave ramImage zero-filled
   }
 
   /** Basic TAP parser. Returns an object with an array of blocks (Uint8Array).

@@ -71,6 +71,19 @@ Records architectural and implementation decisions for the ZX Spectrum emulator 
 ---
 2025-12-23 23:44:26 - Initial decisions logged from idea-for-project.md
 
+## 2026-02-19 — Memory-authoritative contention model
+
+### Decision: Centralise bus/contention timing in Memory (single source-of-truth)
+- **Context**: Multiple CPU code paths applied ad-hoc I/O contention adjustments; small inconsistencies produced R/tstate drift and broke timing‑sensitive game logic (Jetpac).
+- **Decision**: Make `memory._applyContention(addr, tstates)` the canonical API for contention. CPU will delegate contention application to Memory and avoid local contention tables except as an explicit, documented fallback.
+- **Rationale**: Centralising contention prevents duplicate/contradictory timing logic, improves testability, and makes trace diagnostics authoritative (stored in memory._contentionLog).
+- **Implementation notes**:
+  - Update CPU `_applyPortContention(port)` to call `memory._applyContention(baseAddr, this.tstates)` and only apply fallback table entries when `memory._applyContention` is not available.
+  - Expose `mem._contentionLog` and `mem._contentionHits` for diagnostics and regression tests.
+- **Files / tests**: `src/z80.mjs`, `src/memory.mjs`, `tests/unit/z80.port-contention.test.mjs`, `tests/scripts/capture_jetpac_trace.mjs`.
+- **Status**: Adopted (fixes implemented and unit-tested, 2026-02-19)
+
+
 ## 2026-02-06 — Housekeeping & enforcement
 
 - Standardized instruction-block enforcement across Copilot and RooCode (see PR #6).

@@ -15,7 +15,7 @@ describe('I/O contention (timing-accurate)', () => {
     emu.memory = mem;
 
     // Set CPU into first contended T-state (phase 0) so first _applyContention -> 6
-    cpu.tstates = mem._firstContended; // 14335
+    cpu.tstates = mem._firstContended; // 14336
 
     const before = cpu.tstates;
     // port 0x40FE -> high byte 0x40 contended; LSB 0 => ULA port

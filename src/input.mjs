@@ -86,6 +86,20 @@ const SPECIAL_COMBOS = {
   'Backspace': ['shift', '0'],  // DELETE = Caps Shift + 0
 };
 
+// Kempston joystick key mapping (active HIGH: 1 = pressed, 0 = released)
+// Arrow keys map to Kempston directions; Space and Enter set Kempston fire bit.
+// Bit 0 = Right, Bit 1 = Left, Bit 2 = Down, Bit 3 = Up, Bit 4 = Fire
+const KEMPSTON_CODE_MAP = Object.assign(Object.create(null), {
+  ArrowRight: 0x01,
+  ArrowLeft:  0x02,
+  ArrowDown:  0x04,
+  ArrowUp:    0x08,
+});
+// Key codes that also set Kempston fire (bit 4) in addition to their normal
+// ZX keyboard matrix action. Enter is the native Jetpac fire key (row 6 bit 0);
+// Space provides a natural PC alternative.
+const KEMPSTON_FIRE_CODES = new Set(['Space', 'Enter']);
+
 /**
  * Check if an event target is an editable element (input, textarea, contenteditable).
  * When user is typing in such elements, keyboard events should not be captured by the emulator.
@@ -132,6 +146,11 @@ export default class Input {
     this._onHiddenInput = null;
     this._onCompositionStart = null;
     this._onCompositionEnd = null;
+
+    // Kempston joystick state byte (active HIGH, bits 0-4)
+    // Updated by arrow-key and Space handlers in _keydown/_keyup.
+    // Read by the IO adapter via port 0x1F.
+    this.kempstonState = 0;
 
     // Clear seenKeyCodes on stop for clean state
     this._seenKeyCodes = new Map();
@@ -246,6 +265,7 @@ export default class Input {
     for (let i = 0; i < 8; i++) this.matrix[i] = DEFAULT_ROW;
     this.pressed.clear();
     this.comboPressed.clear();
+    this.kempstonState = 0;
     if (this._debug) console.log('[Input] Keyboard matrix reset');
   }
 
@@ -302,6 +322,18 @@ export default class Input {
     // (e.g., search input in Tape Library UI). Allow the event to propagate normally.
     if (isEditableTarget(e.target)) {
       return; // Let the input/textarea handle the event
+    }
+
+    // --- Kempston joystick: arrow keys set direction bits (return early) ---
+    const kempstonBit = KEMPSTON_CODE_MAP[e.code];
+    if (kempstonBit) {
+      this.kempstonState |= kempstonBit;
+      e.preventDefault();
+      return; // arrow keys only affect Kempston, not the ZX keyboard matrix
+    }
+    // Space/Enter also set Kempston fire (bit 4) but continue to ZX keyboard handling
+    if (KEMPSTON_FIRE_CODES.has(e.code)) {
+      this.kempstonState |= 0x10;
     }
 
     // Check for special combos first
@@ -377,6 +409,18 @@ export default class Input {
     // IMPORTANT: Do not capture keyboard events when user is typing in an editable element
     if (isEditableTarget(e.target)) {
       return; // Let the input/textarea handle the event
+    }
+
+    // --- Kempston joystick: arrow keys clear direction bits (return early) ---
+    const kempstonBit = KEMPSTON_CODE_MAP[e.code];
+    if (kempstonBit) {
+      this.kempstonState &= ~kempstonBit;
+      e.preventDefault();
+      return;
+    }
+    // Space/Enter clears Kempston fire bit, then continues to ZX keyboard handling
+    if (KEMPSTON_FIRE_CODES.has(e.code)) {
+      this.kempstonState &= ~0x10;
     }
 
     // Check for special combos first

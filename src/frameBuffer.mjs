@@ -110,16 +110,40 @@ export class FrameBuffer {
   }
   
   /**
-   * Fill buffer up to specified tstate
-   * Internal method that generates the frame buffer data
-   * Note: Full cycle-accuracy would require tracking every memory write with its tstate.
-   * This implementation focuses on getting correct final output.
+   * Fill buffer up to specified tstate with border colour.
+   * The ZX Spectrum ULA renders 224 T-states per scanline (128 pixel-fetch +
+   * 96 border/retrace). Total frame: 312 lines × 224 = 69888 T-states.
+   *
+   * Buffer layout per line (160 bytes):
+   *  - Border lines (top/bottom): 160 border colour bytes
+   *  - Main screen lines: left/right border handled by generateFromMemory
+   *
+   * This method fills border-only bytes from lastUpdateTstate up to currentTstate
+   * so that mid-frame border colour changes appear correctly.
    */
-  _fillBufferToTstate() {
-    // This is a simplified version - full cycle-accuracy would
-    // require tracking every memory write with its tstate.
-    // This implementation focuses on getting correct final output
-    // rather than mid-frame accuracy (which requires more complexity)
+  _fillBufferToTstate(currentTstate) {
+    const TSTATES_PER_LINE = 224;
+    const TOTAL_LINES = 312;
+    const FIRST_VISIBLE_LINE = 64;
+    const VISIBLE_LINES = BORDER_TOP_LINES + MAIN_SCREEN_LINES + BORDER_BOTTOM_LINES;
+
+    const startLine = Math.floor(this.lastUpdateTstate / TSTATES_PER_LINE);
+    const endLine = Math.floor(currentTstate / TSTATES_PER_LINE);
+
+    for (let line = startLine; line <= endLine && line < TOTAL_LINES; line++) {
+      this._fillBorderLine(line - FIRST_VISIBLE_LINE, VISIBLE_LINES);
+    }
+  }
+
+  /** Fill a single visible border line in the buffer. */
+  _fillBorderLine(visLine, visibleLines) {
+    if (visLine < 0 || visLine >= visibleLines) return;
+    const isBorderLine = visLine < BORDER_TOP_LINES || visLine >= BORDER_TOP_LINES + MAIN_SCREEN_LINES;
+    if (!isBorderLine) return;
+    const lineStart = visLine * 160;
+    for (let x = lineStart; x < lineStart + 160 && x < FRAME_BUFFER_SIZE; x++) {
+      this.buffer[x] = this.borderColour;
+    }
   }
   
   /**
@@ -131,17 +155,55 @@ export class FrameBuffer {
 
     // Obtain views from memory but operate on local copies so we do NOT
     // mutate the emulator's live RAM when performing renderer backfills.
-    const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
-    const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+    // Prefer the export helpers which read directly from the memory pages
+    // (avoid relying on any cached/_flatRam views that may be stale).
+    let bitmap;
+    let attrs;
 
-    if (!bitmapView || !attrsView) return;
+    // Prefer reading directly from the active RAM page (pages[1]) when available
+    // because it's the authoritative, up-to-date source. Fall back to the
+    // memory export helpers if pages[1] isn't present.
+    if (this.mem && this.mem.pages && this.mem.pages[1]) {
+      const page1 = this.mem.pages[1];
+      if (page1.length >= 0x1800) {
+        bitmap = new Uint8Array(page1.subarray(0x0000, 0x1800));
+      }
+      if (page1.length >= 0x1800 + 0x300) {
+        attrs = new Uint8Array(page1.subarray(0x1800, 0x1800 + 0x300));
+      }
+    }
 
-    // Make copies to avoid writing into the emulator memory (backfill must be local)
-    const bitmap = new Uint8Array(bitmapView);
-    const attrs = new Uint8Array(attrsView);
+    // Fallback to export helpers when direct page view isn't available
+    if (!bitmap) {
+      if (this.mem && typeof this.mem.exportScreenBitmap === 'function') {
+        bitmap = new Uint8Array(this.mem.exportScreenBitmap());
+      } else {
+        const bitmapView = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+        if (!bitmapView || bitmapView.length < 0x1800) return;
+        bitmap = new Uint8Array(bitmapView);
+      }
+    }
+
+    if (!attrs) {
+      if (this.mem && typeof this.mem.getAttributeView === 'function') {
+        attrs = new Uint8Array(this.mem.getAttributeView());
+      } else {
+        const attrsView = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+        if (!attrsView || attrsView.length < 0x300) return;
+        attrs = new Uint8Array(attrsView);
+      }
+    }
 
     // DEBUG: Optionally log a small sample of the bitmap for diagnostics
     this._debugBitmapSample(bitmap);
+
+    // Diagnostic: surface a bitmap sample at the Jetpac test marker coordinates
+    try {
+      const MARKER_Y = 80;
+      const xByte = 120 >> 3;
+      const bitmapAddr = ((MARKER_Y & 0x07) << 8) | (((MARKER_Y & 0x38) >> 3) << 5) | (((MARKER_Y & 0xC0) >> 6) << 11) | xByte;
+      try { console.log('[FB-DIAG] generateFromMemory bitmapAddr=', bitmapAddr, 'bitmapVal=', bitmap[bitmapAddr], 'mem.pages[1]=', (this.mem && this.mem.pages && this.mem.pages[1] ? this.mem.pages[1][bitmapAddr] : null)); } catch (e) { /* ignore */ }
+    } catch (e) { /* ignore */ }
 
     let ptr = 0;
     ptr = this._fillTopBorder(ptr);
@@ -207,6 +269,16 @@ export class FrameBuffer {
       for (let xByte = 0; xByte < 32; xByte++) {
         const bitmapAddr = (y0 << 8) | (y1 << 5) | (y2 << 11) | xByte;
         const attrAddr = (Math.floor(y / 8) * 32) + xByte;
+        // Diagnostic: log the marker cell write for deeper inspection (throttled)
+        if (y === 80 && xByte === (120 >> 3)) {
+          try {
+            // Only emit verbose marker logs when the FrameBuffer debug counter is small
+            // or when explicit test diagnostics are enabled to avoid flooding the
+            // browser console during heavy test activity.
+            const shouldLog = (this._debugCount <= 3) || (typeof globalThis !== 'undefined' && globalThis.__TEST__ && globalThis.__TEST__.frameBufferVerbose);
+            if (shouldLog) console.log('[FB-FILL] writing marker cell: y,xByte,bitmapAddr,bitmapVal,attrVal,ptr =', y, xByte, bitmapAddr, bitmap[bitmapAddr], attrs[attrAddr], ptr);
+          } catch (e) { /* ignore */ }
+        }
         this.buffer[ptr++] = bitmap[bitmapAddr];
         this.buffer[ptr++] = attrs[attrAddr];
       }
@@ -313,8 +385,12 @@ export class FrameRenderer {
     ({ bufferPtr, pixelPtr } = this._renderMainScreen(frameBuffer, buffer, bufferPtr, pixelPtr, palette, pixels, flashPhase));
     ({ bufferPtr, pixelPtr } = this._renderBottomBorder(buffer, bufferPtr, pixelPtr, palette, pixels));
 
-    // Draw to canvas
+    // Draw to canvas (measure render duration for diagnostics)
+    const _start = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
     this.ctx.putImageData(this.imageData, 0, 0);
+    const _end = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
+    try { this._lastRenderDuration = (_end - _start); } catch (e) { /* ignore */ }
+    try { if (typeof globalThis !== 'undefined' && globalThis.__TEST__) globalThis.__TEST__.lastRenderDuration = this._lastRenderDuration; } catch (e) { /* ignore */ }
 
     // Test hook: notify tests that a render finished
     try {

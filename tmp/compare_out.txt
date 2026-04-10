@@ -1,0 +1,1 @@
+ERROR: our trace not found or invalid: --rocket-diff

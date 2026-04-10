@@ -14,6 +14,14 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.Testudoq_token }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Block synthetic injection in CI
+        run: |
+          if [ -n "${ALLOW_SYNTHETIC_INJECTION:-}" ]; then
+            echo "ERROR: ALLOW_SYNTHETIC_INJECTION must not be set in CI" >&2
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,4 +47,20 @@ jobs:
           args: >-
             -Dsonar.organization=testudoq-org -Dsonar.projectKey=testudoq-org_zxspeccjs
         env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+  parsed-snapshot-parity:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Regenerate parsed Jetpac snapshot
+        run: node tests/scripts/regenerate_parsed_jetpac.mjs
+      - name: Check parsed snapshot parity
+        run: git --no-pager diff --exit-code -- traces/parsed_jetpac_snapshot.json

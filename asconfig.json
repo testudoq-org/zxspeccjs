@@ -1,0 +1,9 @@
+{
+  "extends": "assemblyscript/std/assembly.json",
+  "targets": {
+    "release": {
+      "outFile": "build/z80.wasm",
+      "sourceMap": true
+    }
+  }
+}

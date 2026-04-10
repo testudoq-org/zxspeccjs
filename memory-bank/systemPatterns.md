@@ -154,6 +154,15 @@ The ULA handles:
 **Key Principle**: ULA should NOT directly modify system variables in RAM (0x5C00+).
 The ROM is responsible for managing these. Previous bug: ULA was writing to FRAMES directly.
 
+### Contention timing — Memory-authoritative pattern
+
+- **Principle**: Memory is the single source-of-truth for bus contention and I/O timing.
+- **Pattern**: CPU should delegate contention handling to `memory._applyContention(addr, tstates)` rather than maintain separate ad-hoc contention tables. `memory` records `contentionLog` and `contentionHits` for diagnostics and regression testing.
+- **Why**: Centralising contention removes timing drift across code paths (prevents R-register desynchronisation), simplifies tests, and produces deterministic traces for trace‑parity comparisons.
+- **Tests**: Unit tests should assert that contention events are recorded near ULA OUT timings and that CPU tstates remain consistent with `mem._contentionLog`.
+- **Implementation pointers**: See `src/memory.mjs` (`_applyContention`, contention table) and `src/z80.mjs` (`_applyPortContention`) for the canonical call flow.
+
+
 ## Testing Patterns
 
 - Incremental testing of modules (console logs, browser dev tools)

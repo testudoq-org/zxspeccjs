@@ -1,0 +1,7 @@
+npm verbose cli C:\nvm4w\nodejs\node.exe C:\Users\steph\AppData\Roaming\nvm\v22.16.0\node_modules\npm\bin\npm-cli.js
+npm info using npm@11.7.0
+npm info using node@v22.16.0
+npm verbose title npm exec vitest run
+npm verbose argv "exec" "--" "vitest" "run"
+npm verbose logfile logs-max:10 dir:C:\Users\steph\AppData\Local\npm-cache\_logs\2026-03-03T01_57_02_848Z-
+npm verbose logfile C:\Users\steph\AppData\Local\npm-cache\_logs\2026-03-03T01_57_02_848Z-debug-0.log

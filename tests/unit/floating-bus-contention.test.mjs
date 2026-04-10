@@ -21,7 +21,7 @@ describe('Floating bus under contention', () => {
 
     // phase 0 (first pixel tstate) -> memory contention value 6
     cpu.frameStartTstates = 0;
-    cpu.tstates = mem._firstContended; // 14335
+    cpu.tstates = mem._firstContended; // 14336
 
     const before = cpu.tstates;
     const v = emu._readFloatingBus();

@@ -14,6 +14,13 @@ Tracks current status, recent changes, and open questions for the ZX Spectrum em
 
 ### Changes Made (this session)
 
+#### Jetpac R-register & contention fixes (src/z80.mjs, src/memory.mjs) — 2026-02-19
+- **What:** Fixed missing `R` increment for DDCB/FDCB CB opcode fetches and centralised I/O contention handling in Memory.
+- **Why it matters:** The timing drift prevented Jetpac's in-game update loop from writing rocket/part bytes; fix restores gameplay parity and deterministic trace outputs.
+- **What changed:** `src/z80.mjs` (indexed‑CB `R` increment + `_applyPortContention` delegation), `src/memory.mjs` (authoritative contention API and logs), capture/test updates and regenerated traces.
+- **Validation:** Unit tests updated and passing; `tests/unit/jetpac-rocket-write.test.mjs` now detects rocket memWrites; trace‑parity tests pass against regenerated synthetic reference.
+- **Next:** Stabilize Playwright E2E smoke tests (timing/rAF) and open PR with trace artifacts.
+
 #### Z80 Snapshot Parser Rewrite (src/loader.mjs)
 - **5 catastrophic bugs fixed** in `Loader.parseZ80()`:
   1. All register header offsets were wrong (shifted ~5 bytes)

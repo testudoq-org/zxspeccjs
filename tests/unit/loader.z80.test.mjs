@@ -1,12 +1,23 @@
 import { describe, test, expect } from 'vitest';
 import { Loader } from '../../src/loader.mjs';
+import fs from 'fs';
+import path from 'path';
 
 // ── Helper: build a valid Z80 v1 uncompressed snapshot ──
-function generateV1Uncompressed({ pc = 0x4000, sp = 0xFF00, a = 0x12, f = 0x34,
-  b = 0x56, c = 0x78, h = 0xAB, l = 0xCD, d = 0xDE, e = 0xF0,
-  i = 0x3F, r = 0x42, ix = 0x1234, iy = 0x5678,
-  iff1 = 1, iff2 = 1, im = 1, border = 7,
-  screenFill = 0xAA } = {}) {
+function generateV1Uncompressed(opts = {}) {
+  // Keep a single parameter in the function signature to satisfy linter/complexity
+  // rules; destructure defaults inside the body so callers don't need to change.
+  const {
+    pc = 0x4000,
+    sp = 0xFF00,
+    border = 7,
+    screenFill = 0xAA,
+    a = 0x12, f = 0x34,
+    b = 0x56, c = 0x78, h = 0xAB, l = 0xCD, d = 0xDE, e = 0xF0,
+    i = 0x3F, r = 0x42, ix = 0x1234, iy = 0x5678,
+    iff1 = 1, iff2 = 1, im = 1
+  } = opts;
+
   const header = new Uint8Array(30);
   const RAM_SIZE = 48 * 1024;
   header[0] = a;
@@ -254,6 +265,65 @@ describe('Loader.parseZ80 — V1 compressed', () => {
     const parsed = Loader.parseZ80(generateV1Compressed({ pc: 0x8000 }));
     expect(parsed.snapshot.registers.PC).toBe(0x8000);
   });
+
+  test('does not truncate decompression when incidental 00 ED ED 00 appears in stream', () => {
+    // Build a compressed v1 stream that contains an incidental terminator-like
+    // sequence in the middle of the compressed payload. Previously the parser
+    // sliced at that sequence and lost the remainder; it must now decompress
+    // the entire remainder to 48K.
+    const header = new Uint8Array(30);
+    // mark as a v1 snapshot (non-zero PC) and set compressed flag
+    header[6] = 0x00; header[7] = 0x40; // PC = 0x4000
+    header[12] = 0x20; // compressed flag
+
+    const compressed = [];
+    const PAGE = 16384;
+    // Partially fill first page with 0xAA using RLE blocks
+    let filled = 0;
+    while (filled < PAGE / 2) {
+      const cnt = Math.min(255, (PAGE / 2) - filled);
+      compressed.push(0xED, 0xED, cnt, 0xAA);
+      filled += cnt;
+    }
+
+    // Insert incidental terminator-like sequence here (should be ignored by parser)
+    compressed.push(0x00, 0xED, 0xED, 0x00);
+
+    // Finish first page with more 0xAA
+    let rem = PAGE - filled;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0xAA);
+      rem -= cnt;
+    }
+
+    // Page 2: fill with 0xCC (must be preserved)
+    rem = PAGE;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0xCC);
+      rem -= cnt;
+    }
+
+    // Page 3: zeros
+    rem = PAGE;
+    while (rem > 0) {
+      const cnt = Math.min(255, rem);
+      compressed.push(0xED, 0xED, cnt, 0x00);
+      rem -= cnt;
+    }
+
+    const data = new Uint8Array(compressed);
+    const out = new Uint8Array(30 + data.length);
+    out.set(header, 0);
+    out.set(data, 30);
+
+    const parsed = Loader.parseZ80(out.buffer);
+    // First page should be 0xAA and second page should be 0xCC — i.e. the
+    // parser did not stop at the incidental marker.
+    expect(parsed.snapshot.ram[0]).toBe(0xAA);
+    expect(parsed.snapshot.ram[16384]).toBe(0xCC);
+  });
 });
 
 describe('Loader.parseZ80 — V2 compressed pages', () => {
@@ -283,6 +353,127 @@ describe('Loader.parseZ80 — V2 compressed pages', () => {
     expect(parsed.snapshot.registers.F).toBe(0x22);
     expect(parsed.snapshot.registers.I).toBe(0x3F);
   });
+
+  test('handles 128K-style page blocks (pages 3..10) and maps banks to 48K offsets', () => {
+    // Build a V2-style snapshot but include page numbers 3,5,8 (which correspond
+    // to 128K banks 0,2,5). Parser should map bank5->ramOffset0, bank2->0x4000, bank0->0x8000
+    const PAGE_SIZE = 16384;
+    const header = new Uint8Array(30);
+    header[6] = 0; header[7] = 0; // PC=0 -> extended header
+    header[29] = 1;
+
+    const extHeaderLen = 23;
+    const extHeader = new Uint8Array(2 + extHeaderLen);
+    extHeader[0] = extHeaderLen & 0xFF;
+    extHeader[1] = (extHeaderLen >> 8) & 0xFF;
+    extHeader[2] = 0x00; // PC low
+    extHeader[3] = 0x80; // PC high (0x8000)
+    extHeader[4] = 0x02; // hwMode > 1 (128K-like)
+
+    // Create three uncompressed page blocks: page 3, page 5, page 8
+    const pages = [ { pn: 3, val: 0x11 }, { pn: 5, val: 0x22 }, { pn: 8, val: 0x33 } ];
+    const blocks = [];
+    for (const p of pages) {
+      const header3 = new Uint8Array(3);
+      header3[0] = 0xFF; header3[1] = 0xFF; // 0xFFFF marker = uncompressed
+      header3[2] = p.pn;
+      const pageData = new Uint8Array(PAGE_SIZE).fill(p.val);
+      blocks.push(header3, pageData);
+    }
+
+    // Assemble file
+    let totalLen = header.length + extHeader.length;
+    for (const b of blocks) totalLen += b.length;
+    const out = new Uint8Array(totalLen);
+    let off = 0;
+    out.set(header, off); off += header.length;
+    out.set(extHeader, off); off += extHeader.length;
+    for (const b of blocks) { out.set(b, off); off += b.length; }
+
+    const parsed = Loader.parseZ80(out.buffer);
+    // bank 5 (pageNum 8) -> RAM offset 0
+    expect(parsed.snapshot.ram[0]).toBe(0x33);
+    // bank 2 (pageNum 5) -> RAM offset 0x4000
+    expect(parsed.snapshot.ram[0x4000]).toBe(0x22);
+    // bank 0 (pageNum 3) -> RAM offset 0x8000
+    expect(parsed.snapshot.ram[0x8000]).toBe(0x11);
+  });
+
+  test('detects version 3 when extended header length != 23', () => {
+    const PAGE_SIZE = 16384;
+    const extHeaderLen = 55; // v3
+
+    const header = new Uint8Array(30);
+    header[6] = 0; header[7] = 0; // indicate v2/v3 via PC=0
+    header[29] = 1; // IM
+
+    const extHeader = new Uint8Array(2 + extHeaderLen);
+    extHeader[0] = extHeaderLen & 0xFF;
+    extHeader[1] = (extHeaderLen >> 8) & 0xFF;
+    extHeader[2] = 0x00; // PC low
+    extHeader[3] = 0x80; // PC high (0x8000)
+    extHeader[4] = 0x03; // hwMode indicating +3-like model
+
+    // single uncompressed page block (page 8)
+    const blockHeader = new Uint8Array(3);
+    blockHeader[0] = 0xFF; blockHeader[1] = 0xFF; blockHeader[2] = 8;
+    const pageData = new Uint8Array(PAGE_SIZE).fill(0x7F);
+
+    const out = new Uint8Array(header.length + extHeader.length + blockHeader.length + pageData.length);
+    let off = 0;
+    out.set(header, off); off += header.length;
+    out.set(extHeader, off); off += extHeader.length;
+    out.set(blockHeader, off); off += blockHeader.length;
+    out.set(pageData, off);
+
+    const parsed = Loader.parseZ80(out.buffer);
+    expect(parsed.snapshot.version).toBe(3);
+    expect(parsed.snapshot.hwMode).toBe(3);
+    expect(parsed.snapshot.ram[0]).toBe(0x7F);
+  });
+
+  test('handles +3-style (v3) snapshots with 128K pages mapping', () => {
+    const PAGE_SIZE = 16384;
+    const extHeaderLen = 55; // v3
+
+    const header = new Uint8Array(30);
+    header[6] = 0; header[7] = 0; // PC=0 -> extended header
+    header[29] = 1;
+
+    const extHeader = new Uint8Array(2 + extHeaderLen);
+    extHeader[0] = extHeaderLen & 0xFF;
+    extHeader[1] = (extHeaderLen >> 8) & 0xFF;
+    extHeader[2] = 0x00; // real PC low
+    extHeader[3] = 0x80; // real PC high
+    extHeader[4] = 0x03; // hwMode = +3
+
+    // Create three uncompressed page blocks: page 3, page 5, page 8
+    const pages = [ { pn: 3, val: 0x11 }, { pn: 5, val: 0x22 }, { pn: 8, val: 0x33 } ];
+    const blocks = [];
+    for (const p of pages) {
+      const header3 = new Uint8Array(3);
+      header3[0] = 0xFF; header3[1] = 0xFF; // uncompressed
+      header3[2] = p.pn;
+      const pageData = new Uint8Array(PAGE_SIZE).fill(p.val);
+      blocks.push(header3, pageData);
+    }
+
+    let totalLen = header.length + extHeader.length;
+    for (const b of blocks) totalLen += b.length;
+    const out = new Uint8Array(totalLen);
+    let off = 0;
+    out.set(header, off); off += header.length;
+    out.set(extHeader, off); off += extHeader.length;
+    for (const b of blocks) { out.set(b, off); off += b.length; }
+
+    const parsed = Loader.parseZ80(out.buffer);
+    // bank 5 (pageNum 8) -> RAM offset 0
+    expect(parsed.snapshot.ram[0]).toBe(0x33);
+    // bank 2 (pageNum 5) -> RAM offset 0x4000
+    expect(parsed.snapshot.ram[0x4000]).toBe(0x22);
+    // bank 0 (pageNum 3) -> RAM offset 0x8000
+    expect(parsed.snapshot.ram[0x8000]).toBe(0x11);
+  });
 });
 
 describe('Loader.parseZ80 — V2 uncompressed pages', () => {
@@ -296,6 +487,22 @@ describe('Loader.parseZ80 — V2 uncompressed pages', () => {
 });
 
 describe('Loader.parseZ80 — edge cases', () => {
+
+  test('real Jetpac snapshot has expected PC/R values (regression guard)', () => {
+    // This verifies the loader does not regress on actual snapshot files that
+    // are used by the trace suite.  The values were inspected manually when
+    // the Jetpac snapshot was downloaded.
+    const snapPath = path.resolve('traces', 'jetpac.z80');
+  if (!fs.existsSync(snapPath)) {
+    // skip if the test repository doesn't contain the snapshot
+    return;
+  }
+  const buf = fs.readFileSync(snapPath);
+    const parsed = Loader.parseZ80(buf.buffer);
+    const r = parsed.snapshot.registers;
+    expect(r.PC).toBe(29026);
+    expect(r.R).toBe(161);
+  });
   test('returns null ram for files shorter than 30 bytes', () => {
     const parsed = Loader.parseZ80(new ArrayBuffer(10));
     expect(parsed.snapshot.ram).toBeNull();

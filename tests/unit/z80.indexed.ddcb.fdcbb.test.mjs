@@ -23,10 +23,25 @@ describe('Z80 DDCB/FDCB index operations (representative)', () => {
     mem.write(addr, 0x80);
 
     // DDCB d=0 opcode RLC = 0x00
+    cpu.R = 0; // start R at 0 to observe increments
     runIndexedCB(mem, cpu, 0xDD, 0x00, 0x00);
 
     expect(mem.read(addr)).toBe(0x01);
     expect((cpu.F & 0x01)).toBe(1); // carry set
+    // DDCB should increment R for the DD prefix fetch + opcode + CB opcode (total +3 M1 increments)
+    expect(cpu.R & 0x7F).toBe(3);
+  });
+
+  it('FDCB increments R for CB opcode fetch (IY indexed)', () => {
+    const mem = new Memory();
+    const cpu = new Z80(mem);
+    const addr = 0x6100;
+    cpu.IY = addr;
+    mem.write(addr, 0x00);
+
+    cpu.R = 0;
+    runIndexedCB(mem, cpu, 0xFD, 0x00, 0x7E); // BIT 7,(IY+0)
+    expect(cpu.R & 0x7F).toBe(3);
   });
 
   it('BIT 7,(IY+d) sets Z via FDCB', () => {

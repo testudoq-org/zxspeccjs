@@ -13,6 +13,9 @@
         "test:integration": "vitest run --dir tests/integration",
         "test:e2e": "npx playwright test tests/e2e",
         "test:e2e:smoke": "npx playwright test tests/e2e --grep \"@smoke\"",
+        "reference:generate": "node tests/scripts/generate_jsspeccy_reference.mjs",
+        "reference:capture": "node tests/reference/jsspeccy/run_reference_capture.mjs",
+        "reference:compare": "node tests/reference/frame_compare.mjs",
         "sonar:local": "sonar-scanner",
         "sonar:cloud:local": "sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${SONAR_TOKEN}",
         "verify:local": "npm run lint && npm run test:unit && npm run test:e2e:smoke && node scripts/run-codacy-if-available.mjs",
@@ -21,7 +24,8 @@
         "setup-and-dev": "npm install --legacy-peer-deps && npm run dev",
         "debug:boot": "node tests/scripts/comprehensive_boot_sequence_test.mjs",
         "ensure-instruction-blocks": "node scripts/ensure-instruction-blocks.mjs",
-        "prepare": "husky install"
+        "prepare": "husky install",
+        "asm:check": "node -e \"console.log('AssemblyScript samples present: examples/wasm')\""
     },
     "vitest": {
         "exclude": [

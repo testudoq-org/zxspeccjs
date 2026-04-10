@@ -1,0 +1,33 @@
+[run_reference_capture] local server listening on 9000
+[run_reference_capture] page debug => {
+  hasJSSpeccy: 'function',
+  hasCreate: 'undefined',
+  hasEmu: 'object',
+  hasDiv: true
+}
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[run_reference_capture] patched worker http://localhost:9000/tests/reference/jsspeccy/extracted/jsspeccy3-3.2/static/jsspeccy/jsspeccy-worker.js
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] Failed to load resource: the server responded with a status of 404 (Not Found)
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 1 => false
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 2 => false
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 3 => false
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 4 => false
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 5 => false
+[PAGE] [run_reference_capture][inject] used loadSnapshotFromStruct returned undefined
+[run_reference_capture] snapshot injection attempt 6 => false
+failed to load Jetpac snapshot into reference page page.waitForTimeout: Target page, context or browser has been closed
+Reference capture failed page.evaluate: Target page, context or browser has been closed
+    at main (D:\Code\GitHub\zxspeccjs\tests\reference\jsspeccy\run_reference_capture.mjs:280:14)
