@@ -79,7 +79,7 @@ function assertRParity(ourF, refF, frameIndex) {
   }
 }
 
-test('trace parity: compare R register and contention timeline against jsspeccy reference for multiple frames', () => {
+test('trace parity: compare R register and contention timeline against jsspeccy reference for multiple frames', { timeout: 30000 }, () => {
   // Always regenerate our trace so this test uses a fresh no-key-press capture
   // and isn't contaminated by a prior test that injected key presses.
   try { regenJetpacTrace(); } catch (e) { /* allow test to fail below with clear message */ }

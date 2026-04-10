@@ -253,9 +253,9 @@ describe('ULA memory contention', () => {
   it('should apply contention on later scanlines correctly', () => {
     const { cpu, mem } = makeCPUContended();
     cpu.frameStartTstates = 0;
-    // Scanline 100 starts at T=14336 + 100*224 = 36735
+    // Scanline 100 starts at T=14336 + 100*224 = 36736
     // Phase 0 of scanline 100 → expect 6 T-states delay
-    cpu.tstates = 36735;
+    cpu.tstates = 36736;
 
     const before = cpu.tstates;
     mem._applyContention(0x5000);
