@@ -1,4 +1,118 @@
-**Comprehensive review of the raw files (as of main branch, April 2026) for call sites, memory views, post-load refresh, and the "(and everything else)" issues that prevent Jetpac (and other snapshots) from displaying + playing completely.**
+
+
+
+
+**Still in progress**
+
+on the `investigate/test-coverage-codacy-issues` branch:
+
+---
+
+**Task: Improve test coverage, fix Codacy/ESLint issues, and make E2E smoke test reliable on branch `investigate/test-coverage-codacy-issues`**
+
+Current status:
+
+- Unit tests: 359 passed, 1 skipped
+- E2E smoke: 9 passed, 1 failing (`tape-library.spec.mjs` — "should search, select, and load a tape from Archive.org @smoke")
+- Coverage gaps especially in: `debug-ui.mjs` (0%), `romManager.mjs` (~2%), `archiveClient.mjs` (~15%), `main.mjs` (36%), `loader.mjs` (40%), `z80.mjs` (66%), `ula.mjs` (76%), `memory.mjs` (75%)
+- High Codacy/ESLint issues: `memory.mjs` (79 issues), `ula.mjs` (35 issues)
+- High complexity in `z80.mjs`: `_executeCBOperation`, `_applyPortContention`, DDCB/FDCB handlers
+
+**Requirements – Do these in priority order:**
+
+1. **Fix the failing E2E smoke test (`tests/e2e/tape-library.spec.mjs`)**
+
+   - Make it resilient to network/Archive.org flakiness.
+   - Add proper waiting with timeout + retries for PC reaching 0x4000.
+   - Consider mocking the archive response for the smoke test or add a fallback to a small local tape if the network call fails.
+   - Keep the `@smoke` tag but ensure it passes reliably in CI.
+2. **Clean up ESLint / Codacy issues**
+
+   - Fix all `no-unused-vars`, `no-console`, `no-empty`, `no-undef`, etc. in `memory.mjs` and `ula.mjs`.
+   - Remove or properly handle console statements (use a debug flag if needed).
+   - Do not introduce new complexity while cleaning.
+3. **Reduce complexity in `z80.mjs`**
+
+   - Refactor `_executeCBOperation`, `_applyPortContention`, and the DDCB/FDCB blocks to lower cyclomatic complexity (aim for <15 per function where possible).
+   - Extract helper functions (e.g. bit operations, shift/rotate tables, contention logic) without changing behaviour.
+4. **Significantly improve test coverage**
+
+   - Target >80% line/branch coverage on core files: `z80.mjs`, `ula.mjs`, `memory.mjs`, `loader.mjs`, `frameBuffer.mjs`.
+   - Add meaningful unit tests for `debug-ui.mjs`, `romManager.mjs`, and `archiveClient.mjs`.
+   - Add more tests for snapshot loading, memory banking, ULA frame generation, and port contention.
+5. **General improvements**
+
+   - Ensure the emulation still loads and runs Jetpac and other snapshots perfectly (no regression in display, speed, or sound).
+   - Keep the deferred rendering path (`useDeferredRendering: true`) working.
+   - Maintain exact behavioural compatibility with the JSSpeccy3 gold standard.
+
+**After all changes are done, before any commit, you MUST run:**
+
+```bash
+npm run test:unit && npx playwright test tests/e2e --grep @smoke && codacy-analysis-cli analyze --upload
+```
+
+Only commit if **all three commands pass cleanly**.
+
+Work incrementally: fix one area at a time, run the test command after each major change, and verify no regressions on Jetpac loading and gameplay.
+
+Start by examining the current failing E2E test and the files with highest issue counts (`memory.mjs`, `ula.mjs`, `z80.mjs`).
+
+---
+
+
+Here's the full status overview:
+
+---
+
+## Current State Summary
+
+### Unit Tests: **359 passed, 1 skipped** (clean)
+
+### E2E Smoke: **9 passed, 1 failed**
+
+* The failing test is [tape-library.spec.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html) — "should search, select, and load a tape from Archive.org @smoke". It times out waiting for [PC === 0x4000](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html) after loading. This is network-dependent (fetches from Archive.org).
+
+### Coverage (v8):
+
+| File                                                                                                                                                                                     | Stmts | Branch | Funcs | Lines |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------ | ----- | ----- |
+| **debug-ui.mjs**                                                                                                                                                                   | 0%    | 0%     | 0%    | 0%    |
+| **romManager.mjs**                                                                                                                                                                 | 2.4%  | 0%     | 0%    | 3%    |
+| **archiveClient.mjs**                                                                                                                                                              | 15%   | 7.5%   | 8.7%  | 15%   |
+| **main.mjs**                                                                                                                                                                       | 36%   | 33%    | 36%   | 36%   |
+| **loader.mjs**                                                                                                                                                                     | 40%   | 36%    | 66%   | 43%   |
+| **input.mjs**                                                                                                                                                                      | 52%   | 52%    | 53%   | 63%   |
+| **sound.mjs**                                                                                                                                                                      | 54%   | 49%    | 67%   | 54%   |
+| **z80.mjs**                                                                                                                                                                        | 61%   | 63%    | 86%   | 66%   |
+| **[memory.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html)** | 72%   | 73%    | 72%   | 75%   |
+| **ula.mjs**                                                                                                                                                                        | 72%   | 44%    | 67%   | 76%   |
+| **frameBuffer.mjs**                                                                                                                                                                | 84%   | 63%    | 81%   | 84%   |
+
+### Codacy Issues (src files):
+
+| File                                                                                                                                                                                     | ESLint           | Lizard (complexity) | Security |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------- | -------- |
+| **z80.mjs**                                                                                                                                                                        | 2 (empty blocks) | 8 (high CCN + LOC)  | 0        |
+| **ula.mjs**                                                                                                                                                                        | 35               | 2                   | 0        |
+| **[memory.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html)** | 79               | 0                   | 0        |
+
+### Areas to Investigate (prioritized):
+
+1. **E2E tape-library @smoke failure** — Network-dependent test failing on tape load; could make it more resilient or reclassify as `@regression`
+2. **ESLint issues in [memory.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html) (79)** and **ula.mjs (35)** — Likely `no-unused-vars`, [no-console](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html), `no-empty` etc.
+3. **Coverage on critical files** — `z80.mjs` (66% lines), [ula.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html) (76%), [memory.mjs](vscode-file://vscode-app/c:/Users/steph/AppData/Local/Programs/Microsoft%20VS%20Code/41dd792b5e/resources/app/out/vs/code/electron-browser/workbench/workbench.html) (75%) are the emulation core
+4. **Complexity in z80.mjs** — `_executeCBOperation` (CCN 29), `_applyPortContention` (CCN 29), DDCB/FDCB operations (CCN 17 each)
+5. **Near-zero coverage files** — `debug-ui.mjs`, `romManager.mjs`, `archiveClient.mjs` have <15% coverage
+
+
+---
+
+
+
+Below has been fixed - 11/04/2026**
+
+Comprehensive review of the raw files (as of main branch, April 2026) for call sites, memory views, post-load refresh, and the "(and everything else)" issues that prevent Jetpac (and other snapshots) from displaying + playing completely.**
 
 I reviewed the exact raw source from these files (full verbatim where fetched; focused sections where files are long):
 

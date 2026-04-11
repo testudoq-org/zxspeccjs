@@ -185,55 +185,51 @@ export class ULA {
   // Port read from CPU. Implement 0xFE keyboard scanning (rows selected via high byte of port)
   readPort(port) {
     const p = port & 0xff;
-    if (p === 0xfe) {
-      // The ZX Spectrum samples the upper address lines to select keyboard rows (active low).
-      const high = (port >> 8) & 0xff;
-      // Start with all bits high (no key pressed). 
-      // Bits 0-4 correspond to keys in the selected rows.
-      // Bit 5: tape EAR input (1 = no signal)
-      // Bits 6-7: always 1
-      let result = 0xff;
-      // For each row: if the corresponding bit in high is zero (selected), AND the row matrix
-      for (let row = 0; row < 8; row++) {
-        if (((high >> row) & 0x01) === 0) {
-          result &= this.keyMatrix[row];
-        }
+    if (p !== 0xfe) return 0xff;
+
+    const high = (port >> 8) & 0xff;
+    let result = 0xff;
+    for (let row = 0; row < 8; row++) {
+      if (((high >> row) & 0x01) === 0) {
+        result &= this.keyMatrix[row];
       }
-      // Ensure upper bits are set correctly (tape EAR = 1, bits 6-7 = 1)
-      result |= 0b11100000;
-      
-      // Debug: log when any key is detected (result bits 0-4 not all 1)
-      if (this._debug && (result & 0x1f) !== 0x1f) {
-        console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, keyMatrix=[${Array.from(this.keyMatrix).map(v=>'0x'+v.toString(16)).join(',')}], result=0x${result.toString(16)}`);
-      }
-      
-      // Track port read statistics for debugging keyboard issues
-      try {
-        if (typeof window !== 'undefined') {
-          window.__KEYBOARD_DEBUG__ = window.__KEYBOARD_DEBUG__ || { reads: 0, lastResult: null, lastPort: null };
-          window.__KEYBOARD_DEBUG__.reads++;
-          window.__KEYBOARD_DEBUG__.lastResult = result;
-          window.__KEYBOARD_DEBUG__.lastPort = port;
-          // Only log every 1000th read to avoid spam, but always log if key detected
-          if ((result & 0x1f) !== 0x1f) {
-            window.__KEYBOARD_DEBUG__.lastKeyDetected = { port, high, result, t: Date.now() };
-          }
-        }
-      } catch (e) { /* ignore */ }
-      
-      // Test hook: capture port reads for diagnostics
-      try {
-        if (typeof window !== 'undefined' && window.__TEST__) {
-          window.__TEST__.portReads = window.__TEST__.portReads || [];
-          window.__TEST__.portReads.push({ port: port & 0xffff, high, result: result & 0xff, t: (this.cpu && this.cpu.tstates) || 0 });
-          if (window.__TEST__.portReads.length > 256) window.__TEST__.portReads.shift();
-        }
-      } catch (e) { /* ignore */ }
-      
-      return result & 0xff;
     }
-    // Unhandled ports return 0xff by default
-    return 0xff;
+    result |= 0b11100000;
+
+    this._instrumentPortRead(port, high, result);
+
+    return result & 0xff;
+  }
+
+  /** Extracted port-read instrumentation to reduce readPort complexity */
+  _instrumentPortRead(port, high, result) {
+    if (this._debug && (result & 0x1f) !== 0x1f) {
+      try { console.log(`[ULA] readPort(0x${port.toString(16)}): high=0x${high.toString(16)}, result=0x${result.toString(16)}`); } catch { /* ignore */ }
+    }
+    try {
+      if (typeof window === 'undefined') return;
+      this._trackKeyboardDebug(port, high, result);
+      this._trackPortReadTest(port, high, result);
+    } catch { /* ignore */ }
+  }
+
+  /** Track keyboard debug stats on window */
+  _trackKeyboardDebug(port, high, result) {
+    if (!window.__KEYBOARD_DEBUG__) window.__KEYBOARD_DEBUG__ = { reads: 0, lastResult: null, lastPort: null };
+    window.__KEYBOARD_DEBUG__.reads++;
+    window.__KEYBOARD_DEBUG__.lastResult = result;
+    window.__KEYBOARD_DEBUG__.lastPort = port;
+    if ((result & 0x1f) !== 0x1f) {
+      window.__KEYBOARD_DEBUG__.lastKeyDetected = { port, high, result, t: Date.now() };
+    }
+  }
+
+  /** Track port reads for test harness */
+  _trackPortReadTest(port, high, result) {
+    if (!window.__TEST__) return;
+    window.__TEST__.portReads = window.__TEST__.portReads || [];
+    window.__TEST__.portReads.push({ port: port & 0xffff, high, result: result & 0xff, t: (this.cpu && this.cpu.tstates) || 0 });
+    if (window.__TEST__.portReads.length > 256) window.__TEST__.portReads.shift();
   }
 
   // Helper for input module: set key state in matrix
@@ -260,83 +256,71 @@ export class ULA {
 
   // Main render routine: read bitmap and attributes from memory and write to canvas ImageData
   render() {
-    // Update flash timing
     this._updateFlash();
+    this._logFirstRender();
 
-    // Diagnostic: on first render, capture CHARS pointer and glyph bytes for 0x7F/0x80
-    if (!this._firstRenderLogged) {
-      this._firstRenderLogged = true;
-      try {
-        const lo = this.mem.read(0x5C36);
-        const hi = this.mem.read(0x5C37);
-        const chars = (hi << 8) | lo;
-        const glyphs = {};
-        [0x7f, 0x80].forEach(code => {
-          const bytes = [];
-          for (let i = 0; i < 8; i++) bytes.push(this.mem.read((chars + code*8 + i) & 0xffff));
-          glyphs[code] = bytes;
-        });
-        if (typeof console !== 'undefined' && console.log) console.log('[ULA] CHARS pointer:', '0x' + chars.toString(16).padStart(4,'0'), 'glyphs:', glyphs);
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.charsDiag = { chars, glyphs, t: Date.now(), pc: (window.__LAST_PC__||null) }; } catch (e) { /* ignore */ }
-      } catch (e) {
-        console.warn('[ULA] chars diagnostic failed', e);
-      }
-    }
-    
     // Use deferred rendering if enabled (JSSpeccy3 style)
     if (this.useDeferredRendering && this.frameBuffer && this.frameRenderer) {
-      // Generate frame buffer from current memory state
-      this.frameBuffer.setBorder(this.border);
-      this.frameBuffer.generateFromMemory();
-      this.frameBuffer.endFrame(this.tstatesPerFrame);
-      
-      // Render frame buffer to canvas
-      this.frameRenderer.render(this.frameBuffer, this.frameBuffer.getFlashPhase());
-      
-      // Start new frame
-      this.frameBuffer.startFrame();
+      this._renderDeferred();
       return;
     }
-    
-    // Legacy immediate rendering
-    // DEBUG: log render call
-    // console.log('[ULA] render called');
 
-    const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null; // 6912 bytes: arranged in Spectrum scanline order
-    const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null; // 768 bytes
+    this._renderLegacy();
+  }
 
-    if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__._lastRenderContext = { useDeferred: this.useDeferredRendering, t: Date.now(), pc: (window.__LAST_PC__ || null) };
+  /** Deferred rendering path (JSSpeccy3 style) */
+  _renderDeferred() {
+    this.frameBuffer.setBorder(this.border);
+    this.frameBuffer.generateFromMemory();
+    this.frameBuffer.endFrame(this.tstatesPerFrame);
+    this.frameRenderer.render(this.frameBuffer, this.frameBuffer.getFlashPhase());
+    this.frameBuffer.startFrame();
+  }
 
-    // NOTE: Display memory initialization moved to _initializeDisplayMemory() in constructor
-    // Do NOT clear display memory here - this was causing duplicate copyright glyphs
-    // by overwriting ROM's display output. The _initialized flag is now set in
-    // _initializeDisplayMemory() to prevent any accidental re-initialization.
+  /** Legacy immediate rendering path: read bitmap/attrs and blit to canvas */
+  _renderLegacy() {
+    const bitmap = this.mem.getBitmapView ? this.mem.getBitmapView() : null;
+    const attrs = this.mem.getAttributeView ? this.mem.getAttributeView() : null;
+
+    this._trackRenderTestContext();
+
     if (!this._initialized) {
-      // First render after construction - just mark as initialized, don't clear memory
-      // ROM boot sequence manages display content; clearing here erases copyright message
       this._initialized = true;
-      console.log('[ULA] First render - display ready (not clearing to preserve ROM output)');
     }
 
-    if (!bitmap || !attrs) {
-      console.warn('[ULA] render: missing bitmap or attrs', bitmap, attrs);
-      return;
-    }
+    if (!bitmap || !attrs) return;
+
+    const img = this.image.data;
+    this._renderLegacyPixels(bitmap, attrs, img);
+    this.ctx.putImageData(this.image, 0, 0);
+
+    this._notifyFrameRendered();
+  }
+
+  /** Record test context for render diagnostics */
+  _trackRenderTestContext() {
+    try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__._lastRenderContext = { useDeferred: this.useDeferredRendering, t: Date.now(), pc: (window.__LAST_PC__ || null) }; } catch { /* ignore */ }
+  }
+
+  /** Notify test harness that a frame was rendered */
+  _notifyFrameRendered() {
+    try {
+      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameRendered === 'function') {
+        window.__TEST__.frameRendered();
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Render 256x192 pixels from bitmap/attrs into ImageData array */
+  _renderLegacyPixels(bitmap, attrs, img) {
     const width = 256;
     const height = 192;
-    const img = this.image.data; // Uint8ClampedArray
-
-    // Helpers for addressing
-    // bitmap index calculation per ZX Spectrum memory layout
-    // addrIndex = ((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte
 
     for (let y = 0; y < height; y++) {
       for (let xByte = 0; xByte < 32; xByte++) {
-        // Compute bitmap index using canonical ZX Spectrum layout in one expression
         const bIndex = (((y & 0x07) << 8) | ((y & 0x38) << 2) | ((y & 0xC0) << 5) | xByte) & 0x1fff;
         const byte = bitmap[bIndex];
 
-        // Attribute cell index: 32 bytes across, 24 rows
         const attrIndex = (Math.floor(y / 8) * 32) + xByte;
         const attr = attrs[attrIndex];
 
@@ -345,7 +329,6 @@ export class ULA {
         const bright = (attr & 0x40) !== 0;
         const flash = (attr & 0x80) !== 0;
 
-        // If flash is set and flashState is active, swap ink/paper
         if (flash && this.flashState) {
           const tmp = ink; ink = paper; paper = tmp;
         }
@@ -354,12 +337,10 @@ export class ULA {
         const inkColor = palette[ink];
         const paperColor = palette[paper];
 
-        // Use MSB-first mask for clarity: mask = 0x80 >> bit
-        // Map bit index 0..7 to left..right within the byte
         for (let bit = 0; bit < 8; bit++) {
           const mask = 0x80 >> bit;
           const pixelSet = (byte & mask) !== 0;
-          const x = (xByte << 3) | bit; // bit 0 -> left-most within byte
+          const x = (xByte << 3) | bit;
           const color = pixelSet ? inkColor : paperColor;
 
           const idx = (y * width + x) * 4;
@@ -370,15 +351,23 @@ export class ULA {
         }
       }
     }
+  }
 
-    // Blit to canvas
-    this.ctx.putImageData(this.image, 0, 0);
-
-    // Test hook: notify tests that a render finished (legacy path)
+  /** Log diagnostic info on first render */
+  _logFirstRender() {
+    if (this._firstRenderLogged) return;
+    this._firstRenderLogged = true;
     try {
-      if (typeof window !== 'undefined' && window.__TEST__ && typeof window.__TEST__.frameRendered === 'function') {
-        window.__TEST__.frameRendered();
-      }
-    } catch (e) { /* ignore */ }
+      const lo = this.mem.read(0x5C36);
+      const hi = this.mem.read(0x5C37);
+      const chars = (hi << 8) | lo;
+      const glyphs = {};
+      [0x7f, 0x80].forEach(code => {
+        const bytes = [];
+        for (let i = 0; i < 8; i++) bytes.push(this.mem.read((chars + code * 8 + i) & 0xffff));
+        glyphs[code] = bytes;
+      });
+      try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.charsDiag = { chars, glyphs, t: Date.now(), pc: (window.__LAST_PC__ || null) }; } catch { /* ignore */ }
+    } catch { /* ignore */ }
   }
 }

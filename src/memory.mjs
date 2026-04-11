@@ -71,13 +71,7 @@ export class Memory {
     // preload ROM(s) if provided AFTER configuring banks
     const romBuf = options.romBuffer || null;
     if (romBuf) {
-      console.log('[Memory] Constructor: Loading ROM buffer, size:', romBuf.length || 'unknown');
-      if (Array.isArray(romBuf)) {
-        // Handle both regular arrays and Uint8Array - load as single ROM
-        this.loadROM(romBuf, 0);
-      } else {
-        this.loadROM(romBuf, 0);
-      }
+      this.loadROM(romBuf, 0);
     }
   }
 
@@ -85,81 +79,33 @@ export class Memory {
 
   /** Load a 16KB ROM into romBanks[bank] (or extend banks) */
   loadROM(buffer, bank = 0) {
-    console.log(`[Memory] loadROM called with buffer type: ${buffer.constructor.name}, length: ${buffer.length || 'unknown'}`);
+    const src = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     
-    let src;
-    if (buffer instanceof Uint8Array) {
-      // If it's already a Uint8Array, use it directly
-      src = buffer;
-      console.log(`[Memory] Using existing Uint8Array, first 10 bytes:`, Array.from(src.slice(0, 10)));
-    } else {
-      // Otherwise, convert to Uint8Array
-      src = new Uint8Array(buffer);
-      console.log(`[Memory] Converted to Uint8Array, first 10 bytes:`, Array.from(src.slice(0, 10)));
-    }
-    
-    // Create a new ROM array and copy data properly
     const rom = new Uint8Array(Memory.PAGE_SIZE);
-    
-    // Copy the ROM data using the proven working method from direct memory test
     const bytesToCopy = Math.min(src.length, Memory.PAGE_SIZE);
-    console.log(`[Memory] Copying ${bytesToCopy} bytes from src to ROM array`);
     for (let i = 0; i < bytesToCopy; i++) {
       rom[i] = src[i];
     }
     
-    console.log(`[Memory] After copy, ROM first 10 bytes:`, Array.from(rom.slice(0, 10)));
-    
-    // Store the ROM bank
     this.romBanks[bank] = rom;
-    
-    // CRITICAL FIX: Always update the page mapping to point to the new ROM
     this.mapROM(bank);
     
-    // Also copy ROM to scratch page so stack operations work correctly
-    // This mimics having "shadow RAM" under the ROM - reads return ROM code,
-    // writes go to scratch, and stack reads return what was written
     if (this.romScratchPage) {
       this.romScratchPage.set(rom);
-      console.log(`[Memory] Copied ROM to scratch page for shadow RAM functionality`);
     }
-    
-    console.log(`[Memory] Loaded ROM into bank ${bank}, mapped to pages[0], first byte: 0x${this.romBanks[bank][0].toString(16).padStart(2, '0')}`);
-    
-    // Verify the mapping worked
-    console.log(`[Memory] Verification: pages[0][0] = ${this.pages[0][0]}`);
-
-    // Diagnostic: dump ROM bytes around where the copyright glyph is expected
-    try {
-      if (this.romBanks[bank] && this.romBanks[bank].length > 0x0EA0) {
-        if (typeof console !== 'undefined' && console.log) {
-          console.log('[Memory] ROM bytes 0x0E90-0x0EA0:', Array.from(this.romBanks[bank].slice(0x0E90, 0x0EA0)).map(b=>b.toString(16).padStart(2,'0')));
-        }
-      }
-      // Also dump the ROM region containing the builtin copyright text (0x1530-0x1550)
-      if (this.romBanks[bank] && this.romBanks[bank].length > 0x1550) {
-        if (typeof console !== 'undefined' && console.log) {
-          console.log('[Memory] ROM bytes 0x1530-0x1550:', Array.from(this.romBanks[bank].slice(0x1530, 0x1550)).map(b=>b.toString(16).padStart(2,'0')));
-        }
-      }
-    } catch (e) { /* ignore */ }
   }
 
   /** Map the visible ROM bank into address 0x0000-0x3FFF */
   mapROM(bankIndex = 0) {
     if (!this.romBanks[bankIndex]) {
-      // create an empty ROM bank if missing
       this.romBanks[bankIndex] = new Uint8Array(Memory.PAGE_SIZE).fill(0xff);
     }
     this.currentRom = bankIndex;
     this.pages[0] = this.romBanks[bankIndex];
     
-    // Also update scratch page with ROM content for shadow RAM functionality
     if (this.romScratchPage && this.romBanks[bankIndex]) {
       this.romScratchPage.set(this.romBanks[bankIndex]);
     }
-    
-    console.log(`[Memory] Mapped ROM bank ${bankIndex} to pages[0], first byte: 0x${this.romBanks[bankIndex][0].toString(16).padStart(2, '0')}`);
   }
 
   /** Configure banks based on model name */
@@ -342,34 +288,31 @@ export class Memory {
     this._buildContentionTableIfNeeded();
 
     const frameStart = (typeof this.cpu.frameStartTstates === 'number') ? this.cpu.frameStartTstates : 0;
-    // If caller supplied a tstates snapshot, use it to compute the contention slot;
-    // otherwise fall back to the canonical CPU tstates value.
     const baseT = (typeof tstates === 'number') ? tstates : this.cpu.tstates;
     let frameT = baseT - frameStart;
-    // normalise into positive modulo space
     frameT = ((frameT % this._frameCycleCount) + this._frameCycleCount) % this._frameCycleCount;
 
     const extra = this._contentionTable[frameT];
-    // Diagnostic: record contention events so tests / traces can assert against them
     if (extra > 0) {
       this._contentionHits = (this._contentionHits || 0) + 1;
-      // diagnostic console output for early-frame contention events
-      if (frameT < 300) {
-        try { console.log(`Contended access @${baseT} (${addr.toString(16)}) extra=${extra}`); } catch {};
-      }
-      try {
-        // record absolute CPU tstate at which contention was applied and current R
-        const cpuT = this.cpu ? this.cpu.tstates : null;
-        const rVal = this.cpu ? (this.cpu.R & 0xFF) : null;
-        this._contentionLog.push({ t: cpuT, addr, extra, R: rVal });
-        if (this._contentionLog.length > 5000) this._contentionLog.shift();
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.contentionLog = this._contentionLog; } catch (e) { /* ignore */ }
-      } catch (e) { /* best-effort only */ }
-      // apply contention delay to canonical CPU tstates (memory mutates CPU tstates)
+      this._logContentionEvent(addr, baseT, extra, frameT);
       this.cpu.tstates += extra;
     }
     this._lastContention = extra;
     return extra;
+  }
+
+  /** Log a contention event for diagnostics/test traces */
+  _logContentionEvent(addr, baseT, extra) {
+    try {
+      const cpuT = this.cpu ? this.cpu.tstates : null;
+      const rVal = this.cpu ? (this.cpu.R & 0xFF) : null;
+      this._contentionLog.push({ t: cpuT, addr, extra, R: rVal });
+      if (this._contentionLog.length > 5000) this._contentionLog.shift();
+      if (typeof window !== 'undefined' && window.__TEST__) {
+        window.__TEST__.contentionLog = this._contentionLog;
+      }
+    } catch { /* best-effort only */ }
   }
 
   lastContention() { return this._lastContention; }
@@ -396,36 +339,13 @@ export class Memory {
     let value = 0xff;
     if (view) value = view[offset];
 
-    // Diagnostic: instrument reads to character bitmap and screen bitmap regions for debugging
-    try {
-      if (typeof window !== 'undefined' && window.__TEST__) {
-        // Log reads to ROM charset/copy area (0x3C00..0x4400)
-        if (addr >= 0x3C00 && addr < 0x4400) {
-          window.__TEST__.charBitmapReads = window.__TEST__.charBitmapReads || [];
-          window.__TEST__.charBitmapReads.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0 });
-          if (window.__TEST__.charBitmapReads.length > 512) window.__TEST__.charBitmapReads.shift();
-        }
-        // Log reads to screen bitmap (0x4000..0x57FF)
-        if (addr >= 0x4000 && addr < 0x5800) {
-          window.__TEST__.screenBitmapReads = window.__TEST__.screenBitmapReads || [];
-          // sample to avoid huge logs
-          if (window.__TEST__.screenBitmapReads.length === 0 || Math.random() < 0.01) {
-            window.__TEST__.screenBitmapReads.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0 });
-            if (window.__TEST__.screenBitmapReads.length > 1024) window.__TEST__.screenBitmapReads.shift();
-          }
-        }
-      }
-    } catch (e) { /* ignore */ }
+    // Diagnostic instrumentation (extracted to reduce complexity)
+    this._instrumentRead(addr, value);
 
     // Apply contention for accesses in 0x4000..0x7fff (passes caller tstates)
     this._applyContention(addr, tstates);
-    // If stack watch enabled and access falls in range, invoke callback
-    if (this._stackWatch) {
-      const s = this._stackWatch;
-      // Handle wrap-around ranges (start > end) by normalising check
-      const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
-      if (inRange && typeof s.cb === 'function') s.cb({ type: 'read', addr, value, t: this.cpu ? this.cpu.tstates : 0 });
-    }
+    // Stack watch callback
+    this._notifyStackWatch('read', addr, value);
     return value;
   }
 
@@ -438,201 +358,178 @@ export class Memory {
     const page = addr >>> 14;
     const offset = addr & (Memory.PAGE_SIZE - 1);
     
-    // FIXED: On ZX Spectrum 48K, writes to ROM area (page 0) are silently ignored
-    // There is no RAM under ROM on the 48K model. The writePages approach was wrong
-    // because it allowed stack operations to corrupt the scratch page which was
-    // then being read for code execution.
+    // On ZX Spectrum 48K, writes to ROM area (page 0) are silently ignored.
     if (page === 0) {
-      // ROM area - ignore write but still apply contention (pass tstates)
       this._applyContention(addr, tstates);
       return false;
     }
     
-    // For RAM pages (1-3), write normally
-    const writeView = this.pages[page]; // Use pages directly, not writePages
+    const writeView = this.pages[page];
     if (!writeView) { this._lastContention = 0; return false; }
     
-    // Apply contention for the access first so the logged t-state reflects
-    // the actual time the access completes (pass caller tstates).
     this._applyContention(addr, tstates);
     writeView[offset] = value;
 
-    // --- TEST-HOOK: record screen/char writes in Memory itself so capture
-    // scripts don't need to monkey-patch mem.write. This guarantees every
-    // write in 0x4000..0x5AFF is captured deterministically for traces.
-    try {
-      this._memWrites = this._memWrites || [];
-      if (addr >= 0x4000 && addr <= 0x5AFF) {
-        const pcVal = (this.cpu && typeof this.cpu.PC === 'number') ? this.cpu.PC : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().PC : undefined);
-        const Rval = (this.cpu && typeof this.cpu.R === 'number') ? this.cpu.R : ((this.cpu && typeof this.cpu.getRegisters === 'function') ? this.cpu.getRegisters().R : undefined);
-        const writeEvt = { type: 'write', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: pcVal, R: Rval };
+    // Test instrumentation (extracted to reduce cyclomatic complexity)
+    this._instrumentWrite(addr, value);
 
-        // Attach microtrace + opcode context for small-screen-area writes so
-        // unit tests can correlate a screen memWrite with the CPU instruction
-        // sequence that caused it. This is a test-only augmentation and kept
-        // compact to avoid large trace bloat in normal runs.
-        try {
-          if (this.cpu && Array.isArray(this.cpu._microLog)) {
-            const tail = this.cpu._microLog.slice(-8);
-            writeEvt.micro = tail;
-          }
-          if (typeof pcVal === 'number' && this.pages && this.pages.length) {
-            const opBytes = [];
-            for (let i = 0; i < 8; i++) {
-              try { opBytes.push(this.read((pcVal + i) & 0xffff)); } catch (e) { opBytes.push(null); }
-            }
-            writeEvt.opcodes = opBytes;
-          }
-        } catch (e) { /* best-effort only */ }
-        this._memWrites.push(writeEvt);
-        if (this._memWrites.length > 5000) this._memWrites.shift();
-        // Mirror mem write into CPU microLog for tighter correlation when tracing
-        try {
-          if (this.cpu && this.cpu._microTraceEnabled && Array.isArray(this.cpu._microLog)) {
-            this.cpu._microLog.push({ type: 'MEMWRITE', addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc: pcVal, R: Rval });
-          }
-        } catch (e) { /* ignore */ }
-        try { if (typeof window !== 'undefined' && window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
-        try { if (typeof window !== 'undefined' && window.__TEST__) window.__TEST__.memWrites = this._memWrites; } catch (e) { /* ignore */ }
+    // Stack watch callback
+    this._notifyStackWatch('write', addr, value);
 
-        // TEST-ONLY: extra rocket-area watch (0x4800..0x49FF)
-        try {
-          if (addr >= 0x4800 && addr < 0x4A00) {
-            if (typeof window !== 'undefined') {
-              window.__ZX_DEBUG__ = window.__ZX_DEBUG__ || {};
-              window.__ZX_DEBUG__.rocketWrites = window.__ZX_DEBUG__.rocketWrites || [];
-              window.__ZX_DEBUG__.rocketWrites.push(writeEvt);
-              // also surface to console for immediate visibility during E2E/manual runs
-              console.log('[ROCKET-WRITE]', writeEvt);
-              if (window.__ZX_DEBUG__.rocketWrites.length > 512) window.__ZX_DEBUG__.rocketWrites.shift();
-            }
-          }
-        } catch (e) { /* ignore */ }
-
-        // SAFETY FIX (test-only): when running under the test harness, surface
-        // screen-area writes into the FrameBuffer and canvas. Coalesce updates
-        // and schedule a single regenerate+render per tick. Use `globalThis`
-        // fallback so this works in both browser (window) and Node (vitest/jsdom).
-        try {
-          const env = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
-
-          // DO NOT perform synchronous render on every rocket-area write —
-          // synchronous generate+render during large write loops (snapshot apply)
-          // blocks the main thread and can drop DOM events (breaks START key).
-          // The coalesced update below will perform a single fast update per tick.
-          // (Previously this was an immediate-path; removing it fixes UI stalls.)
-          if (addr >= 0x4800 && addr < 0x4A00) {
-            // keep going — the coalesced updater below will handle the visual update
-          }
-
-          if (env && env.__TEST__ && env.emu && env.emu.ula && env.emu.ula.useDeferredRendering && env.emu.ula.frameBuffer && env.emu.ula.frameRenderer) {
-            if (!this._pendingFrameUpdate) {
-              this._pendingFrameUpdate = true;
-              const doUpdate = () => {
-                try {
-                  env.emu.ula.frameBuffer.generateFromMemory();
-                  env.emu.ula.frameRenderer.render(env.emu.ula.frameBuffer, env.emu.ula.frameBuffer.getFlashPhase());
-                } catch (e) { /* ignore */ }
-                this._pendingFrameUpdate = false;
-              };
-
-              // TEST-HACK (IMPROVED): when running under the test harness, schedule a
-              // synchronous *coalesced* update so unit/E2E tests observing memWrites get
-              // a reliably-updated FrameBuffer but heavy write loops (snapshot apply)
-              // do NOT trigger thousands of full regenerations and renders.
-              try {
-                if (env && env.__TEST__) {
-                  // Coalesce updates within the same tick: schedule the update on a
-                  // microtask so multiple writes in one tick produce a single
-                  // generate+render. Do NOT re-check the pending flag here because
-                  // it was already set above when entering this block.
-                  Promise.resolve().then(() => {
-                    try {
-                      env.emu.ula.frameBuffer.generateFromMemory();
-                      env.emu.ula.frameRenderer.render(env.emu.ula.frameBuffer, env.emu.ula.frameBuffer.getFlashPhase());
-                    } catch (e) { /* ignore */ }
-                    this._pendingFrameUpdate = false;
-                  });
-                } else if (env && typeof env.requestAnimationFrame === 'function') {
-                  env.requestAnimationFrame(doUpdate);
-                } else {
-                  setTimeout(doUpdate, 0);
-                }
-              } catch (e) { /* ignore */ }
-            }
-          }
-        } catch (e) { /* ignore */ }
-      }
-    } catch (e) { /* best-effort only */ }
-
-    // Track writes to CHARS (0x5C36/0x5C37) for test instrumentation only (no console output)
-    if (addr === 0x5C36 || addr === 0x5C37) {
-      try {
-        if (typeof window !== 'undefined' && window.__TEST__) {
-          const pc = window.__LAST_PC__ || (this.cpu ? this.cpu.PC : null);
-          window.__TEST__.charsWrites = window.__TEST__.charsWrites || [];
-          window.__TEST__.charsWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
-          if (window.__TEST__.charsWrites.length > 128) window.__TEST__.charsWrites.shift();
-        }
-      } catch (e) { /* ignore */ }
-    }
-
-    // Instrument writes to character bitmap region (0x3C00-0x43FF) for test tracking only
-    if (addr >= 0x3C00 && addr < 0x4400) {
-      try {
-        if (typeof window !== 'undefined' && window.__TEST__) {
-          const pc = window.__LAST_PC__ || (this.cpu ? this.cpu.PC : null);
-          window.__TEST__.charBitmapWrites = window.__TEST__.charBitmapWrites || [];
-          window.__TEST__.charBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
-          if (window.__TEST__.charBitmapWrites.length > 128) window.__TEST__.charBitmapWrites.shift();
-        }
-      } catch (e) { /* ignore */ }
-    }
-
-    // Instrument writes to screen bitmap (0x4000-0x57FF) for test tracking
-    // When running under tests (window.__TEST__), always record writes so
-    // external trace/capture tooling can rely on deterministic logs. In
-    // non-test environments keep the lightweight sampling behaviour.
-    if (addr >= 0x4000 && addr < 0x5800) {
-      const pc = (typeof window !== 'undefined' && window.__LAST_PC__) ? window.__LAST_PC__ : (this.cpu ? this.cpu.PC : null);
-      try {
-        if (typeof window !== 'undefined' && window.__TEST__) {
-          // Deterministic logging for test harnesses
-          window.__TEST__.screenBitmapWrites = window.__TEST__.screenBitmapWrites || [];
-          window.__TEST__.screenBitmapWrites.push({ addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() });
-          // Keep log bounded
-          if (window.__TEST__.screenBitmapWrites.length > 2000) window.__TEST__.screenBitmapWrites.shift();
-        } else {
-          // Non-test environments: sample to avoid excessive memory use
-          window.__TEST__ = window.__TEST__ || undefined; // no-op to keep intent explicit
-          try {
-            if (typeof window !== 'undefined') {
-              window.__TEST__ = window.__TEST__ || null;
-            }
-          } catch (e) { /* ignore */ }
-          // Best-effort sampling (legacy behaviour)
-          if (typeof window !== 'undefined' && Math.random && Math.random() < 0.01) {
-            try {
-              window.__TEST__ = window.__TEST__ || {};
-            } catch (e) {}
-          }
-        }
-      } catch (e) { /* ignore */ }
-    }
-
-    // If stack watch enabled and access falls in range, invoke callback
-    if (this._stackWatch) {
-      const s = this._stackWatch;
-      const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
-      if (inRange && typeof s.cb === 'function') s.cb({ type: 'write', addr, value, t: this.cpu ? this.cpu.tstates : 0 });
-    }
-    // if we maintain a flatRam for 48K keep it in sync
-    if (this._flatRam) {
-      if (addr >= 0x4000 && addr < 0x10000) {
-        this._flatRam[addr - 0x4000] = value;
-      }
+    // Keep flatRam in sync for 48K
+    if (this._flatRam && addr >= 0x4000 && addr < 0x10000) {
+      this._flatRam[addr - 0x4000] = value;
     }
     return true;
+  }
+
+  /** Read instrumentation — extracted from read() to reduce complexity */
+  _instrumentRead(addr, value) {
+    try {
+      if (typeof window === 'undefined' || !window.__TEST__) return;
+      const t = (this.cpu && this.cpu.tstates) || 0;
+      if (addr >= 0x3C00 && addr < 0x4400) {
+        this._boundedPush(window.__TEST__, 'charBitmapReads', { addr, value, t }, 512);
+      }
+      if (addr >= 0x4000 && addr < 0x5800 && Math.random() < 0.01) {
+        this._boundedPush(window.__TEST__, 'screenBitmapReads', { addr, value, t }, 1024);
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Write instrumentation — extracted from write() to reduce complexity */
+  _instrumentWrite(addr, value) {
+    try {
+      this._instrumentWrite_screenArea(addr, value);
+      this._instrumentWrite_charsAndBitmap(addr, value);
+      this._instrumentWrite_screenBitmap(addr, value);
+    } catch { /* best-effort only */ }
+  }
+
+  /** Record screen/char writes (0x4000..0x5AFF) for test traces */
+  _instrumentWrite_screenArea(addr, value) {
+    if (addr < 0x4000 || addr > 0x5AFF) return;
+    this._memWrites = this._memWrites || [];
+    const pcVal = this.cpu && typeof this.cpu.PC === 'number' ? this.cpu.PC : undefined;
+    const Rval = this.cpu && typeof this.cpu.R === 'number' ? this.cpu.R : undefined;
+    const t = (this.cpu && this.cpu.tstates) || 0;
+    const writeEvt = { type: 'write', addr, value, t, pc: pcVal, R: Rval };
+    this._attachMicroTrace(writeEvt, pcVal);
+    if (this._memWrites.length > 5000) this._memWrites.shift();
+    this._memWrites.push(writeEvt);
+    this._mirrorToCpuMicroLog(addr, value, t, pcVal, Rval);
+    this._exposeToDebugObjects(this._memWrites);
+    this._instrumentWrite_rocketArea(addr, writeEvt);
+    this._scheduleCoalescedUpdate();
+  }
+
+  /** Expose memWrites to debug objects on window */
+  _exposeToDebugObjects(memWrites) {
+    try {
+      if (typeof window === 'undefined') return;
+      if (window.__ZX_DEBUG__) window.__ZX_DEBUG__.memWrites = memWrites;
+      if (window.__TEST__) window.__TEST__.memWrites = memWrites;
+    } catch { /* ignore */ }
+  }
+
+  /** Attach microtrace and opcode context to a write event */
+  _attachMicroTrace(writeEvt, pcVal) {
+    try {
+      if (this.cpu && Array.isArray(this.cpu._microLog)) {
+        writeEvt.micro = this.cpu._microLog.slice(-8);
+      }
+      if (typeof pcVal === 'number' && this.pages && this.pages.length) {
+        const opBytes = [];
+        for (let i = 0; i < 8; i++) {
+          try { opBytes.push(this.read((pcVal + i) & 0xffff)); } catch { opBytes.push(null); }
+        }
+        writeEvt.opcodes = opBytes;
+      }
+    } catch { /* best-effort */ }
+  }
+
+  /** Mirror mem write into CPU microLog for tracing */
+  _mirrorToCpuMicroLog(addr, value, t, pcVal, Rval) {
+    try {
+      if (this.cpu && this.cpu._microTraceEnabled && Array.isArray(this.cpu._microLog)) {
+        this.cpu._microLog.push({ type: 'MEMWRITE', addr, value, t, pc: pcVal, R: Rval });
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Rocket-area write watch (0x4800..0x49FF) */
+  _instrumentWrite_rocketArea(addr, writeEvt) {
+    if (addr < 0x4800 || addr >= 0x4A00) return;
+    try {
+      if (typeof window === 'undefined') return;
+      window.__ZX_DEBUG__ = window.__ZX_DEBUG__ || {};
+      window.__ZX_DEBUG__.rocketWrites = window.__ZX_DEBUG__.rocketWrites || [];
+      window.__ZX_DEBUG__.rocketWrites.push(writeEvt);
+      if (window.__ZX_DEBUG__.rocketWrites.length > 512) window.__ZX_DEBUG__.rocketWrites.shift();
+    } catch { /* ignore */ }
+  }
+
+  /** Schedule a coalesced framebuffer update for test harness */
+  _scheduleCoalescedUpdate() {
+    try {
+      const env = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+      if (!env || !env.__TEST__ || !env.emu || !env.emu.ula) return;
+      const { ula } = env.emu;
+      if (!ula.useDeferredRendering || !ula.frameBuffer || !ula.frameRenderer) return;
+      if (this._pendingFrameUpdate) return;
+      this._pendingFrameUpdate = true;
+      Promise.resolve().then(() => {
+        try {
+          ula.frameBuffer.generateFromMemory();
+          ula.frameRenderer.render(ula.frameBuffer, ula.frameBuffer.getFlashPhase());
+        } catch { /* ignore */ }
+        this._pendingFrameUpdate = false;
+      });
+    } catch { /* ignore */ }
+  }
+
+  /** Track writes to CHARS sysvar and character bitmap region */
+  _instrumentWrite_charsAndBitmap(addr, value) {
+    try {
+      if (typeof window === 'undefined' || !window.__TEST__) return;
+      const pc = window.__LAST_PC__ || (this.cpu ? this.cpu.PC : null);
+      const t = (this.cpu && this.cpu.tstates) || 0;
+      const entry = { addr, value, t, pc, timestamp: Date.now() };
+      if (addr === 0x5C36 || addr === 0x5C37) {
+        this._boundedPush(window.__TEST__, 'charsWrites', entry, 128);
+      }
+      if (addr >= 0x3C00 && addr < 0x4400) {
+        this._boundedPush(window.__TEST__, 'charBitmapWrites', entry, 128);
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Track writes to screen bitmap (0x4000-0x57FF) */
+  _instrumentWrite_screenBitmap(addr, value) {
+    if (addr < 0x4000 || addr >= 0x5800) return;
+    try {
+      if (typeof window === 'undefined' || !window.__TEST__) return;
+      const pc = window.__LAST_PC__ || (this.cpu ? this.cpu.PC : null);
+      const entry = { addr, value, t: (this.cpu && this.cpu.tstates) || 0, pc, timestamp: Date.now() };
+      this._boundedPush(window.__TEST__, 'screenBitmapWrites', entry, 2000);
+    } catch { /* ignore */ }
+  }
+
+  /** Push an entry onto a bounded array property, creating it if absent */
+  _boundedPush(obj, key, entry, maxLen) {
+    obj[key] = obj[key] || [];
+    obj[key].push(entry);
+    if (obj[key].length > maxLen) obj[key].shift();
+  }
+
+  /** Notify stack watch callback if enabled and address is in range */
+  _notifyStackWatch(type, addr, value) {
+    if (!this._stackWatch) return;
+    const s = this._stackWatch;
+    const inRange = s.start <= s.end ? (addr >= s.start && addr <= s.end) : (addr >= s.start || addr <= s.end);
+    if (inRange && typeof s.cb === 'function') {
+      s.cb({ type, addr, value, t: this.cpu ? this.cpu.tstates : 0 });
+    }
   }
 
   readWord(addr) {

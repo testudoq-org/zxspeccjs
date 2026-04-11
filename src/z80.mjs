@@ -1,5 +1,4 @@
 /* eslint-env browser */
-/* global window, console */
 /* eslint no-duplicate-case: "off" */
 export class Z80 {
   constructor(memory) {
@@ -70,6 +69,27 @@ export class Z80 {
     // Debug settings
     this._debugVerbose = false; // Disabled by default to prevent memory issues in tests
     this._fallbackPC = 0; // For non-browser environments
+
+    // Precomputed flag lookup tables (256 entries each)
+    // sz53Table:  S flag (bit 7) | bits 5 & 3 from the value | Z flag (bit 6 when value===0)
+    // parityTable: P flag (bit 2) set when even parity
+    // sz53pTable: sz53Table | parityTable combined
+    this._sz53Table = new Uint8Array(256);
+    this._parityTable = new Uint8Array(256);
+    this._sz53pTable = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) {
+      const s = i & 0x80;           // S flag
+      const z = i === 0 ? 0x40 : 0; // Z flag
+      const b53 = i & 0x28;         // undocumented bits 5 (0x20) and 3 (0x08)
+      this._sz53Table[i] = s | z | b53;
+      // Parity: count 1-bits, even parity => set bit 2
+      let p = i;
+      p ^= p >>> 4;
+      p ^= p >>> 2;
+      p ^= p >>> 1;
+      this._parityTable[i] = (p & 1) === 0 ? 0x04 : 0;
+      this._sz53pTable[i] = this._sz53Table[i] | this._parityTable[i];
+    }
   }
 
   // Reliable debug hook system for consistent PC monitoring
@@ -79,284 +99,168 @@ export class Z80 {
       window.__LAST_PC__ = pc;
       // Initialize PC watcher if not exists
       if (!window.__PC_WATCHER__) {
-        // ...existing code...
+        window.__PC_WATCHER__ = { history: [] };
       }
     }
-    // ...existing code...
-    // (Add any additional debug hook logic here if needed)
-	}
+  }
 
   // Execute DDCB prefixed operations (IX with bit operations)
   _executeDDCBOperation(cbOpcode, addr) {
-    const originalValue = this.readByte(addr);
-
-    // BIT operations (0x40-0x7F)
-    if (cbOpcode >= 0x40 && cbOpcode < 0x80) {
-      const bit = (cbOpcode >> 3) & 0x07;
-      const mask = 1 << bit;
-      const result = originalValue & mask;
-      // BIT sets Z if bit is zero, resets if bit is set
-      // Also sets H, resets N, preserves C
-      this.F = (this.F & 0x01) | 0x10 | (result ? 0 : 0x40);
-      // Undocumented: S is set if bit 7 AND bit being tested is 7
-      if (bit === 7 && result) this.F |= 0x80;
-      this.tstates += 20; return 20;
-    }
-
-    // RES operations (0x80-0xBF)
-    if (cbOpcode >= 0x80 && cbOpcode < 0xC0) {
-      const bit = (cbOpcode >> 3) & 0x07;
-      const mask = ~(1 << bit);
-      this.writeByte(addr, originalValue & mask);
-      this.tstates += 23; return 23;
-    }
-
-    // SET operations (0xC0-0xFF)
-    if (cbOpcode >= 0xC0) {
-      const bit = (cbOpcode >> 3) & 0x07;
-      const mask = 1 << bit;
-      this.writeByte(addr, originalValue | mask);
-      this.tstates += 23; return 23;
-    }
-    
-    switch (cbOpcode) {
-      case 0x00: // RLC (IX+d)
-        this.writeByte(addr, this._rlc(originalValue));
-        this.tstates += 23; return 23;
-      case 0x01: // RRC (IX+d)
-        this.writeByte(addr, this._rrc(originalValue));
-        this.tstates += 23; return 23;
-      case 0x02: // RL (IX+d)
-        this.writeByte(addr, this._rl(originalValue));
-        this.tstates += 23; return 23;
-      case 0x03: // RR (IX+d)
-        this.writeByte(addr, this._rr(originalValue));
-        this.tstates += 23; return 23;
-      case 0x04: // SLA (IX+d)
-        this.writeByte(addr, this._sla(originalValue));
-        this.tstates += 23; return 23;
-      case 0x06: // SLL (IX+d)
-        this.writeByte(addr, this._sll(originalValue));
-        this.tstates += 23; return 23;
-      case 0x05: // SRA (IX+d)
-        this.writeByte(addr, this._sra(originalValue));
-        this.tstates += 23; return 23;
-      case 0x07: // SRL (IX+d)
-        this.writeByte(addr, this._srl(originalValue));
-        this.tstates += 23; return 23;
-      default:
-        // For other operations not handled above
-        this.tstates += 23; return 23;
-    }
+    return this._executeIndexedCBOperation(cbOpcode, addr);
   }
 
   // Execute FDCB prefixed operations (IY with bit operations)
   _executeFDCBOperation(cbOpcode, addr) {
+    return this._executeIndexedCBOperation(cbOpcode, addr);
+  }
+
+  // Shared indexed CB operation handler (IX/IY + displacement)
+  _executeIndexedCBOperation(cbOpcode, addr) {
     const originalValue = this.readByte(addr);
 
     // BIT operations (0x40-0x7F)
     if (cbOpcode >= 0x40 && cbOpcode < 0x80) {
-      const bit = (cbOpcode >> 3) & 0x07;
-      const mask = 1 << bit;
-      const result = originalValue & mask;
-      // BIT sets Z if bit is zero, resets if bit is set
-      // Also sets H, resets N, preserves C
-      this.F = (this.F & 0x01) | 0x10 | (result ? 0 : 0x40);
-      // Undocumented: S is set if bit 7 AND bit being tested is 7
-      if (bit === 7 && result) this.F |= 0x80;
-      this.tstates += 20; return 20;
+      return this._indexedBitTest(cbOpcode, originalValue);
     }
 
     // RES operations (0x80-0xBF)
     if (cbOpcode >= 0x80 && cbOpcode < 0xC0) {
       const bit = (cbOpcode >> 3) & 0x07;
-      const mask = ~(1 << bit);
-      this.writeByte(addr, originalValue & mask);
+      this.writeByte(addr, originalValue & ~(1 << bit));
       this.tstates += 23; return 23;
     }
 
     // SET operations (0xC0-0xFF)
     if (cbOpcode >= 0xC0) {
       const bit = (cbOpcode >> 3) & 0x07;
-      const mask = 1 << bit;
-      this.writeByte(addr, originalValue | mask);
+      this.writeByte(addr, originalValue | (1 << bit));
       this.tstates += 23; return 23;
     }
 
-    switch (cbOpcode) {
-      case 0x00: // RLC (IY+d)
-        this.writeByte(addr, this._rlc(originalValue));
-        this.tstates += 23; return 23;
-      case 0x01: // RRC (IY+d)
-        this.writeByte(addr, this._rrc(originalValue));
-        this.tstates += 23; return 23;
-      case 0x02: // RL (IY+d)
-        this.writeByte(addr, this._rl(originalValue));
-        this.tstates += 23; return 23;
-      case 0x03: // RR (IY+d)
-        this.writeByte(addr, this._rr(originalValue));
-        this.tstates += 23; return 23;
-      case 0x04: // SLA (IY+d)
-        this.writeByte(addr, this._sla(originalValue));
-        this.tstates += 23; return 23;
-      case 0x06: // SLL (IY+d)
-        this.writeByte(addr, this._sll(originalValue));
-        this.tstates += 23; return 23;
-      case 0x05: // SRA (IY+d)
-        this.writeByte(addr, this._sra(originalValue));
-        this.tstates += 23; return 23;
-      case 0x07: // SRL (IY+d)
-        this.writeByte(addr, this._srl(originalValue));
-        this.tstates += 23; return 23;
-      default:
-        // For other operations not handled above
-        this.tstates += 23; return 23;
+    // Shift/rotate operations (0x00-0x3F)
+    const result = this._applyShiftRotate(cbOpcode, originalValue);
+    if (result !== undefined) {
+      this.writeByte(addr, result);
+    }
+    this.tstates += 23; return 23;
+  }
+
+  // BIT test for indexed CB operations
+  _indexedBitTest(cbOpcode, value) {
+    const bit = (cbOpcode >> 3) & 0x07;
+    const result = value & (1 << bit);
+    this.F = (this.F & 0x01) | 0x10 | (result ? 0 : 0x40);
+    if (bit === 7 && result) this.F |= 0x80;
+    this.tstates += 20; return 20;
+  }
+
+  // Apply shift/rotate operation by opcode (0x00-0x07), returns transformed value
+  _applyShiftRotate(opcode, value) {
+    switch (opcode & 0x07) {
+      case 0x00: return this._rlc(value);
+      case 0x01: return this._rrc(value);
+      case 0x02: return this._rl(value);
+      case 0x03: return this._rr(value);
+      case 0x04: return this._sla(value);
+      case 0x05: return this._sra(value);
+      case 0x06: return this._sll(value);
+      case 0x07: return this._srl(value);
+      default: return undefined;
     }
   }
 
   // Execute plain CB-prefixed operations (no index)
   _executeCBOperation(cbOpcode) {
     const regIndex = cbOpcode & 0x07; // target register or (HL) when 6
-    // opGroup is intentionally unused in current implementation; keep bitmask logic explicit if needed later.
-    const opType = (cbOpcode & 0xF8) >>> 3; // operation group for shifts
+    const isHL = regIndex === 6;
 
-    // Helper to read/write target register or (HL)
-    const readTarget = () => {
-      switch (regIndex) {
-        case 0: return this.B;
-        case 1: return this.C;
-        case 2: return this.D;
-        case 3: return this.E;
-        case 4: return this.H;
-        case 5: return this.L;
-        case 6: return this.readByte(this._getHL());
-        case 7: return this.A;
-        default: return 0;
-      }
-    };
-    const writeTarget = (val) => {
-      val &= 0xFF;
-      switch (regIndex) {
-        case 0: this.B = val; break;
-        case 1: this.C = val; break;
-        case 2: this.D = val; break;
-        case 3: this.E = val; break;
-        case 4: this.H = val; break;
-        case 5: this.L = val; break;
-        case 6: this.writeByte(this._getHL(), val); break;
-        case 7: this.A = val; break;
-      }
-    };
-
-    // Shift/rotate operations are only 0x00-0x3F
-    // 0x00..0x07 RLC, 0x08..0x0F RRC, 0x10..0x17 RL, 0x18..0x1F RR,
-    // 0x20..0x27 SLA, 0x28..0x2F SRA, 0x30..0x37 SLL, 0x38..0x3F SRL
-    // opType is the shifted value: cbOpcode >> 3 gives 0-7 for the 8 operations
+    // Shift/rotate operations (0x00-0x3F)
     if (cbOpcode < 0x40) {
-      // opType after shift: 0=RLC, 1=RRC, 2=RL, 3=RR, 4=SLA, 5=SRA, 6=SLL, 7=SRL
-      if (opType === 0) {
-        // RLC
-        const val = readTarget();
-        const res = this._rlc(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 1) {
-        // RRC
-        const val = readTarget();
-        const res = this._rrc(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 2) {
-        // RL
-        const val = readTarget();
-        const res = this._rl(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 3) {
-        // RR
-        const val = readTarget();
-        const res = this._rr(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 4) {
-        // SLA
-        const val = readTarget();
-        const res = this._sla(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 5) {
-        // SRA
-        const val = readTarget();
-        const res = this._sra(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 6) {
-        // SLL
-        const val = readTarget();
-        const res = this._sll(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
-      if (opType === 7) {
-        // SRL
-        const val = readTarget();
-        const res = this._srl(val);
-        writeTarget(res);
-        if (regIndex === 6) { this.tstates += 15; return 15; }
-        this.tstates += 8; return 8;
-      }
+      return this._cbShiftRotate(cbOpcode, regIndex, isHL);
     }
 
     // BIT b,r (0x40..0x7F)
-    if (cbOpcode >= 0x40 && cbOpcode <= 0x7F) {
-      const bit = (cbOpcode & 0x38) >>> 3;
-      const val = readTarget();
-      const bitIsSet = (val & (1 << bit)) !== 0;
-      // Set flags: Z = 1 if bit is 0, Z = 0 if bit is 1
-      // S depends only if bit 7 tested, H=1, N=0, C preserved
-      if (bitIsSet) this.F &= ~0x40; else this.F |= 0x40; // Z = !bitIsSet
-      if (bit === 7) this._setFlagS((val & 0x80) !== 0); else this.F &= ~0x80;
-      this.F &= ~0x02; // N=0
-      this.F |= 0x10; // H=1
-      if (regIndex === 6) { this.tstates += 12; return 12; }
-      this.tstates += 8; return 8;
+    if (cbOpcode <= 0x7F) {
+      return this._cbBitTest(cbOpcode, regIndex, isHL);
     }
 
     // RES b,r (0x80..0xBF)
-    if (cbOpcode >= 0x80 && cbOpcode <= 0xBF) {
-      const bit = (cbOpcode & 0x38) >>> 3;
-      const val = readTarget();
-      const res = val & (~(1 << bit));
-      writeTarget(res);
-      if (regIndex === 6) { this.tstates += 15; return 15; }
-      this.tstates += 8; return 8;
+    if (cbOpcode <= 0xBF) {
+      return this._cbResetBit(cbOpcode, regIndex, isHL);
     }
 
     // SET b,r (0xC0..0xFF)
-    if (cbOpcode >= 0xC0 && cbOpcode <= 0xFF) {
-      const bit = (cbOpcode & 0x38) >>> 3;
-      const val = readTarget();
-      const res = val | (1 << bit);
-      writeTarget(res);
-      if (regIndex === 6) { this.tstates += 15; return 15; }
-      this.tstates += 8; return 8;
-    }
+    return this._cbSetBit(cbOpcode, regIndex, isHL);
+  }
 
-    // Fallback
+  // CB shift/rotate dispatch
+  _cbShiftRotate(cbOpcode, regIndex, isHL) {
+    const val = this._readCBTarget(regIndex);
+    const res = this._applyShiftRotate(cbOpcode >> 3, val);
+    this._writeCBTarget(regIndex, res);
+    if (isHL) { this.tstates += 15; return 15; }
     this.tstates += 8; return 8;
+  }
+
+  // CB BIT test
+  _cbBitTest(cbOpcode, regIndex, isHL) {
+    const bit = (cbOpcode & 0x38) >>> 3;
+    const val = this._readCBTarget(regIndex);
+    const bitIsSet = (val & (1 << bit)) !== 0;
+    if (bitIsSet) this.F &= ~0x40; else this.F |= 0x40;
+    if (bit === 7) this._setFlagS((val & 0x80) !== 0); else this.F &= ~0x80;
+    this.F &= ~0x02; // N=0
+    this.F |= 0x10;  // H=1
+    if (isHL) { this.tstates += 12; return 12; }
+    this.tstates += 8; return 8;
+  }
+
+  // CB RES bit
+  _cbResetBit(cbOpcode, regIndex, isHL) {
+    const bit = (cbOpcode & 0x38) >>> 3;
+    const val = this._readCBTarget(regIndex);
+    this._writeCBTarget(regIndex, val & ~(1 << bit));
+    if (isHL) { this.tstates += 15; return 15; }
+    this.tstates += 8; return 8;
+  }
+
+  // CB SET bit
+  _cbSetBit(cbOpcode, regIndex, isHL) {
+    const bit = (cbOpcode & 0x38) >>> 3;
+    const val = this._readCBTarget(regIndex);
+    this._writeCBTarget(regIndex, val | (1 << bit));
+    if (isHL) { this.tstates += 15; return 15; }
+    this.tstates += 8; return 8;
+  }
+
+  // Read target register for CB operations
+  _readCBTarget(regIndex) {
+    switch (regIndex) {
+      case 0: return this.B;
+      case 1: return this.C;
+      case 2: return this.D;
+      case 3: return this.E;
+      case 4: return this.H;
+      case 5: return this.L;
+      case 6: return this.readByte(this._getHL());
+      case 7: return this.A;
+      default: return 0;
+    }
+  }
+
+  // Write target register for CB operations
+  _writeCBTarget(regIndex, val) {
+    val &= 0xFF;
+    switch (regIndex) {
+      case 0: this.B = val; break;
+      case 1: this.C = val; break;
+      case 2: this.D = val; break;
+      case 3: this.E = val; break;
+      case 4: this.H = val; break;
+      case 5: this.L = val; break;
+      case 6: this.writeByte(this._getHL(), val); break;
+      case 7: this.A = val; break;
+    }
   }
 
   // Bit operation helpers
@@ -477,17 +381,44 @@ export class Z80 {
     return (v & 1) === 0;
   }
 
+  // Set flags for AND/XOR/OR using lookup tables (correct undocumented bits 3/5)
+  // hFlag: true for AND (H=1), false for XOR/OR (H=0)
+  _setLogicFlags(hFlag) {
+    this.F = this._sz53pTable[this.A] | (hFlag ? 0x10 : 0);
+  }
+
+  // DAA — Decimal Adjust Accumulator (opcode 0x27)
+  _daa() {
+    let a = this.A;
+    let correction = 0;
+    const nFlag = this.F & 0x02;
+    let carry = this.F & 0x01;
+    let halfCarry = this.F & 0x10;
+
+    if (halfCarry || (!nFlag && (a & 0x0F) > 9)) {
+      correction |= 0x06;
+    }
+    if (carry || (!nFlag && a > 0x99)) {
+      correction |= 0x60;
+      carry = 1;
+    }
+
+    if (nFlag) {
+      halfCarry = halfCarry && (a & 0x0F) < 0x06;
+      a = (a - correction) & 0xFF;
+    } else {
+      halfCarry = (a & 0x0F) > 0x09;
+      a = (a + correction) & 0xFF;
+    }
+
+    this.A = a;
+    this.F = this._sz53pTable[a] | (nFlag ? 0x02 : 0) | (carry ? 0x01 : 0) | (halfCarry ? 0x10 : 0);
+  }
+
   // Common flag update for IN r,(C) instructions: S, Z, H=0, P/V=parity, N=0, C unchanged
   _setInFlags(val) {
     val = val & 0xFF;
-    // Preserve carry, clear everything else, then set appropriately
-    let f = this.F & 0x01; // keep C
-    if (val & 0x80) f |= 0x80; // S
-    if (val === 0) f |= 0x40; // Z
-    // H = 0 (already)
-    if (this._parity(val)) f |= 0x04; // P/V = parity
-    // N = 0 (already)
-    this.F = f;
+    this.F = (this.F & 0x01) | this._sz53pTable[val];
   }
 
   // Apply port I/O contention *inside the Z80* when the io adapter does NOT already apply it.
@@ -498,67 +429,68 @@ export class Z80 {
       if (!this.mem || !this.mem._isContended || !this.mem.contentionEnabled) return;
       const isULAPort = (port & 0x01) === 0;
       const highContended = this.mem._isContended(port & 0xFF00);
-
-      // Ensure contention table is available
-      if (typeof this.mem._buildContentionTableIfNeeded === 'function') this.mem._buildContentionTableIfNeeded();
-      const table = this.mem._contentionTable || new Uint8Array(this.mem._frameCycleCount || 69888);
-      const frameStart = (typeof this.frameStartTstates === 'number') ? this.frameStartTstates : 0;
-      const frameCycle = this.mem._frameCycleCount || 69888;
-      // Normalise base offset into 0..frameCycle-1
-      let base = ((this.tstates - frameStart) % frameCycle + frameCycle) % frameCycle;
+      const { table, base, frameCycle } = this._getContentionContext();
 
       if (highContended && isULAPort) {
-        // C:1, C:3 -> check table at base and base+1; call memory._applyContention for
-        // test-side-effects but don't rely on it for timing (we apply table values here)
-        if (typeof this.mem._applyContention === 'function') {
-          const saved = this.tstates;
-          try { this.mem._applyContention(0x4000); } catch (e) { /* ignore */ }
-          this.tstates = saved;
-        }
-        const extra0 = table[base] || 0;
-        this.tstates += extra0; this.mem._lastContention = extra0;
-
-        this.tstates += 1; // explicit :1
-        base = (base + 1) % frameCycle;
-
-        if (typeof this.mem._applyContention === 'function') {
-          const saved = this.tstates;
-          try { this.mem._applyContention(0x4000); } catch (e) { /* ignore */ }
-          this.tstates = saved;
-        }
-        const extra1 = table[base] || 0;
-        this.tstates += extra1; this.mem._lastContention = extra1;
-
-        this.tstates += 3; // explicit :3
-
-      } else if (highContended && !isULAPort) {
-        // C:1 x4 -> four checks
-        for (let i = 0; i < 4; i++) {
-          if (typeof this.mem._applyContention === 'function') {
-            const saved = this.tstates;
-            try { this.mem._applyContention(0x4000); } catch (e) { /* ignore */ }
-            this.tstates = saved;
-          }
-          const extra = table[(base + i) % frameCycle] || 0;
-          this.tstates += extra; this.mem._lastContention = extra;
-          this.tstates += 1; // explicit :1
-        }
-
-      } else if (!highContended && isULAPort) {
-        // N:1, C:3 -> no contention initially, then check at base+1
-        this.tstates += 1; // N:1
-        base = (base + 1) % frameCycle;
-        if (typeof this.mem._applyContention === 'function') {
-          const saved = this.tstates;
-          try { this.mem._applyContention(0x4000); } catch (e) { /* ignore */ }
-          this.tstates = saved;
-        }
-        const extra = table[base] || 0;
-        this.tstates += extra; this.mem._lastContention = extra;
-        this.tstates += 3; // explicit :3
+        this._applyContentionPattern_C1C3(table, base, frameCycle);
+      } else if (highContended) {
+        this._applyContentionPattern_C1x4(table, base, frameCycle);
+      } else if (isULAPort) {
+        this._applyContentionPattern_N1C3(table, base, frameCycle);
       }
-      // else: uncontended + non-ULA -> N:4 (no extra delays)
     } catch (err) { /* best-effort only */ }
+  }
+
+  // Build contention lookup context
+  _getContentionContext() {
+    if (typeof this.mem._buildContentionTableIfNeeded === 'function') this.mem._buildContentionTableIfNeeded();
+    const frameCycle = this.mem._frameCycleCount || 69888;
+    const table = this.mem._contentionTable || new Uint8Array(frameCycle);
+    const frameStart = (typeof this.frameStartTstates === 'number') ? this.frameStartTstates : 0;
+    const base = ((this.tstates - frameStart) % frameCycle + frameCycle) % frameCycle;
+    return { table, base, frameCycle };
+  }
+
+  // Contention: C:1, C:3
+  _applyContentionPattern_C1C3(table, base, frameCycle) {
+    this._callMemContention();
+    const extra0 = table[base] || 0;
+    this.tstates += extra0; this.mem._lastContention = extra0;
+    this.tstates += 1;
+    const base1 = (base + 1) % frameCycle;
+    this._callMemContention();
+    const extra1 = table[base1] || 0;
+    this.tstates += extra1; this.mem._lastContention = extra1;
+    this.tstates += 3;
+  }
+
+  // Contention: C:1 x4
+  _applyContentionPattern_C1x4(table, base, frameCycle) {
+    for (let i = 0; i < 4; i++) {
+      this._callMemContention();
+      const extra = table[(base + i) % frameCycle] || 0;
+      this.tstates += extra; this.mem._lastContention = extra;
+      this.tstates += 1;
+    }
+  }
+
+  // Contention: N:1, C:3
+  _applyContentionPattern_N1C3(table, base, frameCycle) {
+    this.tstates += 1;
+    const base1 = (base + 1) % frameCycle;
+    this._callMemContention();
+    const extra = table[base1] || 0;
+    this.tstates += extra; this.mem._lastContention = extra;
+    this.tstates += 3;
+  }
+
+  // Call memory contention side-effect (saves/restores tstates)
+  _callMemContention() {
+    if (typeof this.mem._applyContention === 'function') {
+      const saved = this.tstates;
+      try { this.mem._applyContention(0x4000); } catch (e) { /* ignore */ }
+      this.tstates = saved;
+    }
   }
 
   // Basic arithmetic helpers (add / adc / sub / sbc) to centralise flag updates
@@ -836,6 +768,7 @@ export class Z80 {
   }
 
   // Execute a single instruction and return t-states consumed
+  // eslint-disable-next-line complexity -- Z80 opcode dispatch is inherently a ~600-case switch
   step() {
     // TEST-HOOK: record when CPU executes ROM entry/interrupt vector at 0x0039
     try {
@@ -955,14 +888,14 @@ export class Z80 {
       case 0x00: // NOP
         return finish(4);
       case 0x07: { const bit7 = (this.A & 0x80) !== 0; this.A = ((this.A << 1) & 0xFF) | (bit7 ? 1 : 0); this._setFlagC(bit7); this.F &= ~0x02; this._setFlagH(false); this.tstates += 4; return 4; }
-      case 0xA8: this.A ^= this.B; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xA9: this.A ^= this.C; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xAA: this.A ^= this.D; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xAB: this.A ^= this.E; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xAC: this.A ^= this.H; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xAD: this.A ^= this.L; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); return finish(4);
-      case 0xAE: { const v = this.readByte(this._getHL()); this.A ^= v; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 7; return 7; }
-      case 0xAF: { this.A ^= this.A; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
+      case 0xA8: this.A ^= this.B; this._setLogicFlags(false); return finish(4);
+      case 0xA9: this.A ^= this.C; this._setLogicFlags(false); return finish(4);
+      case 0xAA: this.A ^= this.D; this._setLogicFlags(false); return finish(4);
+      case 0xAB: this.A ^= this.E; this._setLogicFlags(false); return finish(4);
+      case 0xAC: this.A ^= this.H; this._setLogicFlags(false); return finish(4);
+      case 0xAD: this.A ^= this.L; this._setLogicFlags(false); return finish(4);
+      case 0xAE: { const v = this.readByte(this._getHL()); this.A ^= v; this._setLogicFlags(false); this.tstates += 7; return 7; }
+      case 0xAF: { this.A ^= this.A; this._setLogicFlags(false); this.tstates += 4; return 4; }
 
       // RRCA -> 0x0F
       case 0x0F: {
@@ -1033,21 +966,21 @@ export class Z80 {
       // 0x9E is SBC A,(HL)
 
       // AND r (0xA0..0xA7, 0xA6 is AND A,(HL))
-      case 0xA0: { this.A &= this.B; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xA1: { this.A &= this.C; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xA2: { this.A &= this.D; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xA3: { this.A &= this.E; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xA4: { this.A &= this.H; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xA5: { this.A &= this.L; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this._setFlagH(true); this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
+      case 0xA0: { this.A &= this.B; this._setLogicFlags(true); this.tstates += 4; return 4; }
+      case 0xA1: { this.A &= this.C; this._setLogicFlags(true); this.tstates += 4; return 4; }
+      case 0xA2: { this.A &= this.D; this._setLogicFlags(true); this.tstates += 4; return 4; }
+      case 0xA3: { this.A &= this.E; this._setLogicFlags(true); this.tstates += 4; return 4; }
+      case 0xA4: { this.A &= this.H; this._setLogicFlags(true); this.tstates += 4; return 4; }
+      case 0xA5: { this.A &= this.L; this._setLogicFlags(true); this.tstates += 4; return 4; }
       // 0xA6 is AND (HL) and already implemented
 
       // OR r (0xB0..0xB7, 0xB6 is OR (HL))
-      case 0xB0: { this.A |= this.B; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xB1: { this.A |= this.C; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xB2: { this.A |= this.D; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xB3: { this.A |= this.E; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xB4: { this.A |= this.H; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
-      case 0xB5: { this.A |= this.L; this._setFlagZ(this.A); this._setFlagS(this.A); this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); this.F &= ~0x10; this.F &= ~0x02; this._setFlagC(false); this.tstates += 4; return 4; }
+      case 0xB0: { this.A |= this.B; this._setLogicFlags(false); this.tstates += 4; return 4; }
+      case 0xB1: { this.A |= this.C; this._setLogicFlags(false); this.tstates += 4; return 4; }
+      case 0xB2: { this.A |= this.D; this._setLogicFlags(false); this.tstates += 4; return 4; }
+      case 0xB3: { this.A |= this.E; this._setLogicFlags(false); this.tstates += 4; return 4; }
+      case 0xB4: { this.A |= this.H; this._setLogicFlags(false); this.tstates += 4; return 4; }
+      case 0xB5: { this.A |= this.L; this._setLogicFlags(false); this.tstates += 4; return 4; }
       // 0xB6 is OR (HL)
 
       // ADD A,n -> 0xC6
@@ -1067,19 +1000,14 @@ export class Z80 {
 
       // OR n -> 0xF6
       case 0xF6: {
-        const n = this.readByteFromPC(); this.A |= n; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04; this.tstates += 7; return 7;
+        const n = this.readByteFromPC(); this.A |= n; this._setLogicFlags(false); this.tstates += 7; return 7;
       }
 
       // XOR n -> 0xEE
       case 0xEE: {
         const n = this.readByteFromPC();
         this.A ^= n;
-        this._setFlagZ(this.A);
-        this._setFlagS(this.A);
-        this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0);
-        this.F &= ~0x10; // H = 0
-        this.F &= ~0x02; // N = 0
-        this._setFlagC(false);
+        this._setLogicFlags(false);
         this.tstates += 7; return 7;
       }
 
@@ -1095,12 +1023,7 @@ export class Z80 {
       }
       case 0xA7: { // AND A - NOTE: Must clear C flag and N flag, set H flag
         this.A &= this.A; 
-        this._setFlagZ(this.A); 
-        this._setFlagS(this.A); 
-        this._setFlagPV(((this.A.toString(2).match(/1/g)||[]).length % 2) === 0); // Parity
-        this._setFlagH(true);   // H is set
-        this.F &= ~0x02;        // N = 0
-        this._setFlagC(false);  // C = 0 (CRITICAL for ROM boot!)
+        this._setLogicFlags(true);
         this.tstates += 4; return 4; 
       }
 
@@ -1326,14 +1249,7 @@ export class Z80 {
       case 0xE6: { // AND n
         const n = this.readByteFromPC();
         this.A = (this.A & n) & 0xFF;
-        this._setFlagZ(this.A);
-        this._setFlagS(this.A);
-        // parity: even parity => PV = true
-        const bits = (this.A.toString(2).match(/1/g) || []).length;
-        this._setFlagPV((bits % 2) === 0);
-        this._setFlagH(true);
-        this.F &= ~0x02; // N = 0
-        this._setFlagC(false);
+        this._setLogicFlags(true);
         this.tstates += 7; return 7;
       }
 
@@ -1782,14 +1698,14 @@ export class Z80 {
       // AND A,(HL) -> 0xA6
       case 0xA6: {
         const v = this.readByte(this._getHL());
-        this.A &= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F |= 0x10; this.F &= ~0x04;
+        this.A &= v; this._setLogicFlags(true);
         this.tstates += 7; return 7;
       }
 
       // OR A,(HL) -> 0xB6
       case 0xB6: {
         const v = this.readByte(this._getHL());
-        this.A |= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
+        this.A |= v; this._setLogicFlags(false);
         this.tstates += 7; return 7;
       }
 
@@ -2008,8 +1924,15 @@ export class Z80 {
       // CPL - Complement A (0x2F)
       case 0x2F: { // CPL - Complement accumulator
         this.A = (~this.A) & 0xFF;
+        this.F = (this.F & ~0x28) | (this.A & 0x28); // undocumented bits 3/5 from result
         this.F |= 0x10; // H = 1
         this.F |= 0x02; // N = 1
+        this.tstates += 4; return 4;
+      }
+
+      // DAA - Decimal Adjust Accumulator (0x27)
+      case 0x27: {
+        this._daa();
         this.tstates += 4; return 4;
       }
 
@@ -2217,7 +2140,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A &= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F |= 0x10; this.F &= ~0x04;
+            this.A &= v; this._setLogicFlags(true);
             this.tstates += 19; return 19;
           }
           
@@ -2226,7 +2149,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A |= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
+            this.A |= v; this._setLogicFlags(false);
             this.tstates += 19; return 19;
           }
           
@@ -2235,7 +2158,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IX + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A ^= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
+            this.A ^= v; this._setLogicFlags(false);
             this.tstates += 19; return 19;
           }
           
@@ -2497,7 +2420,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A &= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F |= 0x10; this.F &= ~0x04;
+            this.A &= v; this._setLogicFlags(true);
             this.tstates += 19; return 19;
           }
           
@@ -2506,7 +2429,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A |= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
+            this.A |= v; this._setLogicFlags(false);
             this.tstates += 19; return 19;
           }
           
@@ -2515,7 +2438,7 @@ export class Z80 {
             const d = this.readByte(this.PC++);
             const addr = (this.IY + this._signedByte(d)) & 0xFFFF;
             const v = this.readByte(addr);
-            this.A ^= v; this._setFlagZ(this.A); this._setFlagS(this.A); this.F &= ~0x10; this.F &= ~0x04;
+            this.A ^= v; this._setLogicFlags(false);
             this.tstates += 19; return 19;
           }
           
@@ -2961,14 +2884,7 @@ export class Z80 {
             const result = ((memVal << 4) | aLow) & 0xFF;
             this.writeByte(hl, result);
             this.A = (this.A & 0xF0) | ((memVal >> 4) & 0x0F);
-            this._setFlagS(this.A);
-            this._setFlagZ(this.A);
-            this._setFlagH(false);
-            // Set parity flag
-            const ones = this.A.toString(2).split('1').length - 1;
-            this._setFlagPV((ones % 2) === 0);
-            this.F &= ~0x02; // N = 0
-            // C flag unchanged
+            this.F = (this.F & 0x01) | this._sz53pTable[this.A];
             this.tstates += 18; return 18;
           }
 
@@ -2980,14 +2896,7 @@ export class Z80 {
             const result = ((aLow << 4) | ((memVal >> 4) & 0x0F)) & 0xFF;
             this.writeByte(hl, result);
             this.A = (this.A & 0xF0) | (memVal & 0x0F);
-            this._setFlagS(this.A);
-            this._setFlagZ(this.A);
-            this._setFlagH(false);
-            // Set parity flag
-            const ones = this.A.toString(2).split('1').length - 1;
-            this._setFlagPV((ones % 2) === 0);
-            this.F &= ~0x02; // N = 0
-            // C flag unchanged
+            this.F = (this.F & 0x01) | this._sz53pTable[this.A];
             this.tstates += 18; return 18;
           }
 
@@ -3149,17 +3058,15 @@ export class Z80 {
             const hl = this._getHL();
             this.writeByte(hl, val);
             this.B = (this.B - 1) & 0xFF;
-            // INI/INIR increment HL; IND/INDR decrement HL
-            if (edOpcode === 0xA2 || edOpcode === 0xB2) {
-              this._setHL((hl + 1) & 0xFFFF);
-            } else {
-              this._setHL((hl - 1) & 0xFFFF);
-            }
-            // Z flag set if B becomes 0; N = 1
-            this._setFlagZ(this.B);
-            this.F |= 0x02; // N = 1
+            const inc = (edOpcode === 0xA2 || edOpcode === 0xB2);
+            this._setHL(inc ? (hl + 1) & 0xFFFF : (hl - 1) & 0xFFFF);
+            // Flag computation per Sean Young's "Undocumented Z80"
+            const k = val + ((this.C + (inc ? 1 : -1)) & 0xFF);
+            this.F = this._sz53Table[this.B]; // S, Z, bits 5/3 from B
+            if (val & 0x80) this.F |= 0x02;  // N = bit 7 of input byte
+            if (k > 255) this.F |= 0x11;     // H and C from overflow
+            this.F |= this._parityTable[(k & 0x07) ^ this.B]; // P/V
             let cycles = 16;
-            // Repeat variants loop while B != 0
             if ((edOpcode === 0xB2 || edOpcode === 0xBA) && this.B !== 0) {
               this.PC = (this.PC - 2) & 0xFFFF;
               cycles += 5;
@@ -3178,17 +3085,15 @@ export class Z80 {
             if (this.io && typeof this.io.write === 'function') {
               try { this.io.write(port, val, this.tstates); } catch(_e) { /* ignore */ }
             }
-            // OUTI/OTIR increment HL; OUTD/OTDR decrement HL
-            if (edOpcode === 0xA3 || edOpcode === 0xB3) {
-              this._setHL((hl + 1) & 0xFFFF);
-            } else {
-              this._setHL((hl - 1) & 0xFFFF);
-            }
-            // Z flag set if B becomes 0; N = 1
-            this._setFlagZ(this.B);
-            this.F |= 0x02; // N = 1
+            const inc = (edOpcode === 0xA3 || edOpcode === 0xB3);
+            this._setHL(inc ? (hl + 1) & 0xFFFF : (hl - 1) & 0xFFFF);
+            // Flag computation per Sean Young's "Undocumented Z80"
+            const k = val + this.L; // L is already updated
+            this.F = this._sz53Table[this.B]; // S, Z, bits 5/3 from B
+            if (val & 0x80) this.F |= 0x02;  // N = bit 7 of output byte
+            if (k > 255) this.F |= 0x11;     // H and C from overflow
+            this.F |= this._parityTable[(k & 0x07) ^ this.B]; // P/V
             let cycles = 16;
-            // Repeat variants loop while B != 0
             if ((edOpcode === 0xB3 || edOpcode === 0xBB) && this.B !== 0) {
               this.PC = (this.PC - 2) & 0xFFFF;
               cycles += 5;

@@ -20,6 +20,10 @@ export class Loader {
       return this.parseZ80(buffer);
     }
 
+    if (ext === 'sna') {
+      return this.parseSNA(buffer);
+    }
+
     if (ext === 'tap') {
       return this.parseTAP(buffer);
     }
@@ -472,34 +476,89 @@ export class Loader {
    * This parser defensively extracts the last 48K as RAM and reads SP when
    * available. It keeps parsing simple and forgiving.
    */
+  /**
+   * Parse .sna snapshot files (48K and 128K).
+   *
+   * 48K format (49179 bytes): 27-byte header + 48K RAM.
+   *   PC is recovered by popping the stack (standard convention).
+   *
+   * 128K format (131103 or 147487 bytes): 27-byte header + 48K RAM +
+   *   PC (2 bytes) + port 0x7FFD value (1 byte) + TR-DOS flag (1 byte) +
+   *   remaining 16K RAM pages.
+   *
+   * @param {ArrayBuffer} arrayBuffer - Raw .sna file contents
+   * @returns {{ rom: null, snapshot: { ram: Uint8Array|null, registers: Object } }}
+   */
   static parseSNA(arrayBuffer) {
     const buf = new Uint8Array(arrayBuffer);
     const len = buf.length;
-    const RAM_SIZE = 48 * 1024;
+    const HEADER_SIZE = 27;
+    const RAM_48K = 48 * 1024;
 
-    let ramImage = null;
-    if (len >= RAM_SIZE) {
-      ramImage = buf.subarray(len - RAM_SIZE, len);
+    if (len < HEADER_SIZE + RAM_48K) {
+      return { rom: null, snapshot: { ram: null, registers: {} } };
     }
 
+    const dv = new DataView(arrayBuffer);
     const regs = {};
-    try {
-      const dv = new DataView(arrayBuffer);
-      // SP in many .sna variants is stored at offsets 0x1A-0x1B (little-endian)
-      if (len >= 0x1C) {
-        regs.SP = dv.getUint16(0x1A, true);
+
+    // 27-byte SNA header — fixed offsets per standard specification
+    regs.I = dv.getUint8(0);
+    regs.L2 = dv.getUint8(1);   // L'
+    regs.H2 = dv.getUint8(2);   // H'
+    regs.E2 = dv.getUint8(3);   // E'
+    regs.D2 = dv.getUint8(4);   // D'
+    regs.C2 = dv.getUint8(5);   // C'
+    regs.B2 = dv.getUint8(6);   // B'
+    regs.F2 = dv.getUint8(7);   // F'
+    regs.A2 = dv.getUint8(8);   // A'
+    regs.L = dv.getUint8(9);
+    regs.H = dv.getUint8(10);
+    regs.E = dv.getUint8(11);
+    regs.D = dv.getUint8(12);
+    regs.C = dv.getUint8(13);
+    regs.B = dv.getUint8(14);
+    regs.IY = dv.getUint16(15, true);
+    regs.IX = dv.getUint16(17, true);
+    const iffByte = dv.getUint8(19);
+    regs.IFF2 = !!(iffByte & 0x04);
+    regs.IFF1 = regs.IFF2;       // SNA only stores IFF2; IFF1 mirrors it
+    regs.R = dv.getUint8(20);
+    regs.F = dv.getUint8(21);
+    regs.A = dv.getUint8(22);
+    regs.SP = dv.getUint16(23, true);
+    regs.IM = dv.getUint8(25) & 0x03;
+    regs.borderColor = dv.getUint8(26) & 0x07;
+
+    // RAM: 48K starting at offset 27
+    const ramImage = new Uint8Array(RAM_48K);
+    ramImage.set(buf.subarray(HEADER_SIZE, HEADER_SIZE + RAM_48K));
+
+    const is128K = len > HEADER_SIZE + RAM_48K + 4;
+
+    if (is128K) {
+      // 128K SNA: PC and port 0x7FFD follow the 48K block
+      const extOffset = HEADER_SIZE + RAM_48K;
+      regs.PC = dv.getUint16(extOffset, true);
+      regs.pagingFlags = dv.getUint8(extOffset + 2);
+    } else {
+      // 48K SNA: PC must be popped from the stack
+      const spOff = regs.SP - 0x4000; // offset into RAM (RAM starts at 0x4000)
+      if (spOff >= 0 && spOff + 1 < RAM_48K) {
+        regs.PC = ramImage[spOff] | (ramImage[spOff + 1] << 8);
+        regs.SP = (regs.SP + 2) & 0xFFFF;
+        // Clear the popped bytes to match real hardware behaviour
+        ramImage[spOff] = 0;
+        ramImage[spOff + 1] = 0;
+      } else {
+        regs.PC = 0;
       }
-      // Some variants include I and R at offsets 0x00 and 0x11 (best-effort)
-      if (len >= 1) regs.I = dv.getUint8(0x00);
-      if (len >= 0x12) regs.R = dv.getUint8(0x11);
-    } catch (e) {
-      // ignore parsing errors
     }
 
     return {
       rom: null,
       snapshot: {
-        ram: ramImage ? new Uint8Array(ramImage) : null,
+        ram: ramImage,
         registers: regs
       }
     };
