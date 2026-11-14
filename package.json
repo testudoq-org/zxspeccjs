@@ -42,8 +42,8 @@
         "http-server": "^14.1.1",
         "husky": "^8.0.0",
         "jsdom": "^28.0.0",
-        "rollup": "^3.26.3",
-        "vitest": "^4.1.12"
+        "rollup": "^3.30.0",
+        "vitest": "^5.1.0"
     },
     "dependencies": {
         "pngjs": "^7.0.0"
