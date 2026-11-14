@@ -37,13 +37,13 @@
         "@rollup/plugin-commonjs": "^24.0.1",
         "@rollup/plugin-node-resolve": "^15.0.1",
         "@rollup/plugin-terser": "^1.0.2",
-        "@vitest/coverage-v8": "^4.0.18",
+        "@vitest/coverage-v8": "^4.1.12",
         "eslint": "^8.57.1",
         "http-server": "^14.1.1",
         "husky": "^8.0.0",
         "jsdom": "^28.0.0",
         "rollup": "^3.26.3",
-        "vitest": "^4.0.18"
+        "vitest": "^4.1.12"
     },
     "dependencies": {
         "pngjs": "^7.0.0"
